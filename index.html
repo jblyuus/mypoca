@@ -383,18 +383,43 @@ nav button.on{background:none;box-shadow:none}
 @keyframes goShift{0%{background-position:0% 50%}100%{background-position:100% 50%}}
 @keyframes goGlow{0%,100%{box-shadow:0 0 6px color-mix(in srgb,var(--g2) 75%,transparent),inset 0 1px 0 rgba(255,255,255,.65),inset 0 -6px 10px rgba(0,0,0,.18)}50%{box-shadow:0 0 15px 2px color-mix(in srgb,var(--g2) 90%,transparent),inset 0 1px 0 rgba(255,255,255,.65),inset 0 -6px 10px rgba(0,0,0,.18)}}
 @media(prefers-reduced-motion:reduce){.gotab.go,.gotag,.gochip,.gotab.go::after,.gotag::after,.gochip::after,.gotab i,.gochip i{animation:none}.gotab i,.gochip i{display:none}}
+
+/* ===== Barra de artistas / units ===== */
+.arbar{display:flex;align-items:flex-start;gap:10px;margin:4px 0 12px}
+.arcfg{flex:none;width:52px;height:52px;border-radius:50%;border:1px solid var(--gb);padding:0;background:color-mix(in srgb,var(--card) 60%,transparent);color:var(--mu);display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.arcfg svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.arrow{display:flex;gap:12px;overflow-x:auto;flex:1;min-width:0;padding:2px 3px 4px;scrollbar-width:none}.arrow::-webkit-scrollbar{display:none}
+.arhint{align-self:center;color:var(--mu);font-size:13px}
+.ari{flex:none;width:58px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.arc{position:relative;width:52px;height:52px;min-width:52px;aspect-ratio:1/1;box-sizing:border-box;flex:none;border-radius:50%;padding:3px;border:2px solid var(--bd);background:color-mix(in srgb,var(--card) 60%,transparent);overflow:visible;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:26px;line-height:1}
+.arp{display:block;position:absolute;left:3px;top:3px;right:3px;bottom:3px;border-radius:50%;background-size:cover;background-position:center;background-repeat:no-repeat;flex:none;font-style:normal}
+.arc.empty{border-style:dashed;border-color:var(--mu);background:transparent}
+.ari.on .arc{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 28%,transparent)}
+.arc u{position:absolute;right:-3px;bottom:-3px;min-width:16px;height:16px;border-radius:8px;background:var(--ac);color:#fff;font:700 9px/16px Outfit,sans-serif;text-decoration:none;text-align:center;padding:0 4px}
+.ari span{max-width:58px;font-size:11px;color:var(--mu);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.ari.on span{color:var(--tx);font-weight:600}
+.arc.sm{width:46px;height:46px;min-width:46px;aspect-ratio:1/1;flex:none;font-size:22px}
+.arh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 4px}.arh b{font-size:16px}
+.amr{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--bd)}
+.amr input{width:100%;padding:6px 8px}
+.amr .grow{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.amr .ch.kd{padding:2px 10px;font-size:11px}.amk{display:flex;gap:6px;align-items:center;width:100%}.amr .amg{width:auto;flex:1;min-width:0;padding:3px 6px;font-size:13px!important;border-radius:14px}
+.amb{display:flex;gap:4px;flex:none}.amb .sec{padding:6px 9px!important;min-width:32px}
+.ch.dl{border-color:#d6336c;color:#d6336c;background:color-mix(in srgb,#d6336c 10%,transparent)}
+.pkdbtn{background:none;border:0;color:var(--mu);font:inherit;font-size:12px;text-decoration:underline;padding:4px 2px;margin:2px 0 0}.pkdbtn.on{color:#d6336c;font-weight:600}
 </style></head><body><div class="bgfx"><i></i><i></i><i></i></div>
 <header><h1 id="ttl">Mis pedidos</h1><div style="display:flex;gap:10px;align-items:center"><button id="bell" class="avb bell" aria-label="Notificaciones" onclick="openNotifs()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span id="bb" class="bbadge"></span></button><button id="av" class="avb" aria-label="Perfil" onclick="go('perfil')"></button></div></header>
 <main id="v"></main>
 <button class="pri fab" id="fab" onclick="add()">+</button>
 <nav id="nav"></nav>
+<input type="file" id="arfile" accept="image/*" hidden onchange="arFile(this)">
 <div id="wel"></div><div id="intro"></div>
 <div id="pubp"></div>
 <div id="modal" onclick="if(event.target==this)closeM()"><div id="sheet"></div></div>
 <script>
 const KEY="pedidos-v1",PAISES=["Corea","Japón","México","Pocamarket","Otro"],TIPOS=["PC","Álbum","Otro","Papelería"],
 ESTADOS=["Pendiente","Comprado","En dirección KR","En dirección JP","En camino","En México","En casa"];
-let S={items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},tab="ped",cur=null,img="",gf="",gof="",anim=true;
+let S={items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},tab="ped",cur=null,img="",gf="",gof="",af="",anim=true;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 function mig(){if(!S.theme||!S.theme.chosen)S.theme=Object.assign({},S.theme,{mode:(S.theme&&S.theme.mode)||"auto",color:"base"});(S.items||[]).forEach(i=>{if(i.status=="En aduana")i.status="En México"})}mig();
 function save(noTs){if(!noTs)S._ts=Date.now();let ls=1;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ls=0;if(imgOn()&&!imgBusy&&imgHas())imgSync(true);else alert("No se pudo guardar: probablemente hay demasiadas imágenes."+(imgOn()?"":" Inicia sesión para guardarlas en la nube.")+" Exporta un respaldo.")}if(!noTs){schedPush();schedPub();if(ls)imgSched()}}
@@ -404,7 +429,7 @@ const ic=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
 const TABS=[["ped",ic('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),"Pedidos"],["book",ic('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),"Collect Book"],["sin",ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),"Sin caja"],["gas",ic('<path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h16V9H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/>'),"Gastos"]];
 function go(t){if(t=="book")bsec=null;tab=t;anim=true;render()}
 function thumb(i){return i.img?`<img class="th" src="${i.img}">`:`<div class="th"></div>`}
-function itemRow(i){return `<div class="row"><div onclick="view('${i.id}')">${thumb(i)}</div><div class="grow" onclick="view('${i.id}')"><div class="nm">${esc(i.name)}</div><div class="mu tags"><span class="tag">${i.type}</span>${goTag(i,"tag")}${i.grupo?`<span class="tag">${esc(i.grupo)}</span>`:""}${(i.tags||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")}${i.price?money(i.price):""}</div></div>
+function itemRow(i){return `<div class="row"><div onclick="view('${i.id}')">${thumb(i)}</div><div class="grow" onclick="view('${i.id}')"><div class="nm">${esc(i.name)}</div><div class="mu tags"><span class="tag">${i.type}</span>${goTag(i,"tag")}${i.grupo?`<span class="tag">${esc(i.grupo)}</span>`:""}${i.artist&&arName(i.artist)?`<span class="tag">${esc(arName(i.artist))}</span>`:""}${i.unit&&arName(i.unit)?`<span class="tag">${esc(arName(i.unit))}</span>`:""}${(i.tags||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")}${i.price?money(i.price):""}</div></div>
 <select style="width:146px" onchange="setSt('${i.id}',this.value)">${ESTADOS.map(e=>`<option ${e==i.status?"selected":""}>${e}</option>`).join("")}</select></div>`}
 TABS[1][2]="Collect";TABS.splice(2,0,["wish",ic('<path d="M12 20.5s-8-5-8-10.7A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8 2.8c0 5.7-8 10.7-8 10.7z"/>'),"Wishlist"]);
 TABS.splice(4,0,["env",ic('<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/>'),"Envíos"]);
@@ -458,17 +483,17 @@ function goForm(id){if(!isAdmin())return;const g=id&&GOSOC.find(x=>x.id==id)||nu
 async function goSave(){const n=$("gf_n").value.trim();if(!n)return alert("Escribe el nombre del GO.");const id=GF||"go"+Date.now().toString(36);
   try{await api("POST","gos_socios?on_conflict=id",[{id,name:n.slice(0,60),gom:$("gf_g").value.trim().slice(0,60),info:$("gf_i").value.trim().slice(0,1500)}],{Prefer:"resolution=merge-duplicates,return=minimal"});await goMgr(GOB);toast("GO socio guardado")}catch(e){alert("No se pudo guardar: "+sqlGo(e.message))}}
 async function goDel(){if(!GF||!confirm("¿Borrar este GO socio?"))return;try{await api("DELETE","gos_socios?id=eq."+encodeURIComponent(GF));await goMgr(GOB);toast("GO socio borrado")}catch(e){alert("No se pudo borrar: "+sqlGo(e.message))}}
-function setG(k){gf=k<0?"":grupos()[k];render()}
-function chips(){const g=grupos();if(!g.length)return"";return `<div class="chips"><button class="${gf?"":"on"}" onclick="setG(-1)">Todos</button>${g.map((x,k)=>`<button class="${x==gf?"on":""}" onclick="setG(${k})">${esc(x)}</button>`).join("")}</div>`}
+function setG(k){gf=k<0?"":allG()[k];render()}
+function chips(){const g=allG();if(!g.length)return"";return `<div class="chips"><button class="${gf?"":"on"}" onclick="setG(-1)">Todos</button>${g.map((x,k)=>`<button class="${x==gf?"on":""}" onclick="setG(${k})">${esc(x)}</button>`).join("")}</div>`}
 function setSt(id,v){S.items.find(i=>i.id==id).status=v;save();if(v=="En casa"){const r=document.activeElement&&document.activeElement.closest?document.activeElement.closest(".row"):null,fin=()=>{render();toast("Movido a tu Colección")};if(r&&!RM()&&r.animate){r.style.overflow="hidden";r.animate([{opacity:1,transform:"none",maxHeight:r.offsetHeight+"px"},{opacity:0,transform:"translateX(48px)",maxHeight:"0px",paddingTop:"0px",paddingBottom:"0px"}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).onfinish=fin}else fin()}}
 function setCh(k,f,v){S.boxes[k]=S.boxes[k]||{};S.boxes[k][f]=parseFloat(v)||0;save()}
-function render(){
+function render(){afFix();
  $("nav").innerHTML=TABS.map(t=>`<button class="${t[0]==tab?"on":""}" onclick="go('${t[0]}')">${t[1]}<span>${t[2]}</span></button>`).join("");
  $("ttl").textContent=tab=="perfil"?"Perfil":tab=="book"?"Collect Book":TABS.find(t=>t[0]==tab)[2];$("fab").style.display=(tab=="perfil"||(tab=="book"&&!bsec))?"none":"";{const p=S.profile||{};$("av").innerHTML=p.photo?`<img src="${p.photo}">`:`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>`}
- let h="";
+ let h="",hh="";
  if(tab=="ped"){
   const pt=PAISES.filter(p=>p!="Otro"||S.items.some(i=>i.country=="Otro"));if(!pt.includes(ptab))ptab=pt[0];
-  const direct=p=>p=="México"||p=="Pocamarket",base=S.items.filter(i=>!home(i)&&(direct(i.country)||i.box)&&(!gf||i.grupo==gf)&&(!gof||i.go==gof));
+  const direct=p=>p=="México"||p=="Pocamarket",base=S.items.filter(i=>!home(i)&&(direct(i.country)||i.box)&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   h=`<div class="seg">${pt.map(p=>`<button class="${p==ptab?"on":""}" onclick="setP('${p}')">${p} <small>${base.filter(i=>i.country==p).length}</small></button>`).join("")}</div>`;
   const its=base.filter(i=>i.country==ptab);
   if(!its.length)h+=`<div class="empty">Aún no hay pedidos de ${ptab}.<br>Toca + para agregar el primero.</div>`;
@@ -480,18 +505,18 @@ function render(){
   h=`<div class="hub"><button onclick="setS('ped')">${ic('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>')}<b>Pedidos</b><span>${np} por llegar</span></button><button onclick="setS('col')">${ic('<rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/><path d="M13.5 8.5l1.1 2.2 2.4.35-1.75 1.7.4 2.4-2.15-1.15-2.15 1.15.4-2.4-1.75-1.7 2.4-.35z"/>')}<b>Colección</b><span>${nc} en casa</span></button></div>`;
  }
  if(tab=="book"&&bsec){
-  const col=bsec=="col",prod=btab=="prod",base=col?ev().filter(home):ev().filter(i=>!i.manual&&!home(i)),list=base.filter(i=>(prod?i.type!="PC":i.type=="PC")&&(!gf||i.grupo==gf)&&(!gof||i.go==gof));
+  const col=bsec=="col",prod=btab=="prod",base=col?ev().filter(home):ev().filter(i=>!i.manual&&!home(i)),list=base.filter(i=>(prod?i.type!="PC":i.type=="PC")&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   const cell=i=>`<div data-id="${i.id}" onclick="${i.manual?"viewC":"view"}('${i.id}')">${i.img?`<img src="${i.img}">`:`<img alt="">`}<div class="ctags">${goTag(i,"ctag")}${(prod&&!i.manual?[i.type,...(i.tags||[])]:(i.tags||[])).map(g=>`<span class="ctag" style="${tcol(g)}">${esc(g)}</span>`).join("")}</div>${i.name?`<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>`:""}${col?"":`<div class="stt"><i style="background:${SC[i.status]||"#999"}"></i>${i.status}</div>`}</div>`;
-  h=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="setS(null)">‹ Volver</button><b>${col?"Colección":"Pedidos"}</b></div><div class="seg"><button class="${prod?"":"on"}" onclick="setB('pcs')">Photocards</button><button class="${prod?"on":""}" onclick="setB('prod')">Artículos</button></div><div class="mu" style="display:flex;justify-content:space-between;align-items:center">${list.length} ${prod?"productos":"photocards"}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`;
+  hh=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="setS(null)">‹ Volver</button><b>${col?"Colección":"Pedidos"}</b></div>`;h=`<div class="seg"><button class="${prod?"":"on"}" onclick="setB('pcs')">Photocards</button><button class="${prod?"on":""}" onclick="setB('prod')">Artículos</button></div><div class="mu" style="display:flex;justify-content:space-between;align-items:center">${list.length} ${prod?"productos":"photocards"}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`;
   const emp=col?(prod?"Tu colección de artículos está vacía.<br>Toca + para agregar el primero.":"Tu colección de photocards está vacía.<br>Toca + y toma una foto de tu primera photocard."):(prod?"Agrega álbumes y otros productos con foto y aparecerán aquí.":"Agrega photocards con foto y aparecerán aquí.");
   h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>`<h2>${esc(g)}</h2><div class="grid${prod?" prod":""}" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`).join(""):`<div class="empty">${emp}</div>`;
  }
  if(tab=="sin"){
-  const s=S.items.filter(i=>!home(i)&&!i.box&&!["México","Pocamarket"].includes(i.country)&&(!gf||i.grupo==gf)&&(!gof||i.go==gof));
+  const s=S.items.filter(i=>!home(i)&&!i.box&&!["México","Pocamarket"].includes(i.country)&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   h=`<div class="mu">Artículos que aún no tienen caja asignada (preventas, sin fecha, etc.). Edítalos para asignar caja.</div><div class="card">${s.length?s.map(itemRow).join(""):`<div class="empty">Nada pendiente por asignar.</div>`}</div>`;
  }
  if(tab=="wish"){
-  const m=wtab=="misc",w=S.wish.filter(i=>((i.kind||"pc")==(m?"misc":"pc"))&&(!gf||i.grupo==gf));
+  const m=wtab=="misc",w=S.wish.filter(i=>((i.kind||"pc")==(m?"misc":"pc"))&&(!gf||i.grupo==gf)&&afm(i));
   const cell=i=>`<div data-id="${i.id}" onclick="viewW('${i.id}')">${i.img?`<img src="${i.img}">`:`<img alt="">`}<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>${i.det?`<div class="mu" style="text-align:center">${esc(i.det)}</div>`:""}</div>`;
   h=`<div class="seg"><button class="${m?"":"on"}" onclick="setW('pc')">Photocards</button><button class="${m?"on":""}" onclick="setW('misc')">Artículos varios</button></div>`;
   h+=w.length?`<div class="mu" style="display:flex;justify-content:space-between;align-items:center">${w.length} deseado${w.length>1?"s":""}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`+ordG([...new Set(w.map(i=>i.grupo||"Sin grupo"))]).map(g=>`<h2>${esc(g)}</h2><div class="grid${m?" prod":""}" data-drag="w">${w.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`).join(""):`<div class="empty">${m?"Tu wishlist de artículos está vacía.<br>Toca + para agregar álbumes o mercancía que deseas.":"Tu wishlist de photocards está vacía.<br>Toca + para agregar una photocard que deseas."}</div>`;
@@ -530,10 +555,10 @@ function render(){
   <h2>Por tipo de pedido</h2><div class="card">${PAISES.map(p=>`<div class="kv"><span>${p}</span><b>${money(S.items.filter(i=>i.country==p).reduce((a,i)=>a+(+i.price||0),0))}</b></div>`).join("")}</div>
   <h2>Respaldo</h2><div class="card"><button class="sec" onclick="exp()">Exportar respaldo</button> <button class="sec" onclick="$('imp').click()">Importar</button><input type="file" id="imp" accept=".json" hidden onchange="imp(this.files[0])"><div class="mu" style="margin-top:6px">Los datos se guardan en este navegador. Exporta un respaldo de vez en cuando.</div></div>`;
  }
- if(tab!="gas"&&tab!="perfil"&&!(tab=="book"&&!bsec))h=(["ped","sin","book"].includes(tab)?gochips():"")+chips()+h;
+ if(tab!="gas"&&tab!="perfil"&&!(tab=="book"&&!bsec))h=hh+(["ped","sin","book"].includes(tab)?gochips():"")+chips()+artBar()+h;
  $("v").innerHTML=h;$("v").className=anim?"in":"";anim=false;
 }
-function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",type:"PC",country:(tab=="ped"?ptab:"Corea"),box:"",status:"Pendiente",price:"",img:""};img=i.img||"";fG=i.grupo||"";fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
+function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",type:"PC",country:(tab=="ped"?ptab:"Corea"),box:"",status:"Pendiente",price:"",img:""};img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
  const ch=(f,l,v)=>`<input type="hidden" id="${f}" value="${esc(v)}"><div class="pick">${l.map(x=>`<button type="button" class="ch ${x==v?"on":""}" data-v="${esc(x)}" onclick="setF('${f}',this)">${esc(x)}</button>`).join("")}</div>`;
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nuevo"} artículo</h3>
  <label class="up"><input type="file" accept="image/*" hidden onchange="pick(this.files[0])"><div id="pv" class="pvbox">${img?`<img class="pvimg" src="${img}">`:`<span>＋ Agregar foto</span>`}</div></label>
@@ -542,28 +567,38 @@ function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",ty
  <div class="fs"><label>Qué es</label>${ch("f_t",TIPOS,i.type)}</div>
  <div class="fs"><label>Tipo de pedido</label>${ch("f_c",PAISES,i.country)}<div id="boxw" style="${["México","Pocamarket"].includes(i.country)?"display:none":""}"><label>Caja</label><input id="f_b" value="${esc(i.box)}" inputmode="numeric" placeholder="Vacío = sin caja asignada"></div></div>
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
+ <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
+ <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
   <div class="fs"><label>GO (group order)</label><div id="pw_o">${goPickHtml()}</div></div>
  <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
  <div class="fs row2"><div><label>Estado</label><select id="f_s">${ESTADOS.map(e=>`<option ${e==i.status?"selected":""}>${e}</option>`).join("")}</select></div><div><label>Precio</label><input id="f_p" type="number" inputmode="decimal" value="${i.price||""}" placeholder="0"></div></div>
  <div class="fs"><label>Notas</label><textarea id="f_d" rows="2">${esc(i.det)}</textarea></div>
  <div class="fbar"><button class="pri" onclick="ok()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" style="margin-left:auto" onclick="del()">Borrar</button>`:""}</div></div>`)}
 function setF(f,b){$(f).value=b.dataset.v;[...b.parentElement.children].forEach(x=>x.classList.toggle("on",x==b));if(f=="f_c")$("boxw").style.display=["México","Pocamarket"].includes(b.dataset.v)?"none":""}
-let fG="",fT=[];const PH={g:"Nuevo grupo",t:"Nuevo tag (ej. Weverse POB)"};
+let fG="",fT=[],fA="",fU="",pkDel={};const PH={g:"Nuevo grupo",t:"Nuevo tag (ej. Weverse POB)",a:"Nuevo artista",u:"Nuevo unit"},LB={g:"grupos",t:"tags",a:"artistas",u:"units"};
 const allG=()=>ordG([...new Set([...(S.glist||[]),...grupos()])]);
 const allT=()=>[...new Set([...(S.tlist||[]),...S.items.concat(S.col||[]).flatMap(i=>i.tags||[])])].sort();
-function pickHtml(k){const sel=k=="g"?[fG]:fT,l=k=="g"?allG():allT();return `<div class="pick">${l.map((x,n)=>`<button type="button" class="ch ${sel.includes(x)?"on":""}" onclick="pickC('${k}',${n})">${esc(x)}</button>`).join("")}</div><div class="addr"><input id="nw_${k}" placeholder="${PH[k]}"><button type="button" class="sec" onclick="addC('${k}')">+</button></div>`}
-function rp(k){$("pw_"+k).innerHTML=pickHtml(k)}
-function pickC(k,n){const x=(k=="g"?allG():allT())[n];if(k=="g")fG=fG==x?"":x;else fT=fT.includes(x)?fT.filter(y=>y!=x):[...fT,x];rp(k)}
-function addC(k){const el=$("nw_"+k),v=el.value.trim();if(!v)return;const key=k=="g"?"glist":"tlist";S[key]=S[key]||[];if(!S[key].includes(v))S[key].push(v);if(k=="g")fG=v;else if(!fT.includes(v))fT.push(v);save();rp(k)}
+function pickHtml(k){const del=!!pkDel[k],mem=k=="a"||k=="u";let l;
+ if(mem){const kind=k=="a"?"artist":"unit";l=(fG?arList(fG,kind):[]).map(m=>({l:m.name,on:(k=="a"?fA:fU)==m.id}))}
+ else{const sel=k=="g"?[fG]:fT;l=(k=="g"?allG():allT()).map(x=>({l:x,on:sel.includes(x)}))}
+ if(mem&&!fG)return `<div class="mu" style="padding:4px 0 2px">Elige primero un grupo: los artistas y units pertenecen a un solo grupo.</div>`;
+ return `<div class="pick">${l.map((x,n)=>`<button type="button" class="ch ${x.on?"on":""}${del?" dl":""}" onclick="${del?"pkRm":"pickC"}('${k}',${n})">${esc(x.l)}${del?" ✕":""}</button>`).join("")}</div><div class="addr"><input id="nw_${k}" placeholder="${PH[k]}"><button type="button" class="sec" onclick="addC('${k}')">+</button></div>${l.length?`<button type="button" class="pkdbtn${del?" on":""}" onclick="pkTog('${k}')">${del?"Listo":"Eliminar "+LB[k]}</button>`:""}`}
+function rp(k){const e=$("pw_"+k);if(e)e.innerHTML=pickHtml(k)}
+function rpAll(){["g","a","u","t"].forEach(rp)}
+function pickC(k,n){if(k=="a"||k=="u"){const m=arList(fG,k=="a"?"artist":"unit")[n];if(!m)return;if(k=="a")fA=fA==m.id?"":m.id;else fU=fU==m.id?"":m.id;rp(k);return}
+ const x=(k=="g"?allG():allT())[n];if(k=="g"){fG=fG==x?"":x;fixMem();rp("g");rp("a");rp("u")}else{fT=fT.includes(x)?fT.filter(y=>y!=x):[...fT,x];rp(k)}}
+function addC(k){const el=$("nw_"+k),v=el.value.trim();if(!v)return;
+ if(k=="a"||k=="u"){if(!fG)return alert("Elige primero un grupo");const kind=k=="a"?"artist":"unit";let m=arList(fG,kind).find(x=>nrm(x.name)==nrm(v));if(!m){m={id:nid(),name:v,kind,group:fG,img:""};AR().push(m)}if(k=="a")fA=m.id;else fU=m.id;save();render();rp(k);return}
+ const key=k=="g"?"glist":"tlist";S[key]=S[key]||[];if(!S[key].includes(v))S[key].push(v);if(k=="g")fG=v;else if(!fT.includes(v))fT.push(v);save();rp(k);if(k=="g"){fixMem();rp("a");rp("u")}}
 const PEN='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 const hd=(n,c)=>`<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">${esc(n)}</h3><button class="sec" aria-label="Editar" onclick="${c}" style="padding:8px 10px">${PEN}</button></div>`;
 const kv=(a,b)=>b?`<div class="kv"><span>${a}</span><b>${esc(b)}</b></div>`:"";
 const pic=i=>i.img?`<img src="${i.img}" style="display:block;margin:10px auto;max-height:210px;max-width:62%;object-fit:contain;border-radius:12px">`:"";
 function view(id){if(dragBlock)return;const i=S.items.find(x=>x.id==id);if(!i)return;
- $("sheet").innerHTML='<div class="vw">'+hd(i.name,`edit('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Tipo",i.type)+kv("Tipo de pedido",i.country)+kv("Caja",(i.country=="México"||i.country=="Pocamarket")?"Sin caja (directo a casa)":i.box?"Caja "+i.box:"Sin asignar")+kv("Estado",i.status)+kv("Precio",i.price?money(i.price):"")+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
+ $("sheet").innerHTML='<div class="vw">'+hd(i.name,`edit('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Tipo",i.type)+kv("Tipo de pedido",i.country)+kv("Caja",(i.country=="México"||i.country=="Pocamarket")?"Sin caja (directo a casa)":i.box?"Caja "+i.box:"Sin asignar")+kv("Estado",i.status)+kv("Precio",i.price?money(i.price):"")+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
 function viewW(id){if(dragBlock)return;const i=S.wish.find(x=>x.id==id);if(!i)return;
- $("sheet").innerHTML='<div class="vw">'+hd(i.name,`editW('${i.id}')`)+pic(i)+kv("Grupo",i.grupo)+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',true)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
+ $("sheet").innerHTML='<div class="vw">'+hd(i.name,`editW('${i.id}')`)+pic(i)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',true)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
 const KN={mx:"Envío a México",adu:"Aduana",nac:"Envío nacional",ka:"Envío doméstico KA"},STAGES=["Preparando","Recolectado","En tránsito","En reparto","Entregado"];
 const CARR={"Estafeta":0,"DHL":g=>`https://www.dhl.com/mx-es/home/tracking.html?tracking-id=${g}`,"FedEx":g=>`https://www.fedex.com/fedextrack/?trknbr=${g}`,"UPS":g=>`https://www.ups.com/track?tracknum=${g}`,"Redpack":0,"Correos de México":0,"Paquetexpress":0,"J&T Express":0,"99minutos":0,"Otra":0};
@@ -898,18 +933,81 @@ function showLv(){const L=levelInfo();openM(`<div class="vw"><div class="lvhero"
  <h3 style="font-size:17px;margin-top:16px">Logros</h3><div class="agrid">${L.ach.map(a=>{const ok=a[1]>=a[2];return `<div class="atile ${ok?"ok":""}"><div class="aem">${lic(ok?a[4]:"lock")}</div><div class="an">${a[0]}</div><div class="xpb"><b style="width:${Math.min(100,a[1]/a[2]*100)}%"></b></div><small>${Math.min(a[1],a[2])}/${a[2]} · +${a[3]} XP</small></div>`}).join("")}</div>
  <div style="margin-top:16px"><button class="pri" onclick="closeM()">Cerrar</button></div></div>`)}
 function add(){tab=="wish"?editW():tab=="env"?editE():tab=="gas"?editC():tab=="book"&&bsec=="col"?editCol():edit()}
-function editW(id){cur=id?S.wish.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",det:"",img:""};img=i.img||"";fG=i.grupo||"";fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
+function editW(id){cur=id?S.wish.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",det:"",img:""};img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
  $("sheet").innerHTML=`<h3>${cur?"Editar":"Nuevo"} ${(cur?(cur.kind||"pc"):wtab)=="misc"?"artículo deseado":"photocard deseada"}</h3>
  <label>Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${(cur?(cur.kind||"pc"):wtab)=="misc"?"Álbum, mercancía…":"PC Sunoo Weverse Luckydraw"}">
  <label>Grupo</label><div id="pw_g">${pickHtml("g")}</div>
+ <label>Artista</label><div id="pw_a">${pickHtml("a")}</div>
+ <label>Unit</label><div id="pw_u">${pickHtml("u")}</div>
  <label>Detalles (álbum, regalo de preventa, etc.)</label><textarea id="w_d" rows="3">${esc(i.det)}</textarea>
  <label>Imagen</label><input type="file" accept="image/*" onchange="pick(this.files[0])"><div id="pv">${img?`<img class="th" style="margin-top:6px" src="${img}">`:""}</div><button type="button" class="sec" style="margin-top:8px" onclick="buscar(imgBig||img)">Buscar origen</button><div id="bres" class="mu"></div>
  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="pri" onclick="okW()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" onclick="toItem()">Ya la pedí</button><button class="sec" style="margin-left:auto" onclick="delW()">Borrar</button>`:""}</div>`;
  $("modal").classList.add("on")}
-function okW(){const n=$("w_n").value.trim();if(!n)return alert("Escribe un nombre");const o={name:n,grupo:fG,det:$("w_d").value.trim(),img,kind:cur?(cur.kind||"pc"):wtab};
+function okW(){const n=$("w_n").value.trim();if(!n)return alert("Escribe un nombre");const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),det:$("w_d").value.trim(),img,kind:cur?(cur.kind||"pc"):wtab};
  if(cur)Object.assign(cur,o);else S.wish.push(Object.assign({id:String(Date.now())},o));save();closeM();render()}
 function delW(){if(confirm("¿Borrar de la wishlist?")){S.wish=S.wish.filter(i=>i!==cur);save();closeM();render()}}
-function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,type:cur.kind=="misc"?"Otro":"PC",det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
+function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",type:cur.kind=="misc"?"Otro":"PC",det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
+
+/* ===== Artistas y units (cada uno pertenece a UN solo grupo) ===== */
+function AR(){return S.artists=S.artists||[]}
+function arById(id){return id?AR().find(a=>a.id==id):null}
+function arName(id){const a=arById(id);return a?a.name:""}
+function arList(g,kind){return AR().filter(a=>a.group==g&&(!kind||a.kind==kind))}
+function allItems(){return S.items.concat(S.col||[],S.wish||[])}
+function nid(){return "a"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function afm(i){return !af||i.artist==af||i.unit==af}
+function okM(id){const a=arById(id);return a&&a.group==fG?id:""}
+function fixMem(){if(fA&&!okM(fA))fA="";if(fU&&!okM(fU))fU=""}
+function afFix(){if(!af)return;const a=arById(af);if(!a||(gf&&a.group!=gf))af=""}
+/* eliminar grupos / tags / artistas desde los formularios */
+function pkTog(k){pkDel[k]=!pkDel[k];rp(k)}
+function pkRm(k,n){
+ if(k=="g"){const g=allG()[n];if(g==null)return;const c=allItems().filter(i=>i.grupo==g).length,na=AR().filter(a=>a.group==g).length;
+  if(!confirm('¿Eliminar el grupo "'+g+'"?'+(c?"\n"+c+" elemento(s) quedarán sin grupo.":"")+(na?"\nTambién se eliminarán "+na+" artista(s)/unit(s) de este grupo.":"")))return;
+  allItems().forEach(i=>{if(i.grupo==g){i.grupo="";i.artist="";i.unit=""}});
+  S.glist=(S.glist||[]).filter(x=>x!=g);S.gorder=(S.gorder||[]).filter(x=>x!=g);S.artists=AR().filter(a=>a.group!=g);
+  if(gf==g)gf="";if(fG==g)fG="";fixMem()}
+ else if(k=="t"){const t=allT()[n];if(t==null)return;const c=allItems().filter(i=>(i.tags||[]).includes(t)).length;
+  if(!confirm('¿Eliminar el tag "'+t+'"?'+(c?"\nSe quitará de "+c+" elemento(s).":"")))return;
+  S.tlist=(S.tlist||[]).filter(x=>x!=t);allItems().forEach(i=>{if(i.tags)i.tags=i.tags.filter(x=>x!=t)});fT=fT.filter(x=>x!=t)}
+ else{const m=arList(fG,k=="a"?"artist":"unit")[n];if(!m||!confirm('¿Eliminar "'+m.name+'"? Se quitará de los elementos que lo usan.'))return;rmMember(m.id)}
+ save();render();rpAll()}
+function rmMember(id){S.artists=AR().filter(a=>a.id!=id);allItems().forEach(i=>{if(i.artist==id)i.artist="";if(i.unit==id)i.unit=""});if(fA==id)fA="";if(fU==id)fU="";if(af==id)af=""}
+/* barra tipo "historias" */
+var SLI='<svg viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>';
+function artBar(){if(!(["ped","sin","wish"].includes(tab)||(tab=="book"&&bsec)))return"";
+ const gs=ordG([...new Set(AR().map(a=>a.group))]),l=gs.flatMap(g=>arList(g)).filter(a=>!gf||a.group==gf);
+ return `<div class="arbar"><button class="arcfg" onclick="editArt()" aria-label="Personalizar artistas">${SLI}</button><div class="arrow">${l.length?l.map(a=>`<div class="ari ${af==a.id?"on":""}"><button class="arc${a.img?"":" empty"}" onclick="arTap('${a.id}')" aria-label="${esc(a.name)}">${a.img?`<em class="arp" style="background-image:url('${esc(a.img)}')"></em>`:"+"}${a.kind=="unit"?"<u>U</u>":""}</button><span onclick="arFilt('${a.id}')">${esc(a.name)}</span></div>`).join(""):`<div class="arhint">${AR().length?"Sin artistas en este grupo":"Agrega artistas y units con el botón de la izquierda"}</div>`}</div></div>`}
+function arTap(id){const a=arById(id);if(!a)return;if(!a.img)arPick(id);else arFilt(id)}
+function arFilt(id){af=af==id?"":id;render()}
+function arPick(id){const f=$("arfile");f.dataset.id=id;f.click()}
+function arFile(el){const f=el.files[0],id=el.dataset.id;el.value="";const a=arById(id);if(!f||!a)return;
+ const r=new FileReader();r.onload=()=>{const m=new Image();m.onload=()=>{const s=Math.min(m.width,m.height),n=Math.min(256,s),c=document.createElement("canvas");c.width=c.height=n;c.getContext("2d").drawImage(m,(m.width-s)/2,(m.height-s)/2,s,s,0,0,n,n);a.img=c.toDataURL("image/jpeg",.85);save();render();if($("sheet").querySelector(".arm"))editArt()};m.onerror=()=>alert("No se pudo leer la imagen");m.src=r.result};r.readAsDataURL(f)}
+/* interfaz completa de personalización */
+function editArt(){const G=allG(),st=$("sheet").scrollTop;
+ const row=m=>`<div class="amr"><button type="button" class="arc sm${m.img?"":" empty"}" onclick="arPick('${m.id}')" aria-label="Cambiar imagen">${m.img?`<em class="arp" style="background-image:url('${esc(m.img)}')"></em>`:"+"}</button><div class="grow"><input value="${esc(m.name)}" onchange="arRen('${m.id}',this.value)" aria-label="Nombre"><div class="amk"><button type="button" class="ch kd" onclick="arKind('${m.id}')">${m.kind=="unit"?"Unit":"Artista"} ⇄</button><select class="amg" onchange="arGrp('${m.id}',this.value)" aria-label="Grupo">${G.map(x=>`<option value="${esc(x)}"${x==m.group?" selected":""}>${esc(x)}</option>`).join("")}</select></div></div><div class="amb"><button class="sec" onclick="moveA('${m.id}',-1)">↑</button><button class="sec" onclick="moveA('${m.id}',1)">↓</button><button class="sec" onclick="delArt('${m.id}')">✕</button></div></div>`;
+ openM(`<div class="vw cbk arm"><div class="bkh"><h3 style="margin:0">Personalizar artistas</h3><button class="sec sm" onclick="closeM()">Listo</button></div><div class="mu">Toca el círculo para poner o cambiar la imagen. Cada artista o unit pertenece a un solo grupo. Usa las flechas para cambiar el orden.</div>
+ ${G.length?G.map((g,k)=>`<div class="fs"><div class="arh"><b>${esc(g)}</b><span class="amb"><button class="sec" onclick="moveGA(${k},-1)">↑</button><button class="sec" onclick="moveGA(${k},1)">↓</button></span></div>${arList(g).map(row).join("")||`<div class="mu" style="padding:6px 0">Aún no hay artistas en este grupo.</div>`}<div class="addr" style="margin-top:8px"><input id="an_${k}" placeholder="Nuevo nombre"><select id="ak_${k}" style="width:96px;flex:none"><option value="artist">Artista</option><option value="unit">Unit</option></select><button type="button" class="sec" onclick="addArt(${k})">+</button></div></div>`).join(""):`<div class="empty">Aún no hay grupos.<br>Crea el primero aquí abajo.</div>`}
+ <div class="fs"><label>Nuevo grupo</label><div class="addr"><input id="an_g" placeholder="Nombre del grupo"><button type="button" class="sec" onclick="addGrp()">+</button></div></div></div>`);
+ $("sheet").scrollTop=st}
+function addArt(k){const g=allG()[k],v=$("an_"+k).value.trim(),kind=$("ak_"+k).value;if(!g||!v)return;
+ if(arList(g,kind).some(x=>nrm(x.name)==nrm(v)))return alert('"'+v+'" ya existe en '+g);
+ AR().push({id:nid(),name:v,kind,group:g,img:""});save();render();editArt()}
+function addGrp(){const v=$("an_g").value.trim();if(!v)return;S.glist=S.glist||[];if(!allG().includes(v))S.glist.push(v);save();render();editArt()}
+function arRen(id,v){const a=arById(id);v=v.trim();if(!a)return;if(!v||arList(a.group,a.kind).some(x=>x!=a&&nrm(x.name)==nrm(v))){editArt();return}a.name=v;save();render()}
+function arGrp(id,g){const a=arById(id);if(!a||!g||g==a.group)return;
+ if(arList(g,a.kind).some(x=>nrm(x.name)==nrm(a.name))){alert('Ya existe "'+a.name+'" en '+g);return editArt()}
+ const c=allItems().filter(i=>i.artist==id||i.unit==id).length;
+ if(c&&!confirm('"'+a.name+'" se moverá a '+g+'. Los '+c+' elemento(s) que lo usaban quedarán sin artista (siguen en su grupo actual).'))return editArt();
+ allItems().forEach(i=>{if(i.artist==id)i.artist="";if(i.unit==id)i.unit=""});if(af==id)af="";
+ a.group=g;save();render();editArt()}
+function arKind(id){const a=arById(id);if(!a)return;const to=a.kind=="unit"?"artist":"unit";
+ if(arList(a.group,to).some(x=>nrm(x.name)==nrm(a.name)))return alert("Ya existe uno con ese nombre");
+ a.kind=to;allItems().forEach(i=>{if(to=="unit"&&i.artist==id){i.artist="";if(!i.unit)i.unit=id}else if(to=="artist"&&i.unit==id){i.unit="";if(!i.artist)i.artist=id}});save();render();editArt()}
+function moveA(id,d){const A=AR(),a=arById(id);if(!a)return;const sib=A.filter(x=>x.group==a.group),o=sib[sib.indexOf(a)+d];if(!o)return;const i=A.indexOf(a),j=A.indexOf(o);A[i]=o;A[j]=a;save();render();editArt()}
+function moveGA(k,d){const a=ordG(allG()),j=k+d;if(j<0||j>=a.length)return;[a[k],a[j]]=[a[j],a[k]];S.gorder=a;save();render();editArt()}
+function delArt(id){const a=arById(id);if(!a||!confirm('¿Eliminar "'+a.name+'"? Se quitará de los elementos que lo usan.'))return;rmMember(id);save();render();editArt()}
+
 function closeM(){retBook=0;$("modal").classList.remove("on");if(bkDirty){bkDirty=false;render()}}
 let bkSrc="col",bkTab="pc",retBook=0,bkSc=0;
 function closeV(){const r=retBook;closeM();if(r){showBook();$("sheet").scrollTop=bkSc}}
@@ -926,7 +1024,7 @@ const isGif=x=>/^data:image\/gif/i.test(x||""),GIF_PH=1048576,GIF_BN=2097152;let
 const mbs=n=>(n/1048576).toFixed(1).replace(".0","");
 function pick(f){if(!f)return;const r=new FileReader();r.onload=()=>{const m=new Image();m.onload=()=>useImg(m);m.src=r.result};r.readAsDataURL(f)}
 function ok(){const n=$("f_n").value.trim();if(!n)return alert("Escribe un nombre");const prevSt=cur&&cur.status;
- const o={name:n,grupo:fG,go:fO,tags:[...fT],det:$("f_d").value.trim(),type:$("f_t").value,country:$("f_c").value,box:["México","Pocamarket"].includes($("f_c").value)?"":$("f_b").value.trim(),status:$("f_s").value,price:parseFloat($("f_p").value)||0,img};
+ const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),go:fO,tags:[...fT],det:$("f_d").value.trim(),type:$("f_t").value,country:$("f_c").value,box:["México","Pocamarket"].includes($("f_c").value)?"":$("f_b").value.trim(),status:$("f_s").value,price:parseFloat($("f_p").value)||0,img};
  if(cur)Object.assign(cur,o);else S.items.push(Object.assign({id:String(Date.now())},o));
  save();closeM();render();if(o.status=="En casa"&&prevSt!="En casa")toast("Movido a tu Colección")}
 function del(){if(confirm("¿Borrar este artículo?")){S.items=S.items.filter(i=>i!==cur);save();closeM();render()}}
@@ -939,23 +1037,25 @@ function applyOrderC(ids){const L=ev().map(x=>x.id),idx=[];L.forEach((id,k)=>{if
 function setS(v){bsec=v;gf="";anim=true;render()}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
 let colKind="pc";
-function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",tags:[],price:"",img:""};colKind=cur?(cur.type=="PC"?"pc":"prod"):(btab=="prod"?"prod":"pc");img=i.img||"";fG=i.grupo||"";fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
+function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",tags:[],price:"",img:""};colKind=cur?(cur.type=="PC"?"pc":"prod"):(btab=="prod"?"prod":"pc");img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nueva"} ${colKind=="pc"?"photocard":"artículo"} de colección</h3>
  <div id="pv" class="pvbox" onclick="camOpen()">${img?`<img class="pvimg" src="${img}">`:`<span>＋ Agregar foto</span>`}</div>
  <div class="row2"><button type="button" class="pri sm" onclick="camOpen()">Cámara</button><button type="button" class="sec sm" onclick="$('gal').click()">Galería</button></div><input id="gal" type="file" accept="image/*" hidden onchange="pick(this.files[0])">
  <button type="button" class="sec sm" style="margin-top:8px" onclick="buscar(imgBig||img)">Buscar origen</button><div id="bres" class="mu"></div>
  <div class="fs"><label>Nombre</label><input id="f_n" value="${esc(i.name||"")}" placeholder="Nombre"></div>
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
+ <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
+ <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
   <div class="fs"><label>GO (group order)</label><div id="pw_o">${goPickHtml()}</div></div>
  <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
  <div class="fs"><label>Precio (opcional)</label><input id="f_p" type="number" inputmode="decimal" value="${i.price||""}" placeholder="0"><div class="mu" style="margin-top:4px">No se suma a Gastos.</div></div>
  <div class="fbar"><button class="pri" onclick="okCol()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" style="margin-left:auto" onclick="delCol()">Borrar</button>`:""}</div></div>`)}
-function okCol(){if(!img)return alert("Agrega la foto");const o={name:$("f_n").value.trim(),grupo:fG,go:fO,tags:[...fT],price:parseFloat($("f_p").value)||0,img};
+function okCol(){if(!img)return alert("Agrega la foto");const o={name:$("f_n").value.trim(),grupo:fG,artist:okM(fA),unit:okM(fU),go:fO,tags:[...fT],price:parseFloat($("f_p").value)||0,img};
  if(cur)Object.assign(cur,o);else S.col.push(Object.assign({id:String(Date.now()),manual:true,type:colKind=="pc"?"PC":"Otro",status:"En casa",name:""},o));
  save();closeM();render()}
 function delCol(){if(confirm("¿Borrar de tu colección?")){S.col=S.col.filter(i=>i!==cur);S.corder=(S.corder||[]).filter(x=>x!=cur.id);save();closeM();render()}}
 function viewC(id){if(dragBlock)return;const i=S.col.find(x=>x.id==id);if(!i)return;
- $("sheet").innerHTML='<div class="vw">'+hd(i.type=="PC"?"Photocard":"Artículo",`editCol('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("Nombre",i.name)+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Precio",i.price?money(i.price):"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
+ $("sheet").innerHTML='<div class="vw">'+hd(i.type=="PC"?"Photocard":"Artículo",`editCol('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("Nombre",i.name)+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Precio",i.price?money(i.price):"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
 let camS=null,camFace="environment",camShot=null;
 const CI={x:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',flip:'<svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3l2 2M20 15a8 8 0 0 1-14 3l-2-2M20 4v4h-4M4 20v-4h4"/></svg>',gal:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>'};
