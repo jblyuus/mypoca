@@ -742,7 +742,14 @@ function endIntro(ok){if(iBusy)return;iBusy=true;try{localStorage.setItem(IK,"1"
 function logout(){if(!confirm("¿Cerrar sesión? Tus datos se quedan en este dispositivo."))return;auth=null;syncMsg="";try{localStorage.removeItem("pedidos-auth");localStorage.removeItem(WK)}catch(e){}closeM();render();showWelcome()}
 function editA(){openM(`<h3>Tu cuenta</h3><label>Correo</label><input id="a_e" type="email" inputmode="email" autocapitalize="none" autocomplete="email"><label>Contraseña (mínimo 6 caracteres)</label><input id="a_p" type="password" autocomplete="current-password"><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="pri" onclick="doLogin(false)">Entrar</button><button class="sec" onclick="doLogin(true)">Crear cuenta</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
 function acctHtml(){return `<h3 style="margin:22px 0 4px">Cuenta y nube</h3>`+(auth?`<div class="mu">${esc(auth.user.email)}</div><div class="mu">${esc(syncMsg||"Sesión iniciada")}</div><div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap"><button class="sec" onclick="syncNow(true).then(()=>{render();editTheme()})">Sincronizar ahora</button><button class="sec" onclick="logout()">Cerrar sesión</button></div>`:`<div class="mu">Inicia sesión para guardar tus datos en la nube.</div><div style="margin:10px 0"><button class="sec" onclick="editA()">Iniciar sesión o crear cuenta</button></div>`)}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&auth&&!$("modal").classList.contains("on"))syncNow(false).then(render)});
+/* Evita lecturas duplicadas cuando el navegador recupera el foco varias veces. */
+let mypocaLastVisibilitySync=Date.now(),mypocaVisibilitySyncBusy=false;
+document.addEventListener("visibilitychange",async()=>{
+ if(document.hidden||!auth||$("modal").classList.contains("on")||mypocaVisibilitySyncBusy)return;
+ const now=Date.now();if(now-mypocaLastVisibilitySync<30000)return;
+ mypocaLastVisibilitySync=now;mypocaVisibilitySyncBusy=true;
+ try{await syncNow(false);render()}finally{mypocaVisibilitySyncBusy=false}
+});
 const PAL={base:0,azul:215,rosa:338,lavanda:265,menta:155,aqua:190,durazno:22,amarillo:45},PALN={base:"Por defecto",azul:"Azul",rosa:"Rosa",lavanda:"Lavanda",menta:"Menta",aqua:"Aqua",durazno:"Durazno",amarillo:"Limón"};
 function palette(c,d){if(c=="custom"){if((S.theme||{}).custom)return customPal(S.theme.custom,d);c="base"}const h=PAL[c]||215,H=x=>`hsl(${h} ${x})`;
  if(c=="base")return d?{bg:"#000000",card:"#121214",tx:"#f2f2f7",mu:"#98989f",ac:"#5e5e63",bd:"#2a2a2d",o1:"#1c1c1e",o2:"#0a0a0a",o3:"#2a2a2c",g1:"#1a1a1c",g2:"#2c2c2f",g3:"#48484c"}:{bg:"#ffffff",card:"#f5f5f7",tx:"#1c1c1e",mu:"#6e6e73",ac:"#1c1c1e",bd:"#e5e5ea",o1:"#ececef",o2:"#ffffff",o3:"#dcdce0",g1:"#2c2c2e",g2:"#4a4a4f",g3:"#76767c"};
@@ -1115,8 +1122,15 @@ async function loadFriends(){const me=meId(),o=$("fbody");if(!o)return;if(!me){o
 var _sa=setAuth;setAuth=function(j){_sa(j);setTimeout(loadNotifs,600)};
 var _lo=logout;logout=function(){_lo();if(!auth){NF={req:[],likes:[],n:0};paintBell()}};
 if(auth)loadNotifs();
-setInterval(()=>{if(!document.hidden&&auth)loadNotifs()},60000);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&auth)loadNotifs()});
+let mypocaLastNotifsCheck=Date.now(),mypocaNotifsBusy=false;
+async function mypocaRefreshNotifs(){
+ if(!auth||document.hidden||mypocaNotifsBusy)return;
+ const now=Date.now();if(now-mypocaLastNotifsCheck<60000)return;
+ mypocaLastNotifsCheck=now;mypocaNotifsBusy=true;
+ try{await loadNotifs()}finally{mypocaNotifsBusy=false}
+}
+setInterval(mypocaRefreshNotifs,60000);
+document.addEventListener("visibilitychange",mypocaRefreshNotifs);
 
 /* ===== Animaciones globales (render, pestañas, ventanas, avisos) ===== */
 var vt=f=>{if(RM()||!document.startViewTransition)return f();try{document.startViewTransition(f)}catch(e){f()}};
