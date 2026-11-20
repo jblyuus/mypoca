@@ -611,7 +611,20 @@ function socHtml(o,own){o=o||{};const on=Object.keys(SOC).filter(k=>socUrl(o[k])
 function editSoc(){const p=S.profile||{};openM(`<h3>Redes sociales</h3><div class="mu">Pega el enlace de tu perfil. Déjalo vacío para desconectar.</div>${Object.keys(SOC).map(k=>`<div class="sclab"><label style="margin:0;display:flex;align-items:center;gap:8px">${SOC[k].svg}${SOC[k].n}</label></div><input id="s_${k}" type="url" inputmode="url" autocapitalize="none" value="${esc(p[k])}" placeholder="${SOC[k].ph}">`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="pri" onclick="okSoc()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
 function okSoc(){const p=S.profile=S.profile||{};for(const k of Object.keys(SOC)){const raw=$("s_"+k).value.trim(),u=socUrl(raw);if(raw&&!u)return alert("El enlace de "+SOC[k].n+" no es válido.");p[k]=u}save();schedPub();closeM();render()}
 function editP(){const p=S.profile||{};img=p.photo||"";PG=(p.gos||[]).map(g=>({id:g.id,n:g.n,ext:g.ext}));BC=null;bnGif=null;bnDel=false;openM(`<h3>Mi perfil</h3><label>Foto</label><input type="file" accept="image/*" onchange="pick(this.files[0])"><div id="pv">${img?`<img class="th" style="margin-top:6px;border-radius:50%;width:60px;height:60px" src="${img}">`:""}</div><label>Nombre</label><input id="p_n" value="${esc(p.name)}"><label>Usuario</label><input id="p_u" value="${esc(p.user)}" placeholder="jblyuus"><label>Grupo favorito (ult)</label><input id="p_g" list="gl2" value="${esc(p.group)}"><datalist id="gl2">${allG().map(g=>`<option value="${esc(g)}">`).join("")}</datalist><label>Bias</label><input id="p_b" value="${esc(p.bias)}"><label>Descripción</label><textarea id="p_d" rows="3" maxlength="160" placeholder="Cuéntanos algo sobre ti">${esc(p.desc)}</textarea>${pgHtml()}<label>Banner</label><input id="bnf" type="file" accept="image/*" hidden onchange="pickBanner(this.files[0]);this.value=''"><div id="bnbox">${bnHtml()}</div><div style="display:flex;gap:8px;margin-top:14px"><button class="pri" onclick="okP()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
-function okP(){const bn=bnResult();BC=null;bnDel=false;bnGif=null;S.profile={photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:(S.profile||{}).pub,gos:PG.slice(),ig:(S.profile||{}).ig||"",tt:(S.profile||{}).tt||"",banner:bn,bcol:bn?bnCols:undefined};save();closeM();render()}
+async function okP(){
+ const btn=document.querySelector('#modal .pri, .modal .pri');
+ if(btn&&btn.disabled)return;
+ const bn=bnResult(),old=S.profile||{};
+ const next={photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined};
+ if(btn){btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent="Guardando imágenes…"}
+ try{
+  if((isData(next.photo)||isData(next.banner))&&!imgOn())throw new Error("Inicia sesión para guardar las imágenes en Supabase Storage.");
+  for(const k of ["photo","banner"]){if(isData(next[k]))next[k]=await imgPut(next[k]);}
+  S.profile=next;BC=null;bnDel=false;bnGif=null;
+  save();closeM();render();
+ }catch(e){alert("No se pudo guardar el perfil. No se perdieron tus cambios.\n"+String(e&&e.message||e));}
+ finally{if(btn&&btn.isConnected){btn.disabled=false;btn.textContent=btn.dataset.oldText||"Guardar"}}
+}
 const SB="https://xdkqmbpxqfhmzlklbdhu.supabase.co",KEYP="sb_publishable_IVjazp1C_So9c8ayztBMRw_FpK2eWnE";
 let auth=null,syncMsg="",pt;try{auth=JSON.parse(localStorage.getItem("pedidos-auth"))}catch(e){}
 const hora=()=>new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
