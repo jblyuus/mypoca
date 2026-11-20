@@ -397,7 +397,7 @@ ESTADOS=["Pendiente","Comprado","En dirección KR","En dirección JP","En camino
 let S={items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},tab="ped",cur=null,img="",gf="",gof="",anim=true;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 function mig(){if(!S.theme||!S.theme.chosen)S.theme=Object.assign({},S.theme,{mode:(S.theme&&S.theme.mode)||"auto",color:"base"});(S.items||[]).forEach(i=>{if(i.status=="En aduana")i.status="En México"})}mig();
-function save(noTs){if(!noTs)S._ts=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert("No se pudo guardar: probablemente hay demasiadas imágenes. Exporta un respaldo.")}if(!noTs){schedPush();schedPub()}}
+function save(noTs){if(!noTs)S._ts=Date.now();let ls=1;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ls=0;if(imgOn()&&!imgBusy&&imgHas())imgSync(true);else alert("No se pudo guardar: probablemente hay demasiadas imágenes."+(imgOn()?"":" Inicia sesión para guardarlas en la nube.")+" Exporta un respaldo.")}if(!noTs){schedPush();schedPub();if(ls)imgSched()}}
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money=n=>"$"+(Math.round(n*100)/100).toLocaleString("es-MX");
 const ic=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
@@ -619,7 +619,52 @@ async function authCall(path,body){const r=await fetch(SB+"/auth/v1/"+path,{meth
 function setAuth(j){auth={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,user:{id:j.user.id,email:j.user.email}};try{localStorage.setItem("pedidos-auth",JSON.stringify(auth))}catch(e){}}
 async function ensureTok(){if(!auth)throw new Error("Sin sesión");if(auth.expires_at-60000>Date.now())return;const j=await authCall("token?grant_type=refresh_token",{refresh_token:auth.refresh_token});setAuth(j)}
 async function api(method,path,body,extra){await ensureTok();const r=await fetch(SB+"/rest/v1/"+path,{method,headers:Object.assign({apikey:KEYP,Authorization:"Bearer "+auth.access_token,"Content-Type":"application/json"},extra||{}),body:body?JSON.stringify(body):undefined});const tx=await r.text();if(!r.ok)throw new Error(tx||"Error "+r.status);return tx?JSON.parse(tx):null}
-async function push(){await api("POST","app_data",[{user_id:auth.user.id,data:S,updated_at:new Date().toISOString()}],{Prefer:"resolution=merge-duplicates,return=minimal"});localStorage.setItem("pedidos-lastsync",String(S._ts||0));syncMsg="Sincronizado "+hora()}
+/* ===== Imágenes en Supabase Storage (bucket pcs): en la base de datos solo se guardan URLs ===== */
+var IMGB=SB+"/storage/v1/object/public/pcs/",imgBusy=null,imgT=0,imgDone={},imgErr="";
+function imgOn(){try{return!!auth}catch(e){return false}}
+function isData(x){return typeof x=="string"&&/^data:image\//i.test(x)}
+function isRemote(x){return typeof x=="string"&&x.indexOf(IMGB)==0}
+function imgRefs(){const out=[],st=[S];while(st.length){const o=st.pop();if(!o||typeof o!="object")continue;for(const k in o){const v=o[k];if(typeof v=="string"){if(isData(v))out.push({o,k})}else if(v&&typeof v=="object")st.push(v)}}return out}
+function imgHas(){try{return imgRefs().length>0}catch(e){return false}}
+/* Solo se recomprime lo que es demasiado grande (>~300 KB o >1600 px); lo demás se sube tal cual, sin pérdida */
+function imgOpt(d){return new Promise(res=>{if(d.length<400000)return res(d);const m=new Image();m.onload=()=>{try{const f=Math.min(1,1600/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*f);c.height=Math.round(m.height*f);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(m,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.82);res(o.length<d.length?o:d)}catch(e){res(d)}};m.onerror=()=>res(d);m.src=d})}
+/* Sube una imagen (data URL) al bucket pcs en <user_id>/<hash>.jpg. Mismo contenido = mismo archivo: no se vuelve a subir. Verifica antes de devolver la URL. */
+async function imgPut(d0){const d=await imgOpt(d0),m=/^data:(image\/[a-z0-9.+-]+)(?:;[^,]*)?;base64,([\s\S]*)$/i.exec(d);if(!m)throw new Error("Formato de imagen no válido");
+ const t=m[1].toLowerCase(),bin=atob(m[2]),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+ let hx;try{hx=[...new Uint8Array(await crypto.subtle.digest("SHA-256",u))].slice(0,16).map(b=>b.toString(16).padStart(2,"0")).join("")}catch(e){hx=Date.now().toString(36)+Math.random().toString(36).slice(2,10)}
+ const path=auth.user.id+"/"+hx+"."+(t=="image/png"?"png":t=="image/webp"?"webp":t=="image/gif"?"gif":"jpg"),url=IMGB+path;
+ if(imgDone[url])return url;
+ await ensureTok();
+ const r=await fetch(SB+"/storage/v1/object/pcs/"+path,{method:"POST",headers:{apikey:KEYP,Authorization:"Bearer "+auth.access_token,"Content-Type":t,"Cache-Control":"max-age=31536000"},body:u});
+ if(!r.ok){const x=await r.text().catch(()=>"");if(!(r.status==409||/Duplicate|already exists/i.test(x)))throw new Error(x||"Error "+r.status)}
+ let v=await fetch(url,{method:"HEAD",cache:"no-store"});if(!v.ok)v=await fetch(url,{cache:"no-store"});
+ if(!v.ok)throw new Error("No se pudo verificar la imagen subida");
+ const L=+v.headers.get("content-length");if(L&&L!==u.length)throw new Error("La imagen subida no coincide con la original");
+ imgDone[url]=1;return url}
+/* Copia de seguridad local (IndexedDB) de los datos antiguos antes de una migración masiva. No se borra sola. */
+function imgBackup(){return new Promise(res=>{try{const q=indexedDB.open("pcs-respaldo",1);q.onupgradeneeded=()=>q.result.createObjectStore("s");q.onerror=()=>res();q.onsuccess=()=>{const db=q.result,tx=db.transaction("s","readwrite"),st=tx.objectStore("s");st.put({t:Date.now(),data:JSON.stringify(S)},"antes-"+Date.now());st.getAllKeys().onsuccess=e=>{const ks=e.target.result.sort();ks.slice(0,Math.max(0,ks.length-2)).forEach(k=>st.delete(k))};tx.oncomplete=()=>{db.close();res()};tx.onerror=tx.onabort=()=>res()}}catch(e){res()}})}
+/* Consola: imgRestore() vuelve a la última copia previa a la migración (con las imágenes originales en Base64) */
+function imgRestore(){return new Promise((res,rej)=>{const q=indexedDB.open("pcs-respaldo",1);q.onupgradeneeded=()=>q.result.createObjectStore("s");q.onerror=()=>rej(q.error);q.onsuccess=()=>{const st=q.result.transaction("s").objectStore("s");st.getAllKeys().onsuccess=e=>{const k=e.target.result.sort().pop();if(!k)return rej(new Error("No hay copia guardada"));st.get(k).onsuccess=g=>{S=JSON.parse(g.target.result.data);save();render();res(k)}}}})}
+/* Recorre los datos, sube SOLO las imágenes que aún están en Base64 y las cambia por su URL cuando la subida quedó verificada. Si algo falla, la imagen original se queda como estaba. */
+function imgSync(force,mode){if(imgBusy)return imgBusy;if(!imgOn())return Promise.resolve();
+ const run=async()=>{try{const by=new Map();imgRefs().forEach(r=>{const d=r.o[r.k];if(!by.has(d))by.set(d,[]);by.get(d).push(r)});
+  if(by.size){if(by.size>=3)await imgBackup();
+   const ent=[...by],res=new Map();let ix=0,fail=0;
+   await Promise.all(Array.from({length:Math.min(4,ent.length)},async()=>{while(ix<ent.length){const d=ent[ix++][0];try{res.set(d,await imgPut(d))}catch(e){fail++;imgErr=String(e&&e.message||e)}}}));
+   let n=0;ent.forEach(([d,list])=>{const u=res.get(d);if(u)list.forEach(r=>{if(r.o[r.k]===d){r.o[r.k]=u;n++}})});
+   if(n){S._ts=Date.now();save(true);if(mode!="push")schedPush();if(!mode)schedPub();if(n>=3)toast("Imágenes guardadas en la nube ("+n+")")}
+   if(fail){syncMsg="No se pudieron subir "+fail+" imagen(es): "+imgErr.slice(0,100)+". Se reintentará.";if(mode=="push")throw new Error(syncMsg)}}
+  if(force){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert("No se pudo guardar: probablemente hay demasiadas imágenes. Revisa tu conexión (se suben a la nube) o exporta un respaldo.")}}
+ }catch(e){if(mode=="push")throw e;syncMsg="Error al subir imágenes: "+String(e&&e.message||e).slice(0,140)}};
+ return imgBusy=run().finally(()=>{imgBusy=null})}
+function imgSched(){try{if(!imgOn())return;clearTimeout(imgT);imgT=setTimeout(()=>{imgSync().catch(()=>{})},1200)}catch(e){}}
+/* Perfil público: usa la misma URL de Storage (no se re-envía nada); si no hay sesión o falla, queda el comportamiento anterior */
+async function pubImg(src,n){if(!src)return"";if(isRemote(src))return src;if(isData(src)&&imgOn()){try{return await imgPut(src)}catch(e){}}return shrink(src,n)}
+/* Respaldo: vuelve a incluir las imágenes dentro del archivo para que siga siendo un respaldo completo */
+async function imgInline(o){const c=JSON.parse(JSON.stringify(o)),st=[c],refs=[];while(st.length){const x=st.pop();for(const k in x){const v=x[k];if(typeof v=="string"){if(isRemote(v))refs.push([x,k])}else if(v&&typeof v=="object")st.push(v)}}
+ let i=0;await Promise.all(Array.from({length:4},async()=>{while(i<refs.length){const[x,k]=refs[i++];try{const b=await(await fetch(x[k],{cache:"force-cache"})).blob();x[k]=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(b)})}catch(e){}}}));return c}
+setTimeout(imgSched,4000);
+async function push(){await imgSync(false,"push");if(imgHas())throw new Error("Quedan imágenes pendientes de subir a Storage. No se enviarán en Base64.");await api("POST","app_data",[{user_id:auth.user.id,data:S,updated_at:new Date().toISOString()}],{Prefer:"resolution=merge-duplicates,return=minimal"});localStorage.setItem("pedidos-lastsync",String(S._ts||0));syncMsg="Sincronizado "+hora()}
 function schedPush(){clearTimeout(pt);if(auth){syncMsg="Guardando…";pt=setTimeout(()=>push().catch(e=>{syncMsg="No se pudo subir: "+String(e&&e.message||e).slice(0,160)}),2500)}}
 function adopt(cd){S=Object.assign({items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},cd);mig();applyTheme();localStorage.setItem("pedidos-lastsync",String(cd._ts||0));save(true)}
 async function syncNow(manual){if(!auth)return;try{syncMsg="Sincronizando…";
@@ -629,7 +674,7 @@ async function syncNow(manual){if(!auth)return;try{syncMsg="Sincronizando…";
   if(ct>ls&&lc&&ct!=lt){if(confirm("Hay cambios en la nube y también en este dispositivo.\n\nAceptar = usar los datos de la nube.\nCancelar = subir los de este dispositivo."))adopt(cd);else{S._ts=Date.now();save(true);await push()}}
   else if(ct>ls&&ct!=lt)adopt(cd);
   else if(lc){S._ts=lt||Date.now();save(true);await push()}}
- syncMsg="Sincronizado "+hora()}catch(e){syncMsg="Error al sincronizar: "+String(e&&e.message||e).slice(0,160);if(manual)alert("No se pudo sincronizar: "+e.message)}}
+ syncMsg="Sincronizado "+hora();imgSched()}catch(e){syncMsg="Error al sincronizar: "+String(e&&e.message||e).slice(0,160);if(manual)alert("No se pudo sincronizar: "+e.message)}}
 async function doLogin(signup){const e=$("a_e").value.trim(),p=$("a_p").value;if(!e||p.length<6)return alert("Escribe tu correo y una contraseña de al menos 6 caracteres");
  try{const j=signup?await authCall("signup",{email:e,password:p}):await authCall("token?grant_type=password",{email:e,password:p});if(!j.access_token){alert("Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.");return}setAuth(j);await syncNow(true);render();editTheme()}catch(err){alert("No se pudo: "+err.message)}}
 const RM=()=>matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -723,7 +768,7 @@ function bcZoom(z){const B=BC,o=B.s0*B.z,cx=(B.W/2-B.x)/o,cy=(B.H/2-B.y)/o;B.z=z
 let bnCols;
 function colsOf(cv){try{const w=cv.width,h=cv.height,d=cv.getContext("2d").getImageData(0,0,w,h).data;let r=0,g=0,b=0,t=0;for(let i=0;i<d.length;i+=4){const R=d[i],G=d[i+1],B=d[i+2],mx=Math.max(R,G,B),mn=Math.min(R,G,B),sa=mx?(mx-mn)/mx:0,wt=.15+sa*sa*2+(mx>25&&mx<240?.3:0);r+=R*wt;g+=G*wt;b+=B*wt;t+=wt}
  const c=hex2hsl("#"+[r/t,g/t,b/t].map(v=>Math.round(v).toString(16).padStart(2,"0")).join(""));if(!c)return[];const sp=c.s<8?c.s:clamp(c.s,32,80),l2=clamp(c.l,48,66),H=l=>`hsl(${Math.round(c.h)} ${Math.round(sp)}% ${Math.round(l)}%)`;return[H(l2-16),H(l2),H(Math.min(82,l2+14))]}catch(e){return[]}}
-function colsFromSrc(src){return new Promise(res=>{const m=new Image();m.onload=()=>{const c=document.createElement("canvas");c.width=32;c.height=13;c.getContext("2d").drawImage(m,0,0,32,13);res(colsOf(c))};m.onerror=()=>res([]);m.src=src})}
+function colsFromSrc(src){return new Promise(res=>{const m=new Image();if(/^https?:/i.test(src))m.crossOrigin="anonymous";m.onload=()=>{const c=document.createElement("canvas");c.width=32;c.height=13;c.getContext("2d").drawImage(m,0,0,32,13);res(colsOf(c))};m.onerror=()=>res([]);m.src=src})}
 let bcBusy=false;
 function bannerStyle(p){if(!p.banner)return"";if(p.bcol===undefined&&!bcBusy){bcBusy=true;colsFromSrc(p.banner).then(c=>{bcBusy=false;if(S.profile&&S.profile.banner===p.banner){S.profile.bcol=c;save(true);render()}})}const c=p.bcol;return c&&c.length==3?` style="--g1:${c[0]};--g2:${c[1]};--g3:${c[2]}"`:""}
 function bnResult(){const B=BC;if(bnGif&&!bnDel){bnCols=bnGifCols;return bnGif}if(B&&B.W){const s=B.s0*B.z,c=document.createElement("canvas");c.width=1000;c.height=400;c.getContext("2d").drawImage(B.m,-B.x/s,-B.y/s,B.W/s,B.H/s,0,0,1000,400);const sm=document.createElement("canvas");sm.width=32;sm.height=13;sm.getContext("2d").drawImage(c,0,0,32,13);bnCols=colsOf(sm);return c.toDataURL("image/jpeg",.82)}bnCols=bnDel?[]:(S.profile||{}).bcol;return bnDel?"":(S.profile||{}).banner||""}
@@ -856,7 +901,7 @@ function ok(){const n=$("f_n").value.trim();if(!n)return alert("Escribe un nombr
  if(cur)Object.assign(cur,o);else S.items.push(Object.assign({id:String(Date.now())},o));
  save();closeM();render();if(o.status=="En casa"&&prevSt!="En casa")toast("Movido a tu Colección")}
 function del(){if(confirm("¿Borrar este artículo?")){S.items=S.items.filter(i=>i!==cur);save();closeM();render()}}
-function exp(){const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(S));a.download="pedidos-respaldo.json";a.click()}
+async function exp(){let o=S;if(JSON.stringify(S).indexOf(IMGB)>-1){toast("Preparando respaldo con tus imágenes…");try{o=await imgInline(S)}catch(e){}}const a=document.createElement("a"),u=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.href=u;a.download="pedidos-respaldo.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 function imp(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{S=Object.assign({items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},JSON.parse(r.result));mig();save();applyFonts();render()}catch(e){alert("Archivo inválido")}};r.readAsText(f)}
 
 const home=i=>i.status=="En casa";
@@ -917,11 +962,12 @@ const cmpC=new Map();
 function shrink(src,n){return new Promise(res=>{if(!src)return res("");const k=n+"|"+src.length+"|"+src.slice(-48);if(cmpC.has(k))return res(cmpC.get(k));const m=new Image();m.onload=()=>{const f=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*f);c.height=Math.round(m.height*f);c.getContext("2d").drawImage(m,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.6);cmpC.set(k,o);res(o)};m.onerror=()=>res("");m.src=src})}
 async function apiPub(path){const r=await fetch(SB+"/rest/v1/"+path,{headers:{apikey:KEYP}});const t=await r.text();if(!r.ok)throw new Error(t||"Error "+r.status);return t?JSON.parse(t):[]}
 async function pubPush(){const p=S.profile||{},u=uname(p.user);if(!auth||!p.pub)return;if(u.length<3)throw new Error("Tu @usuario debe tener al menos 3 letras o números (Editar perfil).");
+ await imgSync(false,"pub");
  const col=ev().filter(i=>home(i)&&i.img),ped=ev().filter(i=>!i.manual&&!home(i)&&i.img),wi=S.wish.filter(i=>i.img);
- const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,i:await shrink(i.img,220)}))),
-  pd2=await Promise.all(ped.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,s:i.status||"",i:await shrink(i.img,220)}))),
-  w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:(i.kind||"pc")=="pc"?1:0,i:await shrink(i.img,220)}))),
-  photo=await shrink(p.photo,140),bn=p.banner?await shrink(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
+ const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,i:await pubImg(i.img,220)}))),
+  pd2=await Promise.all(ped.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,s:i.status||"",i:await pubImg(i.img,220)}))),
+  w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:(i.kind||"pc")=="pc"?1:0,i:await pubImg(i.img,220)}))),
+  photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
  const row={user_id:auth.user.id,username:u,name:p.name||"",photo,data:{bn,bc,th,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:(p.gos||[]).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,wish:w2,nw:S.wish.length},updated_at:new Date().toISOString()};
  try{await api("POST","perfiles?on_conflict=user_id",[row],{Prefer:"resolution=merge-duplicates,return=minimal"})}catch(e){if(/23505|duplicate/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro en Editar perfil.");throw e}}
 function schedPub(){if(auth&&S.profile&&S.profile.pub){clearTimeout(pbt);pbt=setTimeout(()=>pubPush().then(()=>{pubMsg="Publicado "+hora()}).catch(e=>toast(e.message)),4000)}}
