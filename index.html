@@ -677,16 +677,25 @@ async function pubImg(src,n){if(!src)return"";if(isRemote(src))return src;if(isD
 async function imgInline(o){const c=JSON.parse(JSON.stringify(o)),st=[c],refs=[];while(st.length){const x=st.pop();for(const k in x){const v=x[k];if(typeof v=="string"){if(isRemote(v))refs.push([x,k])}else if(v&&typeof v=="object")st.push(v)}}
  let i=0;await Promise.all(Array.from({length:4},async()=>{while(i<refs.length){const[x,k]=refs[i++];try{const b=await(await fetch(x[k],{cache:"force-cache"})).blob();x[k]=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(b)})}catch(e){}}}));return c}
 setTimeout(imgSched,4000);
-async function push(){await imgSync(false,"push");if(imgHas())throw new Error("Quedan imágenes pendientes de subir a Storage. No se enviarán en Base64.");await api("POST","app_data",[{user_id:auth.user.id,data:S,updated_at:new Date().toISOString()}],{Prefer:"resolution=merge-duplicates,return=minimal"});localStorage.setItem("pedidos-lastsync",String(S._ts||0));syncMsg="Sincronizado "+hora()}
+async function push(){await imgSync(false,"push");if(imgHas())throw new Error("Quedan imágenes pendientes de subir a Storage. No se enviarán en Base64.");const stamp=new Date().toISOString();await api("POST","app_data",[{user_id:auth.user.id,data:S,updated_at:stamp}],{Prefer:"resolution=merge-duplicates,return=minimal"});localStorage.setItem("pedidos-lastsync",String(S._ts||0));localStorage.setItem("mypoca-cloud-version-"+auth.user.id,stamp);syncMsg="Sincronizado "+hora()}
 function schedPush(){clearTimeout(pt);if(auth){syncMsg="Guardando…";pt=setTimeout(()=>push().catch(e=>{syncMsg="No se pudo subir: "+String(e&&e.message||e).slice(0,160)}),2500)}}
 function adopt(cd){S=Object.assign({items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},cd);mig();applyTheme();localStorage.setItem("pedidos-lastsync",String(cd._ts||0));save(true)}
 async function syncNow(manual){if(!auth)return;try{syncMsg="Sincronizando…";
- const rows=await api("GET","app_data?select=data&user_id=eq."+auth.user.id),row=rows&&rows[0],ls=+localStorage.getItem("pedidos-lastsync")||0,lt=S._ts||0,has=!!(S.items.length||(S.col||[]).length||S.wish.length||S.cargos.length||S.envios.length||(S.profile&&S.profile.name));
+ // Consultar primero solo la versión: evita transferir cientos de KB si nada cambió.
+ const cloudKey="mypoca-cloud-version-"+auth.user.id;
+ const meta=await api("GET","app_data?select=updated_at&user_id=eq."+auth.user.id);
+ const remoteVersion=meta&&meta[0]&&meta[0].updated_at;
+ const knownVersion=localStorage.getItem(cloudKey);
+ const ls=+localStorage.getItem("pedidos-lastsync")||0,lt=S._ts||0;
+ if(remoteVersion&&knownVersion===remoteVersion&&lt<=ls){syncMsg="Sincronizado "+hora();imgSched();return}
+ const rows=remoteVersion?await api("GET","app_data?select=data&user_id=eq."+auth.user.id):[];
+ const row=rows&&rows[0],has=!!(S.items.length||(S.col||[]).length||S.wish.length||S.cargos.length||S.envios.length||(S.profile&&S.profile.name));
  if(!row){S._ts=lt||Date.now();save(true);await push()}
  else{const cd=row.data||{},ct=cd._ts||0,lc=lt>ls||(lt==0&&has);
   if(ct>ls&&lc&&ct!=lt){if(confirm("Hay cambios en la nube y también en este dispositivo.\n\nAceptar = usar los datos de la nube.\nCancelar = subir los de este dispositivo."))adopt(cd);else{S._ts=Date.now();save(true);await push()}}
   else if(ct>ls&&ct!=lt)adopt(cd);
   else if(lc){S._ts=lt||Date.now();save(true);await push()}}
+ if(remoteVersion&&row&&(+localStorage.getItem("pedidos-lastsync")||0)===(row.data&&row.data._ts||0)&&localStorage.getItem(cloudKey)!==remoteVersion)localStorage.setItem(cloudKey,remoteVersion);
  syncMsg="Sincronizado "+hora();imgSched()}catch(e){syncMsg="Error al sincronizar: "+String(e&&e.message||e).slice(0,160);if(manual)alert("No se pudo sincronizar: "+e.message)}}
 async function doLogin(signup){const e=$("a_e").value.trim(),p=$("a_p").value;if(!e||p.length<6)return alert("Escribe tu correo y una contraseña de al menos 6 caracteres");
  try{const j=signup?await authCall("signup",{email:e,password:p}):await authCall("token?grant_type=password",{email:e,password:p});if(!j.access_token){alert("Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.");return}setAuth(j);await syncNow(true);render();editTheme()}catch(err){alert("No se pudo: "+err.message)}}
