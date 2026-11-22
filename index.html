@@ -504,21 +504,39 @@ const gos=()=>[...new Set(S.items.concat(S.col||[]).map(i=>i.go).filter(Boolean)
 const GSPP=[["8%","4px","0s"],["calc(100% - 18px)","3px",".7s"],["30%","calc(100% - 12px)","1.3s"],["calc(100% - 34px)","calc(100% - 11px)","1.9s"]],
 GSP=GSPP.map(a=>`<i style="--x:${a[0]};--y:${a[1]};--d:${a[2]}"></i>`).join("");
 const goTag=(i,c)=>i&&i.go?`<span class="${c} gotag">${esc(i.go)}</span>`:"";
-const goChips=l=>(l||[]).map(g=>g.ext?`<span class="pchip">${esc(g.n)}</span>`:`<span class="pchip gochip" onclick="showGoInfo('${esc(g.id)}')">✦ ${esc(g.n)}${GSP}</span>`).join("");
+const goChips=l=>(l||[]).map(g=>`<span class="pchip gochip" data-i="${esc(g.id||("n:"+g.n))}" onclick="showGoInfo(this.dataset.i)">✦ ${esc(g.n)}${GSP}</span>`).join("");
+/* GOs del perfil + GOs usados en tus piezas (sin duplicar por nombre) */
+function goMerge(l,used){const o=(l||[]).slice(),seen=new Set(o.map(g=>nrm(g.n)));(used||[]).forEach(n=>{if(n&&!seen.has(nrm(n))){seen.add(nrm(n));o.push({id:"n:"+n,n})}});return o}
 function setGO(k){gof=k<0?"":gos()[k];anim=true;render()}
 function gochips(){const g=gos();if(gof&&!g.includes(gof))gof="";if(!g.length)return"";return `<div class="gorow"><button class="gotab ${gof?"":"on"}" onclick="setGO(-1)">Todos</button>${g.map((x,k)=>`<button class="gotab go ${x==gof?"on":""}" onclick="setGO(${k})">✦ ${esc(x)}${GSP}</button>`).join("")}</div>`}
 /* selector de GO en formularios */
 let fO="";
-const allO=()=>[...new Set([...gos(),...((S.profile||{}).gos||[]).map(g=>g.n),...(S.golist||[])])].sort((a,b)=>a.localeCompare(b,"es"));
-function goPickHtml(){const l=allO();return `<div class="pick"><button type="button" class="ch ${fO?"":"on"}" onclick="pickO(-1)">Sin GO</button>${l.map((x,n)=>`<button type="button" class="ch ${x==fO?"on":""}" onclick="pickO(${n})">${esc(x)}</button>`).join("")}</div><div class="addr"><input id="nw_o" placeholder="Nuevo GO (nombre del group order)"><button type="button" class="sec" onclick="addO()">+</button></div>`}
+const allO=()=>[...new Set([...gos(),...((S.profile||{}).gos||[]).map(g=>g.n),...(S.golist||[]),...(GOSOC||[]).map(g=>g.name).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"es"));
+let GOAT=0,GOL=[];
+function goResHtml(){const raw=((($("nw_o")||{}).value)||"").trim(),q=nrm(raw);
+ let l=allO().filter(x=>x!=fO&&(!q||nrm(x).includes(q)));if(!q)l=l.slice(0,10);GOL=l;
+ const ex=q&&!allO().some(x=>nrm(x)==q);
+ return l.map((x,k)=>`<button type="button" class="ch" onclick="pickG(${k})">${esc(x)}</button>`).join("")
+  +(ex?`<button type="button" class="ch" onclick="addO()">+ Agregar «${esc(raw)}»</button>`:"")
+  +(q&&!l.length&&!ex?'<div class="mu">Sin resultados.</div>':"")
+  +(GOERR&&!(GOSOC||[]).length?`<div class="mu" style="width:100%">No se pudieron cargar los GOs socios: ${esc(String(sqlGo(GOERR)).slice(0,160))}</div>`:"")}
+function goPickHtml(){if(Date.now()-GOAT>60000){GOAT=Date.now();loadGoSoc(true).then(()=>{const r=$("go_res");if(r)r.innerHTML=goResHtml()}).catch(()=>{})}
+ return `<div class="pick"><button type="button" class="ch ${fO?"":"on"}" onclick="pickO(-1)">Sin GO</button>${fO?`<button type="button" class="ch on" onclick="pickO(-1)">${esc(fO)} ×</button>`:""}</div><div class="addr"><input id="nw_o" placeholder="Buscar o agregar GO…" autocomplete="off" oninput="goFind()"><button type="button" class="sec" onclick="addO()">+</button></div><div id="go_res" class="pick" style="margin-top:8px">${goResHtml()}</div>`}
+function goFind(){const r=$("go_res");if(r)r.innerHTML=goResHtml()}
+function pickG(k){if(GOL[k]==null)return;fO=GOL[k];if($("nw_o"))$("nw_o").value="";rpO()}
 function rpO(){const e=$("pw_o");if(e)e.innerHTML=goPickHtml()}
 function pickO(n){fO=n<0?"":allO()[n];rpO()}
-function addO(){const v=$("nw_o").value.trim();if(!v)return;S.golist=S.golist||[];if(!S.golist.includes(v))S.golist.push(v);fO=v;save();rpO()}
+function addO(){const v=$("nw_o").value.trim();if(!v)return;S.golist=S.golist||[];if(!S.golist.includes(v))S.golist.push(v);fO=v;$("nw_o").value="";save();rpO()}
 /* GOs socios (los administra el admin, los eligen los usuarios en su perfil) */
 var GOSOC=[],GOSL=0,GOERR="",PG=[],GF="",GOB=0;
 const sqlGo=m=>/42501|permission|42P01|PGRST205|does not exist|relation/i.test(String(m))?"Falta crear la tabla gos_socios en Supabase (ejecuta el SQL de GOs socios).":m;
-function loadGoSoc(force){if(GOSL&&!force)return GOSL;GOSL=(async()=>{try{GOSOC=await apiPub("gos_socios?select=id,name,info,gom&order=name");GOERR=""}catch(e){GOERR=String(e&&e.message||e);GOSL=0}})();return GOSL}
-function pgSelHtml(){return PG.length?PG.map(g=>g.ext?`<span class="tag" style="font-size:13px;padding:4px 12px;margin:0 6px 6px 0;display:inline-flex;gap:8px">${esc(g.n)}<button type="button" aria-label="Quitar" style="all:unset;cursor:pointer;font-weight:700" onclick="pgDel('${esc(g.id)}')">×</button></span>`:`<span class="gochip" style="margin:0 6px 6px 0">✦ ${esc(g.n)}${GSP}<button type="button" aria-label="Quitar" onclick="pgDel('${esc(g.id)}')">×</button></span>`).join(""):'<div class="mu">Aún no has agregado ningún GO.</div>'}
+function loadGoSoc(force){if(GOSL&&!force)return GOSL;GOSL=(async()=>{const q="gos_socios?select=id,name,info,gom&order=name";let r=null,er="";
+ try{r=await apiPub(q)}catch(e){er=String(e&&e.message||e)}
+ if(!r&&auth&&auth.access_token){try{r=await api("GET",q)}catch(e){er=er||String(e&&e.message||e)}}
+ if(r){GOSOC=r;GOERR="";try{localStorage.setItem("gosoc-cache",JSON.stringify(r))}catch(e){}}
+ else{let c=null;try{c=JSON.parse(localStorage.getItem("gosoc-cache"))}catch(e){}
+  if(Array.isArray(c)&&c.length){if(!(GOSOC||[]).length)GOSOC=c;GOERR=""}else{GOERR=er||"Sin conexión";GOSL=0}}})();return GOSL}
+function pgSelHtml(){return PG.length?PG.map(g=>false?`<span class="tag" style="font-size:13px;padding:4px 12px;margin:0 6px 6px 0;display:inline-flex;gap:8px">${esc(g.n)}<button type="button" aria-label="Quitar" style="all:unset;cursor:pointer;font-weight:700" onclick="pgDel('${esc(g.id)}')">×</button></span>`:`<span class="gochip" style="margin:0 6px 6px 0">✦ ${esc(g.n)}${GSP}<button type="button" aria-label="Quitar" onclick="pgDel('${esc(g.id)}')">×</button></span>`).join(""):'<div class="mu">Aún no has agregado ningún GO.</div>'}
 async function pgSearch(){const o=$("pg_res");if(!o)return;const raw=(($("pg_q")||{}).value||"").trim(),q=nrm(raw);if(!q){o.innerHTML="";return}
   o.innerHTML='<div class="mu">Buscando…</div>';await loadGoSoc();if(!$("pg_res"))return;
   const r=GOERR?[]:GOSOC.filter(g=>!PG.some(x=>x.id==g.id)&&nrm(g.name).includes(q)).slice(0,8),
@@ -530,7 +548,7 @@ function pgAdd(id){const g=GOSOC.find(x=>x.id==id);if(!g||PG.some(x=>x.id==id))r
 function pgDel(id){PG=PG.filter(x=>x.id!=id);$("pg_sel").innerHTML=pgSelHtml()}
 function pgHtml(){return `<label>GOs de los que soy miembro</label><div class="mu">Busca tu GO entre los GOs socios de mypoca. Aparecerá como etiqueta en tu perfil.</div><div id="pg_sel" style="margin-top:8px">${pgSelHtml()}</div><input id="pg_q" placeholder="Buscar GO socio…" autocomplete="off" oninput="pgSearch()" onfocus="loadGoSoc()"><div id="pg_res"></div><div class="mu" style="margin-top:12px">¿No ves tu go? El gom debe mandar una solicitud para agregar la información.</div><button type="button" class="sec" style="width:100%;margin-top:8px" onclick="goReqOpen()">Enviar solicitud</button>${isAdmin()?`<button type="button" class="sec" style="width:100%;margin-top:8px" onclick="stashP();goMgr(1)">Administrar GOs socios</button>`:""}`}
 function stashP(){const p=S.profile=S.profile||{},g=id=>(($(id)||{}).value||"").trim();if($("p_n")){p.name=g("p_n");p.user=g("p_u");p.group=g("p_g");p.bias=g("p_b");p.desc=g("p_d")}p.gos=PG.slice();save()}
-async function showGoInfo(id){await loadGoSoc();const g=GOSOC.find(x=>x.id==id),mine=((S.profile||{}).gos||[]).concat((PUB&&PUB.data&&PUB.data.gos)||[]).find(x=>x.id==id),n=g?g.name:(mine?mine.n:"GO");
+async function showGoInfo(id){await loadGoSoc();const nm=String(id).startsWith("n:")?String(id).slice(2):"",mine=((S.profile||{}).gos||[]).concat((PUB&&PUB.data&&PUB.data.gos)||[]).find(x=>x.id==id),g=GOSOC.find(x=>x.id==id)||GOSOC.find(x=>nrm(x.name)==nrm(nm||(mine?mine.n:"\u0000"))),n=g?g.name:(mine?mine.n:(nm||"GO"));
   openM(`<div class="vw"><div style="text-align:center;margin-bottom:8px"><span class="gochip big">✦ ${esc(n)}${GSP}</span></div>${g?kv("GOM",g.gom)+(g.info?`<div class="mu" style="margin-top:12px;white-space:pre-wrap;line-height:1.5">${esc(g.info)}</div>`:`<div class="mu" style="margin-top:10px">Sin información adicional.</div>`):`<div class="mu" style="margin-top:10px">No se encontró la información de este GO.</div>`}<div style="margin-top:16px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>`)}
 function goReqOpen(){const q=(($("pg_q")||{}).value||"").trim();let o=$("goreq");if(o)o.remove();o=document.createElement("div");o.id="goreq";o.className="gofl";o.onclick=e=>{if(e.target==o)o.remove()};
   o.innerHTML=`<div><h3 style="margin:0 0 4px">Solicitar GO socio</h3><div class="mu" style="margin-bottom:6px">Nombre del go, contacto y cuenta del gom</div><label>Nombre del go</label><input id="gr_n" maxlength="60" value="${esc(q)}"><label>Contacto</label><input id="gr_c" maxlength="120" placeholder="Correo, WhatsApp, Instagram…"><label>Cuenta del gom</label><input id="gr_g" maxlength="80" placeholder="@cuenta del GOM" autocapitalize="none"><div style="display:flex;gap:8px;margin-top:14px"><button class="pri" style="flex:1" onclick="goReqSend()">Enviar</button><button class="sec" style="flex:1" onclick="$('goreq').remove()">Cancelar</button></div></div>`;document.body.appendChild(o)}
@@ -598,7 +616,7 @@ function render(){afFix();
   <button class="sec pedit pgear" onclick="editTheme()" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button><button class="sec pedit" onclick="editP()" aria-label="Editar perfil">${PEN}</button>
   <div class="pdesc pdme${p.desc?"":" ph"}">${p.desc?esc(p.desc):"Agrega una descripción"}</div>
   <div class="psoc">${socHtml(p,true)}</div>
-  <div class="pchips">${tagsHtml(MYT)}${goChips(p.gos)}${p.group?`<span class="pchip big2">${esc(p.group)}</span>`:""}${p.bias?`<span class="pchip">Bias · ${esc(p.bias)}</span>`:""}</div>
+  <div class="pchips">${tagsHtml(MYT)}${goChips(goMerge(p.gos,gos()))}${p.group?`<span class="pchip big2">${esc(p.group)}</span>`:""}${p.bias?`<span class="pchip">Bias · ${esc(p.bias)}</span>`:""}</div>
   <div class="pstats"><div><b>${ev().filter(i=>i.type=="PC").length}</b><span>photocards</span></div><div><b>${ev().filter(i=>i.type!="PC").length}</b><span>artículos</span></div><div><b>${S.wish.length}</b><span>wishlist</span></div></div></div>
   <div class="prow"><button class="sec" onclick="shareP()">Compartir perfil</button><button class="sec" onclick="friends()">Amigos</button></div>
   ${sigWrap(lvBig(),"plvx")}
@@ -1334,7 +1352,7 @@ async function pubPush(){const p=S.profile||{},u=uname(p.user);if(!auth||!p.pub)
   w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:(i.kind||"pc")=="pc"?1:0,i:await pubImg(i.img,220)}))),
   photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
  const fv=await favPubData();
- const row={user_id:auth.user.id,username:u,name:p.name||"",photo,data:{bn,bc,th,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:(p.gos||[]).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
+ const row={user_id:auth.user.id,username:u,name:p.name||"",photo,data:{bn,bc,th,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))]).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
  try{await api("POST","perfiles?on_conflict=user_id",[row],{Prefer:"resolution=merge-duplicates,return=minimal"})}catch(e){if(/23505|duplicate/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro en Editar perfil.");throw e}}
 function schedPub(){if(auth&&S.profile&&S.profile.pub){clearTimeout(pbt);pbt=setTimeout(()=>pubPush().then(()=>{pubMsg="Publicado "+hora()}).catch(e=>toast(e.message)),4000)}}
 async function togglePub(){const p=S.profile=S.profile||{};
