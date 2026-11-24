@@ -633,6 +633,14 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .news-article-body>:last-child{margin-bottom:0}
 .news-reader-action{margin-top:14px}
 .news-reader-action button{width:100%}
+.news-archive-top,.news-archive-row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.news-archive-top{margin-bottom:12px}
+.news-archive-top h3{margin:0}
+.news-archive-row{width:100%;margin:6px 0;text-align:left}
+.news-archive-row span{min-width:0;overflow-wrap:anywhere}
+.news-archive-row small{display:block;margin-top:3px;color:var(--mu)}
+.news-archive-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.news-archive .news-delete{color:#fda6ae;background:#6a2432;border-color:transparent}
 .wish-toolbar,.wish-toolbar>div{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .wish-toolbar{justify-content:space-between;margin:10px 0}
 .wish-card-name{text-align:center;overflow-wrap:anywhere}
@@ -646,6 +654,12 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .poster-toolbar>div{display:flex;gap:8px;flex-wrap:wrap}
 .poster-toolbar [aria-pressed=true]{background:var(--ac);color:#fff}
 .poster-toolbar [hidden]{display:none}
+.poster-crop{flex-basis:100%;min-width:0;padding:8px 10px;border:1px solid var(--bd);border-radius:9px}
+.poster-crop summary{cursor:pointer}
+.poster-crop canvas{display:block;max-width:100%;max-height:112px;margin:8px auto;border-radius:5px}
+.poster-crop label{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:center;gap:8px;margin:4px 0}
+#sheet .poster-crop input[type=range]{width:100%;padding:0;accent-color:var(--ac)}
+.poster-font-status:not(:empty){margin:-6px 0 10px}
 .poster-background{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:8px;border:1px solid var(--bd);border-radius:9px}
 .poster-background label{display:flex;align-items:center;gap:6px;margin:0}
 #sheet #poster-color{width:38px;height:32px;padding:3px;cursor:pointer}
@@ -1512,7 +1526,7 @@ function applyTheme(){try{if(typeof PUB!="undefined"&&PUB)setTimeout(pubTheme,0)
  for(const k in p)r.setProperty("--"+k,p[k]);r.setProperty("--gb",dk?"rgba(255,255,255,.14)":"rgba(255,255,255,.65)");r.colorScheme=dk?"dark":"light";applyFonts()}
 function setMode(m){S.theme=Object.assign({},S.theme,{mode:m});save();applyTheme();render();editTheme()}
 function setColor(c){S.theme=Object.assign({},S.theme,{color:c,chosen:true});save();applyTheme();render();editTheme()}
-function themeHtml(){const th=S.theme||{mode:"auto",color:"base"};return `<h3>Ajustes</h3><div class="mu">Apariencia</div><div class="seg">${[["light","Claro"],["dark","Oscuro"],["auto","Auto"]].map(m=>`<button class="${th.mode==m[0]?"on":""}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join("")}</div><div class="mu" style="margin:12px 0 10px">Color</div><div class="sw">${Object.keys(PAL).map(c=>`<div class="swi"><button class="swb ${c=="base"?"sbase ":""}${th.color==c?"on":""}" aria-label="${PALN[c]}" onclick="setColor('${c}')" style="background:${c=="base"?"linear-gradient(135deg,#fff 50%,#000 50%)":palette(c,false).g2}"></button><span>${PALN[c]}</span></div>`).join("")}${th.custom?`<div class="swi"><button class="swb ${th.color=="custom"?"on":""}" aria-label="Personalizado" onclick="setColor('custom')" style="background:${esc(th.custom)}"></button><span>Personalizado</span></div>`:""}<div class="swi"><button class="swb swadd" aria-label="Agregar color" onclick="editCustom()">+</button><span>Agregar color</span></div></div><button class="sec" style="width:100%;margin:2px 0 8px" onclick="editFonts()">Cambiar fuentes</button><button class="sec" style="width:100%;margin:0 0 4px" onclick="closeM();showIntro()">Ver guía de uso</button>${acctHtml()}${isAdmin()?publicCatalogSettings():""}${isAdmin()?`<button class="sec" style="width:100%;margin:6px 0 4px" onclick="tagMgr()">Crear etiquetas</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="goMgr()">GOs socios</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="editNews()">Publicar novedad</button>`:""}${pubSetHtml()}<button class="pri" onclick="closeM()">Listo</button>`}
+function themeHtml(){const th=S.theme||{mode:"auto",color:"base"};return `<h3>Ajustes</h3><div class="mu">Apariencia</div><div class="seg">${[["light","Claro"],["dark","Oscuro"],["auto","Auto"]].map(m=>`<button class="${th.mode==m[0]?"on":""}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join("")}</div><div class="mu" style="margin:12px 0 10px">Color</div><div class="sw">${Object.keys(PAL).map(c=>`<div class="swi"><button class="swb ${c=="base"?"sbase ":""}${th.color==c?"on":""}" aria-label="${PALN[c]}" onclick="setColor('${c}')" style="background:${c=="base"?"linear-gradient(135deg,#fff 50%,#000 50%)":palette(c,false).g2}"></button><span>${PALN[c]}</span></div>`).join("")}${th.custom?`<div class="swi"><button class="swb ${th.color=="custom"?"on":""}" aria-label="Personalizado" onclick="setColor('custom')" style="background:${esc(th.custom)}"></button><span>Personalizado</span></div>`:""}<div class="swi"><button class="swb swadd" aria-label="Agregar color" onclick="editCustom()">+</button><span>Agregar color</span></div></div><button class="sec" style="width:100%;margin:2px 0 8px" onclick="editFonts()">Cambiar fuentes</button><button class="sec" style="width:100%;margin:0 0 4px" onclick="closeM();showIntro()">Ver guía de uso</button>${acctHtml()}${isAdmin()?publicCatalogSettings():""}${isAdmin()?`<button class="sec" style="width:100%;margin:6px 0 4px" onclick="tagMgr()">Crear etiquetas</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="goMgr()">GOs socios</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="editNews()">Publicar novedad</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="openNewsArchive()">Novedades enviadas</button>`:""}${pubSetHtml()}<button class="pri" onclick="closeM()">Listo</button>`}
 function editTheme(){openM(themeHtml())}
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 function hex2hsl(hx){hx=String(hx||"").trim();let m=/^#?([0-9a-f]{6})$/i.exec(hx),t;if(!m){t=/^#?([0-9a-f]{3})$/i.exec(hx);if(!t)return null;m=[0,t[1].split("").map(c=>c+c).join("")]}const n=parseInt(m[1],16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;if(d){s=d/(1-Math.abs(2*l-1));h=mx==r?((g-b)/d)%6:mx==g?(b-r)/d+2:(r-g)/d+4;h=(h*60+360)%360}return{h,s:s*100,l:l*100}}
@@ -2174,6 +2188,7 @@ function showLv(){const L=levelInfo();openM(`<div class="vw"><div class="lvhero"
 function add(){tab=="wish"?editW():tab=="env"?editE():tab=="gas"?editC():tab=="book"&&bsec=="col"?editCol():edit()}
 const POSTER_SIZES={"1:1":[1200,1200],"9:16":[1080,1920],"4:3":[1440,1080],"3:4":[1080,1440],"16:9":[1920,1080]};
 const POSTER_DESIGNS=[["banner","Banner"],["notebook","Libreta"],["polaroids","Polaroids"]];
+const POSTER_DEFAULT_CROP={x:50,y:50,zoom:100},POSTER_CROP_FIELDS={banner:"encuadre del banner",polaroid1:"encuadre de la foto 1",polaroid2:"encuadre de la foto 2"};
 const POSTER_COLOR="#faf8f6",POSTER_TAG_TOP=.055,POSTER_TAG_LINE=.20;
 let WP=null,posterDrag=null;
 
@@ -2188,7 +2203,7 @@ function openWishlistPoster(){
  if(!cards.length)return toast("Agrega una photocard a Wishlist para crear una imagen.");
  if(!cards.some(item=>item.grupo))return toast("Asigna un grupo a una photocard de Wishlist para crear una imagen.");
  WP={step:0,group:gf&&posterCards({group:gf}).length?gf:"",artist:"",era:"",size:"9:16",
-  title:"",font:"Vividly",design:"banner",banner:"",polaroid1:"",polaroid2:"",background:"",color:POSTER_COLOR,priorities:new Set(),images:new Map()};
+  title:"",font:"Vividly",design:"banner",banner:"",polaroid1:"",polaroid2:"",background:"",color:POSTER_COLOR,crops:{},priorities:new Set(),images:new Map()};
  renderPosterWizard();
 }
 function posterOptions(options,selected){
@@ -2248,6 +2263,7 @@ function posterSections(group,items,era){
 function editWishlistPoster(){
  const state=WP;
  if(!state)return;
+ applyFonts();
  const fonts=[...FBI,...(S.fl||[]).map(f=>f.id)];
  openM(`<div class="poster-editor" id="wishlist-poster-editor">
   <div class="poster-heading"><h3>Diseñar wishlist</h3><button type="button" class="sec sm" onclick="closeWishlistPoster()">Cerrar</button></div>
@@ -2257,6 +2273,7 @@ function editWishlistPoster(){
    <div><label for="poster-font">Tipografía</label><select id="poster-font" onchange="posterChange('font',this.value)">${posterOptions(fonts.map(font=>[font,fname(font)]),state.font)}</select></div>
    <div><label for="poster-size">Proporción</label><select id="poster-size" onchange="posterChange('size',this.value)">${posterOptions(Object.keys(POSTER_SIZES).map(size=>[size,size]),state.size)}</select></div>
   </div>
+  <div class="mu poster-font-status" id="poster-font-status" role="status"></div>
   <div class="poster-toolbar">
    <div id="poster-banner-tools" ${state.design==="banner"?"":"hidden"}>${posterImageControls(state,"banner","banner")}</div>
    <div id="poster-polaroids-tools" ${state.design==="polaroids"?"":"hidden"}>
@@ -2283,9 +2300,33 @@ function editWishlistPoster(){
  requestPosterPaint();
 }
 function posterImageControls(state,field,label){
+ const crop=state.crops?.[field]||POSTER_DEFAULT_CROP;
  return `<button type="button" class="sec sm" id="poster-add-${field}" onclick="$('poster-${field}').click()" data-label="${label}">${state[field]?"Cambiar":"Añadir"} ${label}</button>
  <input id="poster-${field}" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="posterPickImage(this,'${field}')">
- <button type="button" class="sec sm" id="poster-remove-${field}" onclick="posterChange('${field}','')" ${state[field]?"":"hidden"}>Quitar ${label}</button>`;
+ <button type="button" class="sec sm" id="poster-remove-${field}" onclick="posterChange('${field}','')" ${state[field]?"":"hidden"}>Quitar ${label}</button>
+ <details class="poster-crop" id="poster-crop-${field}" ontoggle="requestPosterPaint()" ${state[field]?"":"hidden"}>
+  <summary>Ajustar ${POSTER_CROP_FIELDS[field]}</summary>
+  <canvas id="poster-crop-preview-${field}" aria-label="Vista previa del encuadre"></canvas>
+  ${[["zoom","Zoom",100,400],["x","Horizontal",0,100],["y","Vertical",0,100]].map(([key,name,min,max])=>`
+   <label>${name}<input id="poster-crop-${field}-${key}" type="range" min="${min}" max="${max}" value="${crop[key]}" oninput="setPosterCrop('${field}','${key}',this.valueAsNumber)"></label>`).join("")}
+  <div class="mu">Si la foto no se mueve en un eje, aumenta el zoom.</div>
+  <button type="button" class="sec sm" onclick="resetPosterCrop('${field}')">Restablecer encuadre</button>
+ </details>`;
+}
+function setPosterCrop(field,key,value){
+ if(!WP?.[field])return;
+ const crop=WP.crops?.[field]||POSTER_DEFAULT_CROP;
+ WP.crops={...WP.crops,[field]:{...crop,[key]:value}};
+ requestPosterPaint();
+}
+function resetPosterCrop(field){
+ if(!WP)return;
+ WP.crops={...WP.crops,[field]:POSTER_DEFAULT_CROP};
+ for(const [key,value] of Object.entries(POSTER_DEFAULT_CROP)){
+  const range=$("poster-crop-"+field+"-"+key);
+  if(range)range.value=value;
+ }
+ requestPosterPaint();
 }
 function closeWishlistPoster(){
  if(posterDrag)clearTimeout(posterDrag.timer);
@@ -2294,6 +2335,12 @@ function closeWishlistPoster(){
 }
 function posterChange(field,value){
  if(!WP)return;
+ const crop=$("poster-crop-"+field);
+ if(crop&&WP[field]!==value){
+  crop.hidden=!value;
+  if(!value)crop.open=false;
+  resetPosterCrop(field);
+ }
  WP[field]=value;
  if(field==="design"){
   $("poster-banner-tools").hidden=value!=="banner";
@@ -2387,7 +2434,25 @@ function posterLayout(sections,size,design="banner"){
 }
 function posterFont(name,size){
  const family=String(name).replace(/["\\\n\r]/g,"");
- return `${size}px "${family}", Georgia, serif`;
+ return `normal 400 ${size}px "${family}"`;
+}
+function preparePosterFont(state){
+ const family=state.font,text=state.title?.trim()||state.group||"Wishlist";
+ const current=state.titleFont;
+ if(current?.family===family&&current?.text===text)return current;
+ const font={family,text,status:"loading"};
+ state.titleFont=font;
+ font.ready=(async()=>{
+  try{
+   if(!document.fonts)throw new Error("FontFaceSet");
+   const faces=await document.fonts.load(posterFont(family,64),text);
+   // A title can contain only characters outside the font's declared range.
+   const matched=faces.length?faces:await document.fonts.load(posterFont(family,64),"A");
+   font.status=matched.some(face=>face.status==="loaded")?"loaded":"unavailable";
+  }catch(e){font.status="unavailable"}
+  if(WP===state&&state.titleFont===font)requestPosterPaint();
+ })();
+ return font;
 }
 function posterImage(state,src){
  if(!src)return null;
@@ -2413,20 +2478,28 @@ function preparePosterAssets(state){
  for(const src of headerSources)if(src)sources.add(src);
  if(state.background)sources.add(state.background);
  const images=[...sources].map(src=>posterImage(state,src));
- if(state.loadedFont!==state.font){
-  state.loadedFont=state.font;
-  state.fontReady=document.fonts?.load(posterFont(state.font,64),state.title||"Wishlist").catch(()=>{}).then(()=>{if(WP===state)requestPosterPaint()});
- }
  return images;
 }
-function posterCover(ctx,photo,x,y,w,h,radius){
- const scale=Math.max(w/photo.naturalWidth,h/photo.naturalHeight);
+function posterCover(ctx,photo,x,y,w,h,radius,crop=POSTER_DEFAULT_CROP){
+ const scale=Math.max(w/photo.naturalWidth,h/photo.naturalHeight)*crop.zoom/100;
  const pw=photo.naturalWidth*scale,ph=photo.naturalHeight*scale;
+ const dx=Math.min(0,Math.max(w-pw,w/2-pw*crop.x/100));
+ const dy=Math.min(0,Math.max(h-ph,h/2-ph*crop.y/100));
  ctx.save();ctx.beginPath();
  if(ctx.roundRect)ctx.roundRect(x,y,w,h,radius);else ctx.rect(x,y,w,h);
  ctx.clip();
- ctx.drawImage(photo,x+(w-pw)/2,y+(h-ph)/2,pw,ph);
+ ctx.drawImage(photo,x+dx,y+dy,pw,ph);
  ctx.restore();
+}
+function paintPosterCropPreviews(state,layout){
+ const fields=layout.design==="banner"?["banner"]:layout.design==="polaroids"?["polaroid1","polaroid2"]:[];
+ for(const field of fields){
+  if(!$("poster-crop-"+field)?.open)continue;
+  const canvas=$("poster-crop-preview-"+field),photo=state.images.get(state[field])?.photo;
+  canvas.width=field==="banner"?420:200;
+  canvas.height=field==="banner"?Math.round(canvas.width*layout.banner/layout.width):200;
+  if(photo)posterCover(canvas.getContext("2d"),photo,0,0,canvas.width,canvas.height,0,state.crops?.[field]);
+ }
 }
 function drawPosterNotebook(ctx,paper,edge){
  const {x,y,w,h}=paper,radius=edge*.025;
@@ -2451,7 +2524,7 @@ function drawPosterNotebook(ctx,paper,edge){
  }
  ctx.restore();
 }
-function drawPosterPolaroid(ctx,photo,x,y,frame,angle){
+function drawPosterPolaroid(ctx,photo,x,y,frame,angle,crop){
  const inset=frame*.055,panelWidth=frame-2*inset;
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);
  ctx.shadowColor="#25233038";ctx.shadowBlur=frame*.075;ctx.shadowOffsetY=frame*.035;
@@ -2459,7 +2532,7 @@ function drawPosterPolaroid(ctx,photo,x,y,frame,angle){
  ctx.shadowColor="transparent";
  ctx.lineWidth=frame*.005;ctx.strokeStyle="#d2cccb";ctx.strokeRect(-frame/2,-frame*.59,frame,frame*1.18);
  const left=-frame/2+inset,top=-frame*.59+inset;
- if(photo)posterCover(ctx,photo,left,top,panelWidth,panelWidth,0);
+ if(photo)posterCover(ctx,photo,left,top,panelWidth,panelWidth,0,crop);
  else{
   const shade=ctx.createLinearGradient(left,top,left+panelWidth,top+panelWidth);
   shade.addColorStop(0,"#eee3e8");shade.addColorStop(1,"#cfc4d3");
@@ -2493,8 +2566,8 @@ function drawPosterCanvas(canvas,state,layout){
   titleX=(left+right)/2;titleY=paper.y+edge*.07;
  }else if(design==="polaroids"){
   const frame=edge*.162;
-  drawPosterPolaroid(ctx,state.images.get(state.polaroid2)?.photo,margin+edge*.24,edge*.147,frame,.14);
-  drawPosterPolaroid(ctx,state.images.get(state.polaroid1)?.photo,margin+edge*.09,edge*.151,frame,-.18);
+  drawPosterPolaroid(ctx,state.images.get(state.polaroid2)?.photo,margin+edge*.24,edge*.147,frame,.14,state.crops?.polaroid2);
+  drawPosterPolaroid(ctx,state.images.get(state.polaroid1)?.photo,margin+edge*.09,edge*.151,frame,-.18,state.crops?.polaroid1);
   const titleLeft=margin+edge*.36;
   titleX=(titleLeft+right)/2;titleY=edge*.134;titleWidth=right-titleLeft;
   ctx.strokeStyle=dark?"#ffffff50":"#6c526743";
@@ -2507,7 +2580,7 @@ function drawPosterCanvas(canvas,state,layout){
    gradient.addColorStop(0,"#302330");gradient.addColorStop(.52,"#80546c");gradient.addColorStop(1,"#d6a0aa");
    ctx.fillStyle=gradient;ctx.fillRect(0,0,width,banner);
   }
-  if(cover)posterCover(ctx,cover,0,0,width,banner,0);
+  if(cover)posterCover(ctx,cover,0,0,width,banner,0,state.crops?.banner);
   if(cover||(!backdrop&&color===POSTER_COLOR)){
    ctx.fillStyle="#dfb5c5";ctx.fillRect(0,banner-3,width,3);
   }
@@ -2516,7 +2589,8 @@ function drawPosterCanvas(canvas,state,layout){
  const title=state.title.trim()||state.group,textWidth=right-left,lightText=dark&&!paper,outline=backdrop&&!paper;
  ctx.fillStyle=lightText?"#fff8fb":"#322334";
  ctx.strokeStyle=lightText?"#281b2b":"#fff8fb";
- ctx.font=posterFont(state.font,edge*.085);
+ const titleFamily=state.titleFont&&state.titleFont.status!=="loaded"?"Georgia":state.font;
+ ctx.font=posterFont(titleFamily,edge*.085);
  ctx.lineWidth=edge*.006;
  if(!paper)ctx.strokeText(title,titleX,titleY,titleWidth);
  ctx.fillText(title,titleX,titleY,titleWidth);
@@ -2583,7 +2657,11 @@ function paintWishlistPoster(state){
  const layout=posterLayout(state.sections,state.size,state.design);
  state.layout=layout;
  const images=preparePosterAssets(state);
+ const font=preparePosterFont(state),fontStatus=$("poster-font-status");
+ const fontMessage=font.status==="loading"?"Cargando tipografía…":font.status==="unavailable"?`No se pudo cargar ${fname(state.font)}. Se usará Georgia.`:"";
+ if(fontStatus.textContent!==fontMessage)fontStatus.textContent=fontMessage;
  drawPosterCanvas($("poster-canvas"),state,layout);
+ paintPosterCropPreviews(state,layout);
  const controls=$("poster-card-controls");
  if(!posterDrag)controls.innerHTML=layout.cards.map((card,index)=>`<button type="button" class="poster-card-control"
   style="left:${card.x/layout.width*100}%;top:${card.y/layout.height*100}%;width:${card.w/layout.width*100}%;height:${card.h/layout.height*100}%"
@@ -2674,9 +2752,10 @@ async function downloadWishlistPoster(){
  state.exporting=true;button.disabled=true;status.textContent="Preparando PNG…";
  try{
   const snapshot={...state,sections:state.sections.map(section=>({...section,items:section.items.slice()})),
-   priorities:new Set(state.priorities),loadedFont:null};
+   priorities:new Set(state.priorities)};
   const photos=preparePosterAssets(snapshot);
-  await Promise.all(photos.map(entry=>entry.ready).concat(snapshot.fontReady||[]));
+  const font=preparePosterFont(snapshot);
+  await Promise.all([font.ready,...photos.map(entry=>entry.ready)]);
   if(WP!==state||!button.isConnected||!$("modal").classList.contains("on"))return;
   const canvas=document.createElement("canvas");
   drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design));
@@ -3754,7 +3833,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.45",VK="mypoca-ver";
+const APP_VER="1.47",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
@@ -3779,10 +3858,31 @@ const NEWS=[
 ];
 const vNum=v=>String(v).split(".").map(n=>+n||0);
 const vGt=(a,b)=>{const x=vNum(a),y=vNum(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false};
-let NEWSQ=null,newsTry=0,ALLN=NEWS.slice(),LATEST=APP_VER;
-function markVer(){try{localStorage.setItem(VK,LATEST)}catch(e){}}
-async function loadNews(){try{const r=await apiPub("novedades?select=version,items&order=created_at.desc&limit=30");r.forEach(x=>{if(!x.version||!Array.isArray(x.items))return;const e={v:String(x.version),items:x.items},k=ALLN.findIndex(n=>n.v==e.v);if(k>=0)ALLN[k]=e;else ALLN.push(e)})}catch(e){}
- ALLN.sort((a,b)=>vGt(a.v,b.v)?-1:vGt(b.v,a.v)?1:0);LATEST=ALLN[0].v}
+const NEWS_RETIRED_KEY="mypoca-news-retired";
+let NEWSQ=null,newsTry=0,ALLN=NEWS.slice(),LATEST=NEWS[0].v,newsRevision=0;
+const retiredNews=new Set();
+try{for(const version of JSON.parse(localStorage.getItem(NEWS_RETIRED_KEY)||"[]"))retiredNews.add(version)}catch(e){}
+function rememberRetiredNews(){
+ try{localStorage.setItem(NEWS_RETIRED_KEY,JSON.stringify([...retiredNews]))}catch(e){}
+}
+function updateNewsVersions(){
+ ALLN.sort((a,b)=>vGt(a.v,b.v)?-1:vGt(b.v,a.v)?1:0);
+ for(const version of [ALLN[0]?.v,...retiredNews])if(version&&vGt(version,LATEST))LATEST=version;
+}
+function markVer(){try{const seen=localStorage.getItem(VK);if(!seen||vGt(LATEST,seen))localStorage.setItem(VK,LATEST)}catch(e){}}
+async function loadNews(){
+ const revision=newsRevision;
+ const [published,retired]=await Promise.all([
+  apiPub("novedades?select=version,items&order=created_at.desc&limit=30").catch(()=>null),
+  apiPub("novedades_retiradas?select=version").catch(()=>null)
+ ]);
+ if(revision!==newsRevision)return;
+ if(retired){for(const row of retired)retiredNews.add(String(row.version));rememberRetiredNews()}
+ const merged=new Map(NEWS.filter(entry=>!retiredNews.has(entry.v)).map(entry=>[entry.v,entry]));
+ for(const row of published||[])if(row.version&&Array.isArray(row.items))merged.set(String(row.version),{v:String(row.version),items:row.items});
+ ALLN=[...merged.values()];
+ updateNewsVersions();
+}
 async function initNews(){let seen=null;try{seen=localStorage.getItem(VK)}catch(e){return}
  await loadNews();
  if(seen===LATEST)return;
@@ -3828,6 +3928,108 @@ function showNews(list){
  ${list.map(n=>(list.length>1?`<div class="nwv">v${esc(n.v)}</div>`:"")+n.items.map(item=>newsArticleHtml(item)).join("")).join("")}
  <div class="news-reader-action"><button class="pri" onclick="closeM()">¡Entendido!</button></div></div>`);
  $("sheet").scrollTop=0;
+}
+const NEWS_ARCHIVE_PAGE=12;
+let newsArchive=null;
+function openNewsArchive(){
+ const user=meId();
+ if(!isAdmin()||!user)return;
+ openM(`<section id="news-archive" class="vw news-archive" aria-labelledby="news-archive-title">
+  <div class="news-archive-top"><button type="button" class="sec sm" onclick="editTheme()">‹ Ajustes</button><h3 id="news-archive-title">Novedades enviadas</h3></div>
+  <div id="news-archive-content"></div><div id="news-archive-status" class="mu" role="status"></div>
+ </section>`);
+ const archive=newsArchive={element:$("news-archive"),user,rows:[],offset:0,more:false,loading:false,deleting:false,detail:null};
+ $("sheet").scrollTop=0;
+ loadNewsArchivePage(archive);
+}
+function activeNewsArchive(archive){
+ return !!archive&&archive===newsArchive&&archive.element===$("news-archive")&&
+  $("modal").classList.contains("on")&&isAdmin()&&meId()===archive.user;
+}
+function newsArchiveTitle(row){return row.items.find(item=>item?.[0])?.[0]||"Aviso sin título"}
+function renderNewsArchive(){
+ const archive=newsArchive;
+ if(!activeNewsArchive(archive))return;
+ $("news-archive-content").innerHTML=archive.rows.map((row,index)=>{
+  const date=row.created_at?new Date(row.created_at):null;
+  const day=date&&Number.isFinite(+date)?date.toLocaleDateString("es-MX",{dateStyle:"medium"}):"";
+  return `<button type="button" class="sec news-archive-row" onclick="viewNewsArchive(${index})"><span>
+   <strong>${esc(newsArchiveTitle(row))}</strong><small>v${esc(row.version)}${day?` · ${esc(day)}`:""}</small></span><i aria-hidden="true">›</i></button>`;
+ }).join("")+(archive.rows.length?"":'<p class="mu">Aún no hay novedades enviadas.</p>')+
+  (archive.more?'<button type="button" class="sec sm" onclick="loadNewsArchivePage(newsArchive,this)">Cargar más</button>':"");
+}
+async function loadNewsArchivePage(archive,button){
+ if(!activeNewsArchive(archive)||archive.loading||archive.deleting||archive.detail)return;
+ archive.loading=true;
+ if(button)button.disabled=true;
+ const status=$("news-archive-status");
+ status.textContent="Cargando novedades…";
+ try{
+  const rows=await api("GET",`novedades?select=version,items,created_at&order=created_at.desc,version.desc&limit=${NEWS_ARCHIVE_PAGE+1}&offset=${archive.offset}`)||[];
+  if(!activeNewsArchive(archive))return;
+  const page=rows.slice(0,NEWS_ARCHIVE_PAGE);
+  archive.offset+=page.length;
+  archive.more=rows.length>NEWS_ARCHIVE_PAGE;
+  const existing=new Set(archive.rows.map(row=>row.version));
+  archive.rows.push(...page.filter(row=>Array.isArray(row.items)&&!existing.has(row.version)));
+  if(!archive.detail){renderNewsArchive();status.textContent=""}
+ }catch(e){
+  if(activeNewsArchive(archive)&&!archive.detail){
+   status.textContent="No se pudieron cargar las novedades.";
+   if(!archive.offset)$("news-archive-content").innerHTML='<button type="button" class="sec sm" onclick="loadNewsArchivePage(newsArchive,this)">Reintentar</button>';
+  }
+ }finally{archive.loading=false;if(button)button.disabled=false}
+}
+function viewNewsArchive(index){
+ const archive=newsArchive,row=archive?.rows[index];
+ if(!activeNewsArchive(archive)||archive.loading||!row)return;
+ archive.detail=row;
+ archive.scroll=$("sheet").scrollTop;
+ $("news-archive-status").textContent="";
+ $("news-archive-content").innerHTML=`<div class="news-archive-actions">
+  <button type="button" class="sec sm" onclick="backNewsArchive()">‹ Historial</button><span class="tag">v${esc(row.version)}</span></div>
+  ${row.items.map(item=>newsArticleHtml(item)).join("")}
+  <div class="news-archive-actions"><button type="button" class="sec sm news-delete" onclick="deleteNewsArchive(this)">Eliminar novedad</button></div>`;
+ $("sheet").scrollTop=0;
+}
+function backNewsArchive(){
+ const archive=newsArchive;
+ if(!activeNewsArchive(archive))return;
+ archive.detail=null;
+ $("news-archive-status").textContent="";
+ renderNewsArchive();
+ $("sheet").scrollTop=archive.scroll||0;
+}
+async function deleteNewsArchive(button){
+ const archive=newsArchive,row=archive?.detail;
+ if(!activeNewsArchive(archive)||!row||archive.deleting)return;
+ if(!confirm(`¿Eliminar «${newsArchiveTitle(row)}» (v${row.version})? El aviso se retirará para todos.`))return;
+ archive.deleting=true;
+ button.disabled=true;
+ const status=$("news-archive-status"),version=String(row.version);
+ status.textContent="Eliminando novedad…";
+ try{
+  const removed=await api("POST","rpc/mypoca_delete_news",{target_version:version,expected_items:row.items});
+  if(removed!==true){
+   if(activeNewsArchive(archive)){openNewsArchive();toast("El aviso cambió o ya se retiró. Se actualizó el historial.")}
+   return;
+  }
+  newsRevision++;
+  retiredNews.add(version);rememberRetiredNews();
+  ALLN=ALLN.filter(entry=>entry.v!==version);
+  if(NEWSQ){NEWSQ=NEWSQ.filter(entry=>entry.v!==version);if(!NEWSQ.length)NEWSQ=null}
+  updateNewsVersions();
+  if(activeNewsArchive(archive)){
+   archive.rows=archive.rows.filter(entry=>entry!==row);
+   archive.offset--;
+   if(archive.detail===row)backNewsArchive();
+   else if(!archive.detail)renderNewsArchive();
+   toast("Novedad eliminada.");
+  }
+ }catch(e){
+  if(activeNewsArchive(archive)&&archive.detail===row)status.textContent=e.message.includes("PGRST202")?
+   "Aplica la migración de Novedades enviadas en Supabase para poder eliminar avisos.":"No se pudo eliminar el aviso. Intenta de nuevo.";
+ }finally{archive.deleting=false;button.disabled=false}
 }
 function editNews(){
  if(!isAdmin())return;
@@ -4107,11 +4309,11 @@ async function okNews(){
   const items=[newsItem(title,blocks)];
   await api("POST","novedades?on_conflict=version",[{version,items}],{Prefer:"resolution=merge-duplicates,return=minimal"});
   if(meId()!==user)return;
+  newsRevision++;
   const current=ALLN.find(entry=>entry.v===version);
   if(current)current.items=items;
   else ALLN.push({v:version,items});
-  ALLN.sort((a,b)=>vGt(a.v,b.v)?-1:vGt(b.v,a.v)?1:0);
-  LATEST=ALLN[0].v;
+  updateNewsVersions();
   markVer();
   if(active())closeM();
   toast("Novedad publicada.");
