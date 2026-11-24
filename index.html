@@ -488,6 +488,10 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 @keyframes frame-glint{0%,100%{opacity:.38;transform:scale(.8)}50%{opacity:1;transform:scale(1.12)}}
 .frame-wing{transform-origin:28px 52px;transform-box:view-box;animation:frame-flight 2.5s cubic-bezier(.44,.04,.42,.99) infinite}
 .frame-halo{animation:frame-halo 2.5s ease-in-out infinite;filter:drop-shadow(0 0 3px currentColor)}
+.frame-kitten{--kitten-edge:color-mix(in srgb,var(--frame-accent) 37%,#493247);--kitten-fur:color-mix(in srgb,var(--frame-accent) 20%,#fff6f1);--kitten-inner:color-mix(in srgb,var(--frame-accent) 30%,#f191ba)}
+.frame-cat-ear{transform-box:view-box;transform-origin:24px 34px;animation:frame-ear-twitch 3.2s ease-in-out infinite}
+.frame-cat-ear--right{animation-delay:-1.45s}
+@keyframes frame-ear-twitch{0%,46%,80%,100%{transform:rotate(0)}54%{transform:rotate(-13deg) translateY(-1px)}62%{transform:rotate(8deg)}70%{transform:rotate(-5deg)}}
 .frame-garden{--flower-tone:var(--profile-flower,var(--ac));--bloom:color-mix(in srgb,var(--flower-tone) 72%,white);--bloom-light:color-mix(in srgb,var(--bloom) 43%,white);--bloom-center:color-mix(in srgb,var(--flower-tone) 69%,#332c48);--garden-leaf:color-mix(in srgb,var(--flower-tone) 28%,#90c7a3)}
 .frame-garden-spray{transform-box:fill-box;transform-origin:34% 70%;animation:frame-garden-sway 3.2s ease-in-out infinite}
 .frame-garden-spray--lower{transform-origin:70% 28%;animation-delay:-1.6s}
@@ -501,7 +505,7 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 @keyframes frame-garden-sway{0%,100%{transform:rotate(-5deg)}50%{transform:translateY(-2px) rotate(8deg)}}
 @keyframes frame-bloom{0%,100%{transform:rotate(-6deg) scale(.92)}50%{transform:rotate(9deg) scale(1.1)}}
 @keyframes frame-petal-drift{0%{opacity:0;transform:translate(0,-4px) rotate(-30deg)}20%{opacity:1}75%{opacity:.9}100%{opacity:0;transform:translate(-13px,16px) rotate(95deg)}}
-@media(prefers-reduced-motion:reduce){.frame-orbit,.frame-float,.frame-glint,.frame-wing,.frame-halo,.frame-garden-spray,.frame-blossom,.frame-petal{animation:none}}
+@media(prefers-reduced-motion:reduce){.frame-orbit,.frame-float,.frame-glint,.frame-wing,.frame-halo,.frame-garden-spray,.frame-blossom,.frame-petal,.frame-cat-ear{animation:none}}
 .profile-editor{padding-bottom:4px}
 .profile-editor h3{margin:0 0 14px}
 .profile-editor h4{margin:0 0 8px;font-size:1.05rem}
@@ -1407,6 +1411,7 @@ const PROFILE_FRAMES={
  orbit:{name:"Órbita",level:5},
  constellation:{name:"Jardín en flor",level:10},
  creator:{name:"Alas de luz",role:"creator"},
+ kitten:{name:"Gatito",role:"creator"},
  gom:{name:"Corona GOM",role:"gom"}
 };
 const FRAME_SPARK='M0-4Q1-1 4 0Q1 1 0 4Q-1 1-4 0Q-1-1 0-4Z';
@@ -1445,9 +1450,22 @@ function frameArt(id){
   </g>
   ${falling(111,48,"")}${falling(82,111,"frame-petal--second")}${falling(21,42,"frame-petal--third")}
  </g>`;
+ const ear=right=>`<g class="frame-cat-ear${right?" frame-cat-ear--right":""}">
+  <path d="M15 35C9 29 5 17 7 8C8 3 12 1 17 3C25 5 35 11 42 17C30 20 21 27 15 35Z" fill="var(--kitten-fur)" stroke="var(--kitten-edge)" stroke-width="1.55"/>
+  <path d="M16 30C13 26 10 17 11 11C12 8 15 8 18 9Q29 12 35 18C27 20 20 25 16 30Z" fill="var(--kitten-inner)" stroke="var(--kitten-edge)" stroke-opacity=".55" stroke-width=".9"/>
+  <path d="M14 13Q13 19 17 25" stroke="white" stroke-width="1.2" opacity=".66"/>
+  <path d="M14 33l-5 1m7 1-4 3" stroke="var(--kitten-fur)" stroke-width="1.7"/>
+ </g>`;
+ const whiskers='<path d="M18 63Q9 59 2 60M17 68Q9 68 0 72M18 73Q10 77 5 82"/>';
+ const kitten=`<g class="frame-kitten">
+  ${ear(false)}<g transform="translate(120 0) scale(-1 1)">${ear(true)}</g>
+  <g stroke="var(--kitten-fur)" stroke-width="4.1" opacity=".88">${whiskers}<g transform="translate(120 0) scale(-1 1)">${whiskers}</g></g>
+  <g stroke="var(--kitten-edge)" stroke-width="2.2">${whiskers}<g transform="translate(120 0) scale(-1 1)">${whiskers}</g></g>
+ </g>`;
  const art={
   orbit:orbit+'<g class="frame-orbit"><path d="M28 24A48 48 0 0 1 71 13" stroke-width="2.7"/><circle cx="91" cy="97" r="2" fill="currentColor"/></g>',
   constellation:garden,
+  kitten,
   creator:orbit+`<path d="M20 78Q33 112 60 111Q87 112 100 78" stroke-width="2.3"/>${wing}<g transform="translate(120 0) scale(-1 1)">${wing}</g>${halo}`+frameSpark(14,68,"white")+frameSpark(105,70)+frameSpark(34,101)+frameSpark(85,103,"white")+frameSpark(85,12,"white"),
   gom:orbit+'<g class="frame-float" stroke-width="2" fill="currentColor" fill-opacity=".22"><path d="M48 10l6 4 6-6 6 6 6-4-3 12H51Z"/><path d="M53 25h14"/></g>'+frameSpark(16,55)+frameSpark(103,65)+frameSpark(79,105,"white")
  };
@@ -1525,7 +1543,9 @@ function publicFrame(r){
  return allowedFrame(p.frame,frameLevel(p.lvl,p.frameLevel),r.frameAccess);
 }
 async function loadPublicFrame(r){
- if(!r.user_id||(!isAdmin()&&!["creator","gom"].includes(r.data?.frame)))return;
+ const id=r.data?.frame;
+ const restricted=Object.hasOwn(PROFILE_FRAMES,id)&&!!PROFILE_FRAMES[id].role;
+ if(!r.user_id||(!isAdmin()&&!restricted))return;
  try{
   const rows=await apiPub("rpc/profile_frame_access?target_user="+encodeURIComponent(r.user_id));
   if(PUB!==r)return;
@@ -2145,9 +2165,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.27",VK="mypoca-ver";
+const APP_VER="1.28",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.28",items:[["Marco Gatito","El perfil de la creadora tiene un nuevo marco con orejas animadas."]]},
  {v:"1.27",items:[["Color del perfil","Personaliza la tarjeta del perfil y el color de Jardín en flor."],["Privacidad del perfil","Las secciones privadas quedan ocultas para las visitas."]]},
  {v:"1.26",items:[["Jardín en flor","El marco de nivel 10 se renueva con ramas que se balancean y pétalos flotantes."]]},
  {v:"1.25",items:[["Marcos renovados","Alas de luz ahora aletea y Constelación tiene un borde facetado con cristales."],["Eras en Pedidos","Solo se muestran las eras con photocards en esa vista."]]},
