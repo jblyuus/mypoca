@@ -561,6 +561,35 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .social-post-tags,.social-post-actions{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 0}
 .social-like.on{color:var(--ac)}
 .social-more{display:block;margin:12px auto}
+.social-author-text{min-width:0}
+.social-author-name{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.social-badge{display:inline-flex;padding:2px 6px;border-radius:99px;color:var(--tx);font-size:.69rem;font-weight:650;background:color-mix(in srgb,var(--ac) 22%,var(--bg));border:1px solid var(--bd)}
+.social-badge-creator{background:color-mix(in srgb,var(--ac) 42%,var(--bg))}
+.social-recommendation{margin:0 0 9px;color:var(--mu);font-size:.82rem}
+.social-discover-head{margin:14px 0 5px}
+.social-discover-posts{display:grid;grid-auto-flow:column;grid-auto-columns:min(82%,300px);gap:10px;overflow-x:auto;scroll-snap-type:x proximity;align-items:start;padding:0 2px 7px}
+.social-discover-posts .social-post{scroll-snap-align:start;margin:0}
+.social-discover-posts .social-post-photo{aspect-ratio:4/3;object-fit:cover}
+.social-discover-posts .social-caption{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.social-post-actions .social-comment-button{display:inline-flex;align-items:center;gap:5px}
+.social-comment-button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6}
+#sheet:has(.social-post-detail){padding:0 0 max(12px,env(safe-area-inset-bottom))}
+.social-post-detail{background:var(--card)}
+.social-detail-bar{display:flex;position:sticky;top:0;z-index:2;align-items:center;gap:12px;padding:9px 14px;background:var(--card);border-bottom:1px solid var(--bd)}
+.social-detail-bar h3{margin:0}
+.social-post-detail .social-author{margin:0;padding:11px 14px}
+.social-post-detail .social-post{margin:0}
+.social-post-detail .social-post-photo{border-radius:0;max-height:72vh}
+.social-post-detail .social-post-actions,.social-post-detail .social-caption,.social-post-detail .social-post-tags{margin-left:14px;margin-right:14px}
+.social-comments{margin:14px 0 0;padding:13px 14px 20px;border-top:1px solid var(--bd)}
+.social-comments h3{margin:0 0 10px}
+.social-comment-form{display:flex;align-items:flex-end;gap:8px;margin-bottom:8px}
+.social-comment-form textarea{min-width:0;flex:1;margin:0}
+.social-comment-list{margin-top:8px}
+.social-comment{display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.social-comment .social-avatar{width:29px;height:29px}
+.social-comment p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.social-comment-author{border:0;background:none;padding:0;color:var(--tx);font:inherit;font-weight:700;cursor:pointer}
 </style></head><body><div class="bgfx"><i></i><i></i><i></i></div>
 <header><h1 id="ttl">Mis pedidos</h1><div style="display:flex;gap:10px;align-items:center"><button id="bell" class="avb bell" aria-label="Notificaciones" onclick="openNotifs()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span id="bb" class="bbadge"></span></button><button id="av" class="avb" aria-label="Perfil" onclick="go('perfil')"></button></div></header>
 <main id="v"></main>
@@ -1178,7 +1207,7 @@ function editP(){
   <details><summary>Descubrir personas</summary>
    <div class="sg"><label><input type="checkbox" id="p_discover" ${p.discovery?.visible?"checked":""}>Aparecer en Descubrir</label>
    <label><input type="checkbox" id="p_discover_private" ${p.discovery?.private?"checked":""}>Usar artistas y grupos de apartados privados</label></div>
-   <p class="mu">Con el perfil público activo, se mostrarán los artistas y grupos en común. Las coincidencias no indican de dónde salió el interés ni muestran tus piezas o gastos.</p>
+   <p class="mu">Con el perfil público activo, se mostrarán los artistas y grupos en común y tus GOs socios visibles. Las coincidencias no indican de dónde salió el interés ni muestran tus piezas o gastos.</p>
   </details>
   <details><summary>Privacidad</summary>
    <div class="mu">Elige qué apartados ocultar de tu perfil público. Las photocards de la Colección que elijas como favoritas seguirán visibles.</div>
@@ -2164,7 +2193,7 @@ function pubTheme(){pubThemeClear();const r=PUB,th=r&&r.data&&r.data.th;if(!th||
 function setPubS(a,b){if(a)pubSrc=a;if(b)pubTab=b;paintPub()}
 const SOCIAL_PANES=[["home","Inicio"],["posts","Posts"],["cards","Photocards"]];
 let socialTab="discover",myProfilePane="home",publicProfilePane="home";
-let discoverQuery="",discoverResults=[],discoverStatus="",discoverVersion=0;
+let discoverQuery="",discoverResults=[],discoverPosts=[],discoverStatus="",discoverVersion=0;
 const POST_PAGE=20,socialPages=new Map(),socialPostStore=new Map(),pendingPostLikes=new Set();
 
 function socialRpc(name,args,publicRead=false){
@@ -2198,7 +2227,8 @@ function socialInterests(){
  for(const [section,items] of [
   ["col",S.items.filter(home).concat(S.col||[])],
   ["ped",S.items.filter(i=>!home(i))],
-  ["wish",S.wish||[]]
+  ["wish",S.wish||[]],
+  ["favorites",fvSlots().filter(item=>item&&(!item._w||!priv.wish))]
  ]){
   if(!allowPrivate&&priv[section])continue;
   for(const item of items){
@@ -2254,8 +2284,8 @@ function setPublicProfilePane(value){
 function socialTabHtml(){
  return socialSegments([["discover","Descubrir"],["feed","Publicaciones"]],socialTab,"setSocialTab")+(socialTab==="discover"?
   `<form class="social-search" onsubmit="event.preventDefault();findSocial($('social-search').value)">
-   <label class="social-sr" for="social-search">Buscar personas, artistas o grupos</label>
-   <input id="social-search" placeholder="Persona, artista o grupo" value="${esc(discoverQuery)}" maxlength="64" autocomplete="off">
+   <label class="social-sr" for="social-search">Buscar personas, artistas, grupos o GOs socios</label>
+   <input id="social-search" placeholder="Persona, artista, grupo o GO" value="${esc(discoverQuery)}" maxlength="64" autocomplete="off">
    <button class="pri" type="submit">Buscar</button></form>
    ${socialInterestChips()}<div id="social-results" aria-live="polite">${socialDiscoverHtml()}</div>`:
   auth?`<div class="social-heading"><h2>Publicaciones de amigos</h2><button type="button" class="pri sm" onclick="composeSocialPost()">+ Publicar</button></div>${socialPostList("feed","feed")}`:
@@ -2263,32 +2293,54 @@ function socialTabHtml(){
 }
 function socialInterestChips(){
  const {artists,groups}=socialInterests();
- const labels=[...new Set([...artists.values()].slice(0,5).concat([...groups.values()].slice(0,5)))];
+ const labels=[...new Set([...artists.values()].slice(0,5).concat([...groups.values()].slice(0,5),socialPartnerGos().slice(0,5).map(go=>go.n)))];
  if(!labels.length)return "";
  return `<div class="gorow social-interests"><button type="button" class="gotab ${discoverQuery?"":"on"}" onclick="findSocial('')">Para ti</button>${labels.map(label=>`<button type="button" class="gotab ${label===discoverQuery?"on":""}" data-term="${esc(label)}" onclick="findSocial(this.dataset.term)">${esc(label)}</button>`).join("")}</div>`;
 }
+function socialPartnerGos(){
+ const p=S.profile||{};
+ return goVis(p.gos,p.gosVis).filter(go=>!go.ext&&go.id&&!String(go.id).startsWith("n:"));
+}
+function socialDiscoveryReason(p,artists,groups){
+ const artist=p.artist_hit||p.artists?.[0],group=p.group_hit||p.groups?.[0],go=p.go_name;
+ if(p.tag_hit)return "Etiqueta · "+p.tag_hit;
+ if(artist)return `${artists.has(artist)?"También colecciona a":"Colecciona a"} ${artists.get(artist)||artist}`;
+ if(go)return socialPartnerGos().some(g=>nrm(g.n)===nrm(go))?`Comparten el GO ${go}`:`GO socio · ${go}`;
+ if(p.groups?.length>1)return `Tienen ${p.groups.length} grupos en común`;
+ return group?`Le interesa ${groups.get(group)||group}`:"Perfil público";
+}
 function socialDiscoverHtml(){
  if(discoverStatus)return `<div class="empty">${esc(discoverStatus)}</div>`;
- if(!discoverResults.length)return '<div class="empty">No se encontraron perfiles. Prueba otro artista, grupo o @usuario.</div>';
+ if(!discoverResults.length&&!discoverPosts.length)return '<div class="empty">No encontramos coincidencias. Prueba otro artista, grupo, GO socio o @usuario.</div>';
  const {artists,groups}=socialInterests();
- return discoverResults.map(p=>{
-  const artist=p.artist_hit||p.artists?.[0],group=p.group_hit;
-  const reason=artist?`${artists.has(artist)?"También colecciona a":"Colecciona a"} ${artists.get(artist)||artist}`:group?`Le interesa ${groups.get(group)||group}`:
-   p.groups?.length>1?`Tienen ${p.groups.length} grupos en común`:p.groups?.length?`También colecciona ${groups.get(p.groups[0])||p.groups[0]}`:"Perfil público";
-  return `<button type="button" class="card social-person" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">
-    ${socialAvatar(p)}<span class="grow"><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)}</span><span class="social-reason">${esc(reason)}</span></span><span aria-hidden="true">›</span>
-   </button>`;
- }).join("");
+ const posts=discoverPosts.map(p=>socialPostCard(p,false,socialDiscoveryReason(p,artists,groups))).join("");
+ const people=discoverResults.map(p=>`<button type="button" class="card social-person" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">
+  ${socialAvatar(p)}<span class="grow"><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)}</span><span class="social-reason">${esc(socialDiscoveryReason(p,artists,groups))}</span></span><span aria-hidden="true">›</span></button>`).join("");
+ return (posts?`<h2 class="social-discover-head">Publicaciones para ti</h2><div class="social-discover-posts">${posts}</div>`:"")
+  +(people?`<h2 class="social-discover-head">Perfiles</h2>${people}`:"");
+}
+function rememberSocialPost(viewer,row){
+ const key=viewer+":"+row.id;
+ const p=socialPostStore.get(key)||{};
+ Object.assign(p,row,{likes:Number(row.likes)||0});
+ if(row.comment_count!=null)p.comment_count=Number(row.comment_count)||0;
+ socialPostStore.set(key,p);
+ return p;
 }
 async function findSocial(term){
  discoverQuery=String(term||"").trim().slice(0,64);
  const version=++discoverVersion,who=meId(),{artists,groups}=socialInterests();
- discoverStatus="Buscando perfiles…";
- if(tab==="social"&&socialTab==="discover"){render();$("social-search").value=discoverQuery}
+ discoverStatus="Buscando perfiles y publicaciones…";
+ if(tab==="social"&&socialTab==="discover")render();
  try{
-  const rows=await socialRpc("social_discover",{term:socialInterestKey(discoverQuery.replace(/^@/,"")),artist_keys:[...artists.keys()],group_keys:[...groups.keys()]},true);
+  const result=await socialRpc("social_discover_content",{
+   term:socialInterestKey(discoverQuery.replace(/^[@#]/,"")),artist_keys:[...artists.keys()],
+   group_keys:[...groups.keys()],go_ids:socialPartnerGos().map(go=>String(go.id))
+  },true);
   if(version!==discoverVersion||who!==meId())return;
-  discoverResults=rows||[];discoverStatus="";
+  discoverResults=result?.profiles||[];
+  discoverPosts=(result?.posts||[]).map(row=>rememberSocialPost(who||"guest",row));
+  discoverStatus="";
  }catch(e){
   if(version!==discoverVersion||who!==meId())return;
   discoverStatus=socialError(e);
@@ -2314,7 +2366,7 @@ function socialPostContent(page,key,view){
  if(!page.rows.length)return view==="preview"?"":`<div class="empty">${key==="feed"?"Aún no hay publicaciones. Agrega amigos en Descubrir o publica una foto.":"Aún no hay publicaciones."}</div>`;
  const rows=view==="preview"?page.rows.slice(0,3):page.rows;
  const more=page.more&&view!=="preview"?`<button class="sec social-more" data-scope="${esc(key)}" onclick="loadSocialPosts(this.dataset.scope,false,true)" ${page.loading?"disabled":""}>${page.loading?"Cargando…":"Ver más"}</button>`:"";
- if(view==="feed")return rows.map(socialPostCard).join("")+more;
+ if(view==="feed")return rows.map(p=>socialPostCard(p)).join("")+more;
  return `${view==="preview"?"<h2>Posts recientes</h2>":""}<div class="social-post-grid">${rows.map(p=>`<button type="button" data-post="${esc(p.id)}" onclick="openSocialPost(this.dataset.post)" aria-label="${esc(p.caption||"Abrir publicación")}"><img loading="lazy" src="${esc(socialImage(p.image_url))}" alt=""></button>`).join("")}</div>${more}`;
 }
 function paintSocialPosts(key){
@@ -2334,30 +2386,131 @@ async function loadSocialPosts(key,refresh=false,more=false){
   const cursor=more?page.rows.at(-1):null;
   const rows=await socialRpc("social_list_posts",{...(key==="feed"?{feed:true}:{author:key}),
    ...(cursor?{cursor_time:cursor.created_at,cursor_id:cursor.id}:{})},true);
+  const details=rows.length?await socialRpc("social_post_details",{post_ids:rows.map(row=>row.id)},true).catch(()=>[]):[];
+  const metadata=new Map((details||[]).map(row=>[row.id,row]));
   page.more=rows.length===POST_PAGE;
   const known=new Set(page.rows.map(row=>row.id));
   for(const row of rows){
-   const p={...row,likes:Number(row.likes)||0};
-   socialPostStore.set(viewer+":"+p.id,p);
+   const p=rememberSocialPost(viewer,{...row,...metadata.get(row.id)});
    if(!known.has(p.id))page.rows.push(p);
   }
  }catch(e){page.error=socialError(e);if(page.rows.length)toast(page.error)}
  finally{page.loading=false;paintSocialPosts(key)}
 }
-function socialPostCard(p,detail=false){
+function socialPostCard(p,detail=false,reason=""){
  return `<article class="card social-post">
-  <button type="button" class="social-author" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">${socialAvatar(p)}<span><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)} · ${esc(ago(p.created_at))}</span></span></button>
+  ${reason?`<p class="social-recommendation">${esc(reason)}</p>`:""}
+  <button type="button" class="social-author" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">${socialAvatar(p)}<span class="social-author-text"><span class="social-author-name"><b>${esc(p.name||p.username)}</b>${socialPostBadges(p.badges)}</span><span class="mu">@${esc(p.username)} · ${esc(ago(p.created_at))}</span></span></button>
   ${detail?`<img class="social-post-photo" src="${esc(socialImage(p.image_url))}" alt="Imagen de la publicación">`:`<button type="button" class="social-photo-button" data-post="${esc(p.id)}" onclick="openSocialPost(this.dataset.post)" aria-label="Abrir publicación"><img class="social-post-photo" loading="lazy" src="${esc(socialImage(p.image_url))}" alt=""></button>`}
   ${p.caption?`<p class="social-caption">${esc(p.caption)}</p>`:""}
   ${p.tags?.length?`<div class="social-post-tags">${p.tags.map(tag=>`<span class="tag">${esc(tag)}</span>`).join("")}</div>`:""}
   <div class="social-post-actions"><button type="button" class="sec sm social-like ${p.liked?"on":""}" data-like-post="${esc(p.id)}" aria-label="Me gusta" aria-pressed="${!!p.liked}" onclick="likeSocialPost(this.dataset.likePost)">${p.liked?"♥":"♡"} <b>${p.likes}</b></button>
-  ${detail&&meId()===p.author_id?`<button type="button" class="sec sm" data-post="${esc(p.id)}" onclick="deleteSocialPost(this)">Eliminar</button>`:""}</div></article>`;
+  ${socialCommentButton(p,detail)}${detail&&meId()===p.author_id?`<button type="button" class="sec sm" data-post="${esc(p.id)}" onclick="deleteSocialPost(this)">Eliminar</button>`:""}</div></article>`;
 }
-function openSocialPost(id){
+const SOCIAL_COMMENT_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.8 7.8 0 0 1-8 7.5 8.5 8.5 0 0 1-3.1-.6L4 20l1.5-4.4A7.1 7.1 0 0 1 4 11.5 7.8 7.8 0 0 1 12 4a7.8 7.8 0 0 1 8 7.5Z"/></svg>';
+function socialPostBadges(keys){
+ const labels={creador:"Creador",primer:"Primer usuario",gom:"GOM"};
+ return ["creador","primer","gom"].filter(key=>keys?.includes(key))
+  .map(key=>`<span class="social-badge ${key==="creador"?"social-badge-creator":""}">${labels[key]}</span>`).join("");
+}
+function socialCommentButton(p,detail){
+ return `<button type="button" class="sec sm social-comment-button" data-post="${esc(p.id)}" onclick="${detail?"focusSocialComments()":"openSocialPost(this.dataset.post,true)"}" aria-label="Ver comentarios">${SOCIAL_COMMENT_ICON}<b data-comment-count="${esc(p.id)}">${p.comment_count||0}</b></button>`;
+}
+function focusSocialComments(){
+ const target=$("social-comment-input")||$("social-comments-heading");
+ target?.scrollIntoView({block:"nearest",behavior:RM()?"auto":"smooth"});
+ target?.focus({preventScroll:true});
+}
+function socialCommentsHtml(p){
+ return `<section class="social-comments" id="social-comments" data-post="${esc(p.id)}">
+  <h3 id="social-comments-heading" tabindex="-1">Comentarios</h3>
+  ${auth?`<form class="social-comment-form" onsubmit="event.preventDefault();sendSocialComment(this)">
+   <label class="social-sr" for="social-comment-input">Escribe un comentario</label>
+   <textarea id="social-comment-input" rows="2" maxlength="500" required placeholder="Escribe un comentario…"></textarea>
+   <button type="submit" class="pri sm">Enviar</button>
+  </form>`:'<p class="mu">Inicia sesión para comentar o dar me gusta.</p>'}
+  <div id="social-comment-status" class="mu" role="status"></div>
+  <div id="social-comment-list" class="social-comment-list"></div>
+ </section>`;
+}
+function paintSocialComments(panel){
+ const list=panel.querySelector(".social-comment-list");
+ const page=panel.commentPage;
+ list.innerHTML=page.rows.map(c=>`<article class="social-comment">
+  ${socialAvatar(c)}<div class="grow">
+    ${c.username?`<button type="button" class="social-comment-author" data-user="${esc(c.username)}" onclick="openPub(this.dataset.user)">${esc(c.name||"@"+c.username)}</button>`:'<b>Usuario de mypoca</b>'}
+    <span class="mu"> · ${esc(ago(c.created_at))}</span><p>${esc(c.body)}</p>
+  </div>${c.can_delete?`<button type="button" class="sec sm" data-comment="${esc(c.id)}" onclick="removeSocialComment(this)">Eliminar</button>`:""}
+ </article>`).join("")
+  +(page.more?`<button type="button" class="sec sm" onclick="loadSocialComments($('social-comments'),true)" ${page.loading?"disabled":""}>Ver anteriores</button>`:"")
+  +(page.error?'<button type="button" class="sec sm" onclick="loadSocialComments($(\'social-comments\'))">Reintentar</button>':"");
+}
+async function loadSocialComments(panel,more=false){
+ if(!panel||more&&panel.commentPage?.loading)return;
+ const user=meId(),p=panel.dataset.post;
+ const prior=panel.commentPage?.rows||[];
+ const page={rows:prior,more:panel.commentPage?.more||false,loading:true,error:false};
+ panel.commentPage=page;
+ const status=panel.querySelector("[role=status]");
+ status.textContent="Cargando comentarios…";paintSocialComments(panel);
+ try{
+  const cursor=more?prior.at(-1):null;
+  const rows=await socialRpc("social_list_comments",{target:p,...(cursor?{cursor_time:cursor.created_at,cursor_id:cursor.id}:{})},true);
+  if(!panel.isConnected||user!==meId()||panel.commentPage!==page)return;
+  page.more=rows.length===20;
+  page.rows=more?prior.concat(rows.filter(row=>!prior.some(old=>old.id===row.id))):rows;
+  status.textContent=page.rows.length?"":"Aún no hay comentarios.";
+ }catch(e){page.error=true;if(panel.commentPage===page)status.textContent=socialError(e)}
+ finally{page.loading=false;if(panel.isConnected&&user===meId()&&panel.commentPage===page)paintSocialComments(panel)}
+}
+async function refreshSocialCommentCount(id){
+ try{
+  const rows=await socialRpc("social_post_details",{post_ids:[id]},true);
+  const p=socialPostStore.get(socialScope(id));
+  if(!p||!rows?.[0])return;
+  p.comment_count=Number(rows[0].comment_count)||0;
+  for(const node of document.querySelectorAll("[data-comment-count]"))if(node.dataset.commentCount===id)node.textContent=p.comment_count;
+ }catch(e){}
+}
+async function sendSocialComment(form){
+ const user=meId(),panel=form.closest(".social-comments");
+ if(!user||!panel)return;
+ const input=form.querySelector("textarea"),button=form.querySelector("button");
+ const message=input.value.trim(),status=panel.querySelector("[role=status]");
+ if(!message||button.disabled)return;
+ if(form.lastMessage!==message){form.commentId=crypto.randomUUID();form.lastMessage=message}
+ button.disabled=true;input.readOnly=true;
+ try{
+  await socialRpc("social_add_comment",{target:panel.dataset.post,comment_id:form.commentId,message});
+  if(user!==meId())return;
+  if(panel.isConnected){input.value="";form.lastMessage="";await loadSocialComments(panel)}
+  await refreshSocialCommentCount(panel.dataset.post);
+ }catch(e){status.textContent=socialError(e)}
+ finally{button.disabled=false;input.readOnly=false}
+}
+async function removeSocialComment(button){
+ const panel=button.closest(".social-comments"),user=meId();
+ if(!panel||!user||button.disabled||!confirm("¿Eliminar este comentario?"))return;
+ button.disabled=true;
+ try{
+  await socialRpc("social_delete_comment",{target:button.dataset.comment});
+  if(user!==meId())return;
+  if(panel.isConnected)await loadSocialComments(panel);
+  await refreshSocialCommentCount(panel.dataset.post);
+ }catch(e){toast(socialError(e))}
+ finally{button.disabled=false}
+}
+
+function openSocialPost(id,toComments=false){
  const p=socialPostStore.get(socialScope(id));
  if(!p)return;
- openM(`<div class="vw social-post-detail">${socialPostCard(p,true)}<button type="button" class="sec" onclick="closeM()">Cerrar</button></div>`);
+ openM(`<div class="social-post-detail">
+  <header class="social-detail-bar"><button type="button" class="sec sm" onclick="closeM()" aria-label="Volver">‹ Volver</button><h3>Publicación</h3></header>
+  ${socialPostCard(p,true)}${socialCommentsHtml(p)}
+ </div>`);
  $("sheet").scrollTop=0;
+ loadSocialComments($("social-comments"));
+ if(toComments)requestAnimationFrame(focusSocialComments);
 }
 async function likeSocialPost(id){
  if(!meId())return needLogin();
@@ -2438,6 +2591,8 @@ async function deleteSocialPost(button){
   await socialRpc("social_delete_post",{target:p.id});
   for(const [scope,page] of socialPages){page.rows=page.rows.filter(row=>row.id!==p.id);paintSocialPosts(scope.slice(scope.indexOf(":")+1))}
   socialPostStore.delete(socialScope(p.id));
+  discoverPosts=discoverPosts.filter(row=>row.id!==p.id);
+  if($("social-results"))$("social-results").innerHTML=socialDiscoverHtml();
   if(button.isConnected)closeM();toast("Publicación eliminada");
  }catch(e){toast(socialError(e))}
  finally{button.disabled=false}
@@ -2623,9 +2778,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.31",VK="mypoca-ver";
+const APP_VER="1.32",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.32",items:[["Conversaciones en posts","Comenta y da me gusta en las publicaciones públicas."],["Más en Descubrir","Encuentra perfiles y publicaciones por artistas, grupos y GOs socios."]]},
  {v:"1.31",items:[["Grupos y bias","Vuelve a elegir tus grupos favoritos y bias en Editar perfil. Ahora puedes seleccionar varios desde un catálogo compartido."]]},
  {v:"1.30",items:[["Social","Busca perfiles por artista o grupo y comparte fotos con tus amistades."],["Perfiles por pestañas","Explora Inicio, Posts y Photocards. Sin caja ahora está dentro de Pedidos."]]},
  {v:"1.29",items:[["Favoritas en el perfil","Las photocards de tu Colección que marques como favoritas siguen visibles aunque ocultes la Colección."]]},
