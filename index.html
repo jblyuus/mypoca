@@ -2298,7 +2298,6 @@ function socialTabHtml(){
 function socialInterestChips(){
  const {artists,groups}=socialInterests();
  const labels=[...new Set([...artists.values()].slice(0,5).concat([...groups.values()].slice(0,5),socialPartnerGos().slice(0,5).map(go=>go.n)))];
- if(!labels.length)return "";
  return `<div class="gorow social-interests"><button type="button" class="gotab ${discoverQuery?"":"on"}" onclick="findSocial('')">Para ti</button>${labels.map(label=>`<button type="button" class="gotab ${label===discoverQuery?"on":""}" data-term="${esc(label)}" onclick="findSocial(this.dataset.term)">${esc(label)}</button>`).join("")}</div>`;
 }
 function socialPartnerGos(){
@@ -2329,18 +2328,21 @@ function socialDiscoveryReason(p,artists,groups){
   if(p.go_name)return "GO socio · "+p.go_name;
   return "Coincidencia de nombre o @usuario";
  }
- const artist=p.artist_hit||p.artists?.[0],group=p.group_hit||p.groups?.[0],go=p.go_name;
+ const artist=p.artists?.[0],group=p.groups?.[0];
  if(p.tag_hit)return "Etiqueta · "+p.tag_hit;
  if(artist)return `${artists.has(artist)?"También colecciona a":"Colecciona a"} ${artists.get(artist)||artist}`;
- if(go)return socialPartnerGos().some(g=>nrm(g.n)===nrm(go))?`Comparten el GO ${go}`:`GO socio · ${go}`;
  if(p.groups?.length>1)return `Tienen ${p.groups.length} grupos en común`;
- return group?`Le interesa ${groups.get(group)||group}`:"Perfil público";
+ return group?`Grupo en común · ${groups.get(group)||group}`:"";
 }
 function socialDiscoverHtml(){
  if(discoverInput.trim()!==discoverQuery)return '<div class="mu social-state">Toca Buscar para ver las coincidencias.</div>';
  if(discoverStatus)return `<div class="empty">${esc(discoverStatus)}</div>`;
- if(!discoverResults.length&&!discoverPosts.length)return '<div class="empty">No encontramos coincidencias. Prueba otro artista, grupo, GO socio o @usuario.</div>';
  const {artists,groups}=socialInterests();
+ if(!discoverResults.length&&!discoverPosts.length){
+  if(discoverQuery)return '<div class="empty">No encontramos coincidencias. Prueba otro artista, grupo, GO socio o @usuario.</div>';
+  if(!artists.size&&!groups.size)return '<div class="empty">Añade tus grupos favoritos o bias en Editar perfil para ver sugerencias.<br><button type="button" class="sec sm" style="margin-top:10px" onclick="editP()">Editar perfil</button></div>';
+  return '<div class="empty">Aún no encontramos coincidencias con tus grupos o bias. También puedes buscar por nombre o @usuario.</div>';
+ }
  const posts=discoverPosts.map(p=>socialPostCard(p,false,socialDiscoveryReason(p,artists,groups))).join("");
  const people=discoverResults.map(p=>`<button type="button" class="card social-person" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">
   ${socialAvatar(p)}<span class="grow"><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)}</span><span class="social-reason">${esc(socialDiscoveryReason(p,artists,groups))}</span></span><span aria-hidden="true">›</span></button>`).join("");
@@ -2368,9 +2370,14 @@ async function findSocial(term){
   },true);
   if(version!==discoverVersion||who!==meId())return;
   const kind=discoverQuery.startsWith("@")?"person":result?.search_kind;
-  const relevant=row=>!query||socialDiscoveryMatch(row,query,kind);
-  discoverResults=(result?.profiles||[]).filter(relevant);
-  discoverPosts=(result?.posts||[]).filter(relevant).map(row=>rememberSocialPost(who||"guest",row));
+  const sharesInterests=row=>row.artists?.some(artist=>artists.has(artist))||row.groups?.some(group=>groups.has(group));
+  const tagMatches=row=>{
+   const key=socialInterestKey((row.tag_hit||"").replace(/^#/,""));
+   return artists.has(key)||groups.has(key);
+  };
+  discoverResults=(result?.profiles||[]).filter(row=>query?socialDiscoveryMatch(row,query,kind):sharesInterests(row));
+  discoverPosts=(result?.posts||[]).filter(row=>query?socialDiscoveryMatch(row,query,kind):sharesInterests(row)||tagMatches(row))
+   .map(row=>rememberSocialPost(who||"guest",row));
   discoverStatus="";
  }catch(e){
   if(version!==discoverVersion||who!==meId())return;
@@ -2818,9 +2825,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.35",VK="mypoca-ver";
+const APP_VER="1.36",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
  {v:"1.35",items:[["Descubrir automático","Los perfiles públicos aparecen automáticamente con sus intereses públicos y sus GOs socios visibles."]]},
  {v:"1.34",items:[["Búsquedas en Descubrir","Los resultados explican su coincidencia con el grupo, artista o GO que buscaste."]]},
  {v:"1.33",items:[["Etiquetas de publicaciones","Busca grupos y artistas en el mismo catálogo del perfil o añade un nombre nuevo."]]},
