@@ -973,7 +973,7 @@ function view(id){if(dragBlock)return;const i=S.items.find(x=>x.id==id);if(!i)re
  $("sheet").innerHTML='<div class="vw">'+hd(i.name,`edit('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Tipo",i.type)+kv("Tipo de pedido",i.country)+kv("Caja",(i.country=="México"||i.country=="Pocamarket")?"Sin caja (directo a casa)":i.box?"Caja "+i.box:"Sin asignar")+kv("Estado",i.status)+kv("Precio",i.price?money(i.price):"")+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
 function viewW(id){if(dragBlock)return;const i=S.wish.find(x=>x.id==id);if(!i)return;
- $("sheet").innerHTML='<div class="vw">'+hd(i.name,`editW('${i.id}')`)+pic(i)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Tags",(i.tags||[]).join(" · "))+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',true)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
+ $("sheet").innerHTML='<div class="vw">'+hd(i.name,`editW('${i.id}')`)+pic(i)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("GO",i.go)+kv("Tags",(i.tags||[]).join(" · "))+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',true)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
 const KN={mx:"Envío a México",adu:"Aduana",nac:"Envío nacional",ka:"Envío doméstico KA"},STAGES=["Preparando","Recolectado","En tránsito","En reparto","Entregado"];
 const CARR={"Estafeta":0,"DHL":g=>`https://www.dhl.com/mx-es/home/tracking.html?tracking-id=${g}`,"FedEx":g=>`https://www.fedex.com/fedextrack/?trknbr=${g}`,"UPS":g=>`https://www.ups.com/track?tracknum=${g}`,"Redpack":0,"Correos de México":0,"Paquetexpress":0,"J&T Express":0,"99minutos":0,"Otra":0};
@@ -1720,7 +1720,7 @@ function catalogActions(){
 }
 function catalogItemKind(){
  if($("f_t"))return $("f_t").value==="PC"?"pc":"item";
- if($("w_n"))return (cur?(cur.kind||"pc"):wtab)==="misc"?"item":"pc";
+ if($("w_n"))return wishItemKind()==="misc"?"item":"pc";
  return colKind==="pc"?"pc":"item";
 }
 function resetCatalogResults(){
@@ -2131,21 +2131,38 @@ function showLv(){const L=levelInfo();openM(`<div class="vw"><div class="lvhero"
  <h3 style="font-size:17px;margin-top:16px">Logros</h3><div class="agrid">${L.ach.map(a=>{const ok=a[1]>=a[2];return `<div class="atile ${ok?"ok":""}"><div class="aem">${lic(ok?a[4]:"lock")}</div><div class="an">${a[0]}</div><div class="xpb"><b style="width:${Math.min(100,a[1]/a[2]*100)}%"></b></div><small>${Math.min(a[1],a[2])}/${a[2]} · +${a[3]} XP</small></div>`}).join("")}</div>
  <div style="margin-top:16px"><button class="pri" onclick="closeM()">Cerrar</button></div></div>`)}
 function add(){tab=="wish"?editW():tab=="env"?editE():tab=="gas"?editC():tab=="book"&&bsec=="col"?editCol():edit()}
-function editW(id){cur=id?S.wish.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",det:"",img:""};img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE="";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
- $("sheet").innerHTML=`<h3>${cur?"Editar":"Nuevo"} ${(cur?(cur.kind||"pc"):wtab)=="misc"?"artículo deseado":"photocard deseada"}</h3>
- <label>Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${(cur?(cur.kind||"pc"):wtab)=="misc"?"Álbum, mercancía…":"PC Sunoo Weverse Luckydraw"}">
- <label>Grupo</label><div id="pw_g">${pickHtml("g")}</div>
- <label>Artista</label><div id="pw_a">${pickHtml("a")}</div>
- <label>Unit</label><div id="pw_u">${pickHtml("u")}</div>
- <label>Detalles (álbum, regalo de preventa, etc.)</label><textarea id="w_d" rows="3">${esc(i.det)}</textarea>
- <label>Imagen</label><input type="file" accept="image/*" onchange="pick(this.files[0])"><div id="pv">${img?`<img class="th" style="margin-top:6px" src="${img}">`:""}</div>${catalogActions()}
- <label>Tags</label><div id="pw_t">${pickHtml("t")}</div>
- <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="pri" onclick="okW()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" onclick="toItem()">Ya la pedí</button><button class="sec" style="margin-left:auto" onclick="delW()">Borrar</button>`:""}</div>`;
- $("modal").classList.add("on")}
-function okW(){const n=$("w_n").value.trim();if(!n)return alert("Escribe un nombre");const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),tags:[...fT],det:$("w_d").value.trim(),img,kind:cur?(cur.kind||"pc"):wtab};
- if(cur)Object.assign(cur,o);else S.wish.push(Object.assign({id:String(Date.now())},o));save();closeM();render()}
+function wishItemKind(item=cur){return item?(item.kind||"pc"):wtab}
+function editW(id){
+ cur=id?S.wish.find(i=>i.id==id):null;
+ const i=cur||{},pc=wishItemKind()==="pc";
+ img=i.img||"";imgBig="";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";
+ fE=pc?i.era||"":"";fO=i.go||"";fT=[...(i.tags||[])];pkDel={};
+ const title=cur?(pc?"Editar photocard deseada":"Editar artículo deseado"):(pc?"Nueva photocard deseada":"Nuevo artículo deseado");
+ openM(`<div class="vw fm"><h3>${title}</h3>
+ ${itemPhotoPicker(pc)}
+ ${catalogActions()}
+ <div class="fs"><label for="w_n">Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${pc?"PC Sunoo Weverse Luckydraw":"Álbum, mercancía…"}"></div>
+ <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
+ <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
+ <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
+ ${pc?`<div class="fs" id="erasec"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>`:""}
+ <div class="fs"><label>GO (group order)</label><div id="pw_o">${goPickHtml()}</div></div>
+ <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
+ <div class="fs"><label for="w_d">Detalles</label><textarea id="w_d" rows="3" placeholder="Álbum, regalo de preventa, etc.">${esc(i.det)}</textarea></div>
+ <div class="fbar"><button class="pri" onclick="okW()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" onclick="toItem()">Ya la pedí</button><button class="sec" style="margin-left:auto" onclick="delW()">Borrar</button>`:""}</div></div>`);
+ $("sheet").scrollTop=0;
+}
+function okW(){
+ const name=$("w_n").value.trim(),kind=wishItemKind();
+ if(!name)return alert("Escribe un nombre");
+ const o={name,grupo:fG,artist:okM(fA),unit:okM(fU),era:kind==="pc"?okEra(fE):"",go:fO,
+  tags:[...fT],det:$("w_d").value.trim(),img,kind};
+ if(cur)Object.assign(cur,o);
+ else S.wish.push(Object.assign({id:String(Date.now())},o));
+ save();closeM();render();
+}
 function delW(){if(confirm("¿Borrar de la wishlist?")){S.wish=S.wish.filter(i=>i!==cur);save();closeM();render()}}
-function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",tags:[...(cur.tags||[])],type:cur.kind=="misc"?"Otro":"PC",det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
+function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",era:cur.era||"",go:cur.go||"",tags:[...(cur.tags||[])],type:cur.kind=="misc"?"Otro":"PC",det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
 
 /* ===== Artistas y units (cada uno pertenece a UN solo grupo) ===== */
 function AR(){return S.artists=S.artists||[]}
@@ -2402,11 +2419,15 @@ function ev(){const a=[...S.items,...(S.col||[])],o=S.corder||[];if(!o.length)re
 function applyOrderC(ids){const L=ev().map(x=>x.id),idx=[];L.forEach((id,k)=>{if(ids.includes(id))idx.push(k)});idx.forEach((k,n)=>{L[k]=ids[n]});S.corder=L}
 function setS(v){bsec=v;gf="";anim=true;render()}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
+function itemPhotoPicker(pc){
+ return `<div id="pv" class="pvbox" onclick="camOpen(${pc})">${img?`<img class="pvimg" src="${esc(img)}" alt="Foto de la pieza">`:`<span>＋ Agregar foto</span>`}</div>
+ <div class="row2"><button type="button" class="pri sm" onclick="camOpen(${pc})">Cámara</button><button type="button" class="sec sm" onclick="$('gal').click()">Galería</button></div>
+ <input id="gal" type="file" accept="image/*" hidden onchange="pick(this.files[0])">`;
+}
 let colKind="pc";
 function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",tags:[],price:"",img:""};colKind=cur?(cur.type=="PC"?"pc":"prod"):(btab=="prod"?"prod":"pc");img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nueva"} ${colKind=="pc"?"photocard":"artículo"} de colección</h3>
- <div id="pv" class="pvbox" onclick="camOpen()">${img?`<img class="pvimg" src="${img}">`:`<span>＋ Agregar foto</span>`}</div>
- <div class="row2"><button type="button" class="pri sm" onclick="camOpen()">Cámara</button><button type="button" class="sec sm" onclick="$('gal').click()">Galería</button></div><input id="gal" type="file" accept="image/*" hidden onchange="pick(this.files[0])">
+ ${itemPhotoPicker(colKind==="pc")}
  ${catalogActions()}
  <div class="fs"><label>Nombre</label><input id="f_n" value="${esc(i.name||"")}" placeholder="Nombre"></div>
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
@@ -2424,10 +2445,10 @@ function delCol(){if(confirm("¿Borrar de tu colección?")){S.col=S.col.filter(i
 function viewC(id){if(dragBlock)return;const i=S.col.find(x=>x.id==id);if(!i)return;
  $("sheet").innerHTML='<div class="vw">'+hd(i.type=="PC"?"Photocard":"Artículo",`editCol('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("Nombre",i.name)+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Precio",i.price?money(i.price):"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
-let camS=null,camFace="environment",camShot=null;
+let camS=null,camFace="environment",camShot=null,camIsPc=true;
 const CI={x:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',flip:'<svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3l2 2M20 15a8 8 0 0 1-14 3l-2-2M20 4v4h-4M4 20v-4h4"/></svg>',gal:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>'};
-async function camOpen(){camShot=null;let o=$("cam");if(o)o.remove();o=document.createElement("div");o.id="cam";document.body.appendChild(o);
- const pc=colKind=="pc",sz=pc?"width:min(74vw,calc(58vh*55/85));aspect-ratio:55/85":"width:min(78vw,58vh);aspect-ratio:1/1";
+async function camOpen(pc){camShot=null;camIsPc=pc;let o=$("cam");if(o)o.remove();o=document.createElement("div");o.id="cam";document.body.appendChild(o);
+ const sz=pc?"width:min(74vw,calc(58vh*55/85));aspect-ratio:55/85":"width:min(78vw,58vh);aspect-ratio:1/1";
  o.innerHTML=`<video id="camv" playsinline muted autoplay></video><div class="camfr" id="camfr" style="${sz}"></div><div class="camhint" id="camhint">${pc?"Alinea la photocard":"Alinea el artículo"}</div>
  <div class="camtop"><button class="camb" aria-label="Cerrar" onclick="camClose()">${CI.x}</button><button class="camb" aria-label="Girar cámara" onclick="camFlip()">${CI.flip}</button></div>
  <div class="cambar" id="cambar"><button class="camb" aria-label="Galería" onclick="$('camgal').click()">${CI.gal}</button><button class="shut" aria-label="Tomar foto" onclick="camSnap()"></button><span style="width:48px"></span></div>
@@ -2444,7 +2465,7 @@ function camSnap(){const v=$("camv");if(!v||!v.videoWidth)return;const o=$("cam"
  sx=(f.left-o.left+ox)/sc,sy=(f.top-o.top+oy)/sc,sw=f.width/sc,sh=f.height/sc,k=Math.min(1,1400/Math.max(sw,sh)),c=document.createElement("canvas");
  c.width=Math.round(sw*k);c.height=Math.round(sh*k);c.getContext("2d").drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);camShot=c;v.pause();
  $("camfr").style.backgroundImage=`url(${c.toDataURL("image/jpeg",.9)})`;$("cambar").style.display="none";$("camrev").style.display="flex";$("camhint").textContent="¿Se ve bien?";if(navigator.vibrate)navigator.vibrate(10)}
-function camRetake(){camShot=null;const v=$("camv");v.play().catch(()=>{});$("camfr").style.backgroundImage="";$("camrev").style.display="none";$("cambar").style.display="flex";$("camhint").textContent=colKind=="pc"?"Alinea la photocard":"Alinea el artículo"}
+function camRetake(){camShot=null;const v=$("camv");v.play().catch(()=>{});$("camfr").style.backgroundImage="";$("camrev").style.display="none";$("cambar").style.display="flex";$("camhint").textContent=camIsPc?"Alinea la photocard":"Alinea el artículo"}
 function camUse(){if(camShot)useImg(camShot);camClose()}
 function camGal(f){if(f)pick(f);camClose()}
 function camClose(){if(camS)camS.getTracks().forEach(t=>t.stop());camS=null;const o=$("cam");if(o)o.remove()}
@@ -3171,7 +3192,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.41",VK="mypoca-ver";
+const APP_VER="1.42",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
