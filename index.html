@@ -486,7 +486,14 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 @keyframes frame-spin{to{transform:rotate(360deg)}}
 @keyframes frame-float{50%{transform:translateY(-2.5px)}}
 @keyframes frame-glint{0%,100%{opacity:.38;transform:scale(.8)}50%{opacity:1;transform:scale(1.12)}}
-@media(prefers-reduced-motion:reduce){.frame-orbit,.frame-float,.frame-glint{animation:none}}
+.frame-wing{transform-origin:28px 52px;transform-box:view-box;animation:frame-flight 2.5s cubic-bezier(.44,.04,.42,.99) infinite}
+.frame-halo{animation:frame-halo 2.5s ease-in-out infinite;filter:drop-shadow(0 0 3px currentColor)}
+.frame-crystal{transform-box:fill-box;transform-origin:center;animation:frame-crystal 3.6s ease-in-out infinite}
+.frame-crystal--lower{animation-delay:-1.8s}
+@keyframes frame-flight{0%,100%{transform:rotate(6deg) scaleX(.92)}38%{transform:rotate(-24deg) scaleX(1.04)}62%{transform:rotate(10deg) scaleX(.91)}}
+@keyframes frame-halo{50%{opacity:.8;filter:drop-shadow(0 0 6px currentColor)}}
+@keyframes frame-crystal{50%{transform:translateY(-2px);filter:drop-shadow(0 0 4px currentColor)}}
+@media(prefers-reduced-motion:reduce){.frame-orbit,.frame-float,.frame-glint,.frame-wing,.frame-halo,.frame-crystal{animation:none}}
 .profile-editor{padding-bottom:4px}
 .profile-editor h3{margin:0 0 14px}
 .profile-editor h4{margin:0 0 8px;font-size:1.05rem}
@@ -735,7 +742,7 @@ function render(){afFix();
   const cell=i=>`<div data-id="${i.id}" onclick="${i.manual?"viewC":"view"}('${i.id}')">${i.img?`<img src="${i.img}">`:`<img alt="">`}<div class="ctags">${goTag(i,"ctag")}${(prod&&!i.manual?[i.type,...(i.tags||[])]:(i.tags||[])).map(g=>`<span class="ctag" style="${tcol(g)}">${esc(g)}</span>`).join("")}</div>${i.name?`<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>`:""}${col?"":`<div class="stt"><i style="background:${SC[i.status]||"#999"}"></i>${i.status}</div>`}</div>`;
   hh=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="setS(null)">‹ Volver</button><b>${col?"Colección":"Pedidos"}</b></div>`;h=`<div class="seg"><button class="${prod?"":"on"}" onclick="setB('pcs')">Photocards</button><button class="${prod?"on":""}" onclick="setB('prod')">Artículos</button></div><div class="mu" style="display:flex;justify-content:space-between;align-items:center">${list.length} ${prod?"productos":"photocards"}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`;
   const emp=col?(prod?"Tu colección de artículos está vacía.<br>Toca + para agregar el primero.":"Tu colección de photocards está vacía.<br>Toca + y toma una foto de tu primera photocard."):(prod?"Agrega álbumes y otros productos con foto y aparecerán aquí.":"Agrega photocards con foto y aparecerán aquí.");
-  h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod?`<h2>${esc(g)}</h2><div class="grid prod" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:eraGroup(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell)).join(""):`<div class="empty">${emp}</div>`;
+  h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod?`<h2>${esc(g)}</h2><div class="grid prod" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:eraGroup(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,col&&!(af||gof))).join(""):`<div class="empty">${emp}</div>`;
  }
  if(tab=="sin"){
   const s=S.items.filter(i=>!home(i)&&!i.box&&!["México","Pocamarket"].includes(i.country)&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
@@ -1348,11 +1355,26 @@ function frameSpark(x,y,color="currentColor"){
 }
 function frameArt(id){
  const orbit='<circle cx="60" cy="60" r="48" stroke-width="1.25" opacity=".7"/>';
- const wing='M24 52C13 49 6 41 4 28C11 34 15 38 21 39C16 33 14 27 15 21C23 27 28 36 30 44Z';
+ const wing=`<g class="frame-wing">
+  <path d="M29 52C20 56 10 51 4 44L13 46Q5 40 2 32L12 37Q5 29 5 19L14 30Q10 18 15 12Q19 25 25 29Q31 35 32 42Z" fill="currentColor" fill-opacity=".72" stroke-width="1.35"/>
+  <path d="M29 49Q18 49 11 43M28 45Q17 42 10 34M28 42Q19 36 15 28M27 37Q21 28 18 23" stroke="white" opacity=".86" stroke-width="1.1"/>
+  <path d="M22 36Q28 39 28 47" stroke-width="1.6"/>
+ </g>`;
+ const halo=`<g class="frame-float"><g class="frame-halo">
+  <ellipse cx="60" cy="11" rx="20" ry="6.5" stroke-width="3.6"/>
+  <path d="M41 10Q60 1 79 10M43 14Q60 20 77 14" stroke="white" stroke-width="1.1"/>
+ </g></g>`;
+ const facets=`<path d="M60 7 88 17 106 39 113 60 105 86 85 105 60 113 35 105 15 86 7 60 14 39 32 17Z
+  M32 17 38 24M88 17 82 24M106 39 97 43M105 86 96 81M85 105 80 98M35 105 40 98M15 86 24 81M14 39 23 43" stroke-width="1.6"/>
+  <path d="M22 88 12 71 11 51M98 88 108 71 109 51M30 99 43 110M90 99 77 110" stroke="white" opacity=".75" stroke-width="2.1"/>`;
+ const crystal=(x,y,lower=false)=>`<g transform="translate(${x} ${y})"><g class="frame-crystal${lower?" frame-crystal--lower":""}">
+  <path d="M0-10 7-2 5 4 0 10-5 4-7-2Z" fill="currentColor" fill-opacity=".82" stroke="white" stroke-width="1.25"/>
+  <path d="M0-10 2-2 0 10M-7-2H7" stroke="white" opacity=".72" stroke-width=".9"/>
+ </g></g>`;
  const art={
   orbit:orbit+'<g class="frame-orbit"><path d="M28 24A48 48 0 0 1 71 13" stroke-width="2.7"/><circle cx="91" cy="97" r="2" fill="currentColor"/></g>',
-  constellation:orbit+'<path class="frame-orbit" d="M20 36A47 47 0 0 1 61 13M100 84A47 47 0 0 1 59 107" stroke-dasharray="3 5" stroke-width="2"/>'+frameSpark(22,25)+frameSpark(100,35,"white")+frameSpark(89,101),
-  creator:orbit+`<g class="frame-float"><g fill="currentColor" fill-opacity=".48" stroke-width="1.3"><path d="${wing}"/><path transform="translate(120 0) scale(-1 1)" d="${wing}"/></g><ellipse cx="60" cy="12" rx="16" ry="5" stroke-width="2.3"/><path d="M48 12h24" opacity=".45"/></g>`+frameSpark(18,77)+frameSpark(98,91,"white"),
+  constellation:facets+crystal(60,8)+crystal(60,112,true)+frameSpark(10,56,"white")+frameSpark(110,64,"white"),
+  creator:orbit+`<path d="M20 78Q33 112 60 111Q87 112 100 78" stroke-width="2.3"/>${wing}<g transform="translate(120 0) scale(-1 1)">${wing}</g>${halo}`+frameSpark(14,68,"white")+frameSpark(105,70)+frameSpark(34,101)+frameSpark(85,103,"white")+frameSpark(85,12,"white"),
   gom:orbit+'<g class="frame-float" stroke-width="2" fill="currentColor" fill-opacity=".22"><path d="M48 10l6 4 6-6 6 6 6-4-3 12H51Z"/><path d="M53 25h14"/></g>'+frameSpark(16,55)+frameSpark(103,65)+frameSpark(79,105,"white")
  };
  return Object.hasOwn(art,id)?`<svg class="frame-art" viewBox="0 0 120 120" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${art[id]}</svg>`:"";
@@ -1575,13 +1597,13 @@ function mgEra(g,items,cell,L,gt,drag){
  const rest=items.filter(i=>!L.some(e=>e.id==gt(i)));
  if(rest.length)h+=(shown?`<div class="erasl">Sin era</div>`:"")+grid(rest);
  return h}
-function eraGroup(g,items,cell){
+function eraGroup(g,items,cell,showEmpty){
  const grid=a=>`<div class="grid" data-drag="i">${a.map(cell).join("")}</div>`;
  if(g=="Sin grupo")return `<h2>${esc(g)}</h2>`+grid(items);
- const k=allG().indexOf(g),L=eraList(g),filt=!!(af||gof);
+ const k=allG().indexOf(g),L=eraList(g);
  let h=`<div class="erahd"><h2>${esc(g)}</h2>${L.length?`<button class="sec sm" onclick="eraMgr(${k})">Eras</button>`:""}</div>`;
  if(!L.length)return h+`<button type="button" class="eraadd" onclick="eraMgr(${k})">＋ Agregar eras</button>`+grid(items);
- L.forEach(e=>{const it=items.filter(i=>i.era==e.id);if(filt&&!it.length)return;h+=eraHead(e)+(it.length?grid(it):`<div class="mu erae">Aún no hay photocards en esta era</div>`)});
+ L.forEach(e=>{const it=items.filter(i=>i.era==e.id);if(!showEmpty&&!it.length)return;h+=eraHead(e)+(it.length?grid(it):`<div class="mu erae">Aún no hay photocards en esta era</div>`)});
  const rest=items.filter(i=>!L.some(e=>e.id==i.era));
  if(rest.length)h+=`<div class="erasl">Sin era</div>`+grid(rest);
  return h}
@@ -2015,9 +2037,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.24",VK="mypoca-ver";
+const APP_VER="1.25",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.25",items:[["Marcos renovados","Alas de luz ahora aletea y Constelación tiene un borde facetado con cristales."],["Eras en Pedidos","Solo se muestran las eras con photocards en esa vista."]]},
  {v:"1.24",items:[["Editar perfil","Cambia el banner, la foto y el marco desde una vista previa."],["Recompensas de nivel","Desbloquea marcos animados en los niveles 5 y 10."]]},
  {v:"1.23",items:[["Envíos y aduanas por GO","Los cargos se reparten automáticamente entre los GOs de sus artículos vinculados."]]},
  {v:"1.22",items:[["Pestañas de Gastos por GO","Filtra tus gastos con las mismas pestañas brillantes de Pedidos."],["Fichas de GO","Las etiquetas anteriores también pueden abrir la descripción del GO socio."]]},
