@@ -2395,41 +2395,41 @@ function posterLayout(sections,size,design="banner"){
  const gridTop=paper?paper.y+edge*.143:polaroids?edge*.321:banner+edge*.086;
  const gridBottom=paper?paper.y+paper.h-edge*.026:height-edge*.069;
  const availableWidth=right-left,availableHeight=gridBottom-gridTop;
- const aspect=55/85,cGap=.1,vGap=.11,labelGap=.29,sectionGap=.14;
- const maxLength=Math.max(...sections.map(section=>section.items.length),1);
- const blocks=sections.map(section=>section.items.map(item=>({item,tags:posterTagRows(item.tags)})));
+ const aspect=55/85,cGap=.1,vGap=.085,labelGap=.23;
+ const entries=sections.flatMap((section,block)=>section.items.map((item,index)=>({
+  item,block,index,era:index===0?section.name:"",tags:posterTagRows(item.tags)
+ })));
  let best={cardWidth:0};
- for(let columns=1;columns<=Math.min(30,maxLength);columns++){
-  let gridHeight=sections.length*(labelGap+sectionGap);
-  const rowsByBlock=blocks.map(block=>{
-   const rows=[];
-   for(let index=0;index<block.length;index+=columns){
-    const entries=block.slice(index,index+columns);
-    const lines=Math.max(...entries.map(entry=>entry.tags.length));
-    const rowHeight=1/aspect+vGap+(lines?POSTER_TAG_TOP+lines*POSTER_TAG_LINE:0);
-    rows.push({entries,index,rowHeight});gridHeight+=rowHeight;
-   }
-   return rows;
-  });
+ for(let columns=1;columns<=Math.min(30,Math.max(1,entries.length));columns++){
+  const rows=[];
+  let gridHeight=0;
+  for(let first=0;first<entries.length;first+=columns){
+   const row=entries.slice(first,first+columns);
+   const lines=Math.max(...row.map(entry=>entry.tags.length));
+   const rowHeight=labelGap+1/aspect+vGap+(lines?POSTER_TAG_TOP+lines*POSTER_TAG_LINE:0);
+   rows.push({row,rowHeight});gridHeight+=rowHeight;
+  }
   const candidate=Math.min(edge*.32,availableWidth/(columns+(columns-1)*cGap),
    availableHeight/gridHeight);
-  if(candidate>best.cardWidth)best={rowsByBlock,cardWidth:candidate};
+  if(candidate>best.cardWidth)best={rows,columns,cardWidth:candidate};
  }
- const cardWidth=best.cardWidth,cardHeight=cardWidth/aspect,gap=cardWidth*cGap;
+ const cardWidth=best.cardWidth,cardHeight=cardWidth/aspect,stride=cardWidth*(1+cGap);
+ const origin=left+(availableWidth-((best.columns-1)*stride+cardWidth))/2;
  const cards=[],headings=[];
- let y=gridTop;
- sections.forEach((section,block)=>{
-  headings.push({label:section.name,x:left,y:y+cardWidth*.15,size:Math.min(edge*.024,cardWidth*.21)});
-  y+=cardWidth*labelGap;
-  for(const {entries,index,rowHeight} of best.rowsByBlock[block]){
-   const count=entries.length;
-   const x=left+(availableWidth-count*cardWidth-(count-1)*gap)/2;
-   entries.forEach((entry,col)=>cards.push({block,index:index+col,...entry,
-    x:x+col*(cardWidth+gap),y,w:cardWidth,h:cardHeight}));
-   y+=cardWidth*rowHeight;
-  }
-  y+=cardWidth*sectionGap;
- });
+ let y=gridTop+cardWidth*labelGap;
+ for(const {row,rowHeight} of best.rows){
+  const starts=[];
+  row.forEach((entry,col)=>{
+   cards.push({...entry,x:origin+col*stride,y,w:cardWidth,h:cardHeight});
+   if(entry.era)starts.push(col);
+  });
+  starts.forEach((col,index)=>{
+   const end=starts[index+1]??row.length;
+   headings.push({label:row[col].era,x:origin+col*stride,y:y-cardWidth*.114,
+    size:Math.min(edge*.024,cardWidth*.18),maxWidth:(end-col-1)*stride+cardWidth});
+  });
+  y+=cardWidth*rowHeight;
+ }
  return {width,height,margin,banner,paper,design,left,right,gridTop,gridBottom,headings,cards};
 }
 function posterFont(name,size){
@@ -2586,7 +2586,7 @@ function drawPosterCanvas(canvas,state,layout){
   }
  }
  ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
- const title=state.title.trim()||state.group,textWidth=right-left,lightText=dark&&!paper,outline=backdrop&&!paper;
+ const title=state.title.trim()||state.group,lightText=dark&&!paper,outline=backdrop&&!paper;
  ctx.fillStyle=lightText?"#fff8fb":"#322334";
  ctx.strokeStyle=lightText?"#281b2b":"#fff8fb";
  const titleFamily=state.titleFont&&state.titleFont.status!=="loaded"?"Georgia":state.font;
@@ -2604,8 +2604,8 @@ function drawPosterCanvas(canvas,state,layout){
  for(const heading of layout.headings){
   ctx.font=`600 ${heading.size}px Outfit, sans-serif`;
   ctx.lineWidth=heading.size*.16;
-  if(outline)ctx.strokeText(heading.label,heading.x,heading.y,textWidth);
-  ctx.fillText(heading.label,heading.x,heading.y,textWidth);
+  if(outline)ctx.strokeText(heading.label,heading.x,heading.y,heading.maxWidth);
+  ctx.fillText(heading.label,heading.x,heading.y,heading.maxWidth);
  }
  for(const card of layout.cards){
   const {item,x,y,w,h,tags}=card,photo=state.images.get(item.img)?.photo,radius=Math.min(12,w*.08);
@@ -3833,7 +3833,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.47",VK="mypoca-ver";
+const APP_VER="1.48",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
