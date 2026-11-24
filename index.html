@@ -535,6 +535,9 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .frame-option small{color:var(--mu)}
 .profile-interests{margin:12px 0}
 .interest-results{margin-top:6px;max-height:130px;overflow:auto}
+.post-interest-fields{border:1px solid var(--bd);border-radius:14px;margin:12px 0;padding:0 10px;min-width:0}
+.post-interest-fields legend{padding:0 4px}
+.post-interest-fields .mu{margin-top:0}
 .social-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .social-segments{margin:12px 0}
 .social-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:12px 0}
@@ -1097,29 +1100,36 @@ function requiredInterestName(raw){
 }
 const PROFILE_INTEREST_FIELDS={group:"favoriteGroups",bias:"biases"};
 let profileInterestsDraft={group:[],bias:[]};
-function profileInterestEditor(kind){
- const group=kind==="group",label=group?"Grupos favoritos":"Bias";
+function interestEditor(kind,scope="p"){
+ const group=kind==="group",profile=scope==="p";
+ const label=group?(profile?"Grupos favoritos":"Grupos"):(profile?"Bias":"Artistas");
  return `<div class="profile-interests">
-  <label for="p_interest_${kind}">${label}</label>
-  <div class="pick" id="p_interest_selected_${kind}"></div>
-  <div class="addr"><input id="p_interest_${kind}" maxlength="120" placeholder="${group?"Buscar grupo, ej. aespa":"Buscar bias, ej. Sunoo"}" autocomplete="off"
-    oninput="findProfileInterest('${kind}',this)" onfocus="findProfileInterest('${kind}',this)"
-    onkeydown="if(event.key==='Enter'){event.preventDefault();addProfileInterest('${kind}')}">
-   <button type="button" class="sec" onclick="addProfileInterest('${kind}')">Añadir</button></div>
-  <div id="p_interest_results_${kind}" class="pick interest-results" aria-live="polite"></div>
+  <label for="${scope}_interest_${kind}">${label}</label>
+  <div class="pick" id="${scope}_interest_selected_${kind}"></div>
+  <div class="addr"><input id="${scope}_interest_${kind}" maxlength="120" placeholder="${group?"Buscar grupo, ej. aespa":"Buscar artista, ej. Sunoo"}" autocomplete="off"
+    oninput="findInterest('${kind}',this,'${scope}')" onfocus="findInterest('${kind}',this,'${scope}')"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();if(!event.isComposing)addInterest('${kind}',null,'${scope}')}">
+   <button type="button" class="sec" onclick="addInterest('${kind}',null,'${scope}')">Añadir</button></div>
+  <div id="${scope}_interest_results_${kind}" class="pick interest-results" aria-live="polite"></div>
  </div>`;
 }
-function paintProfileInterests(kind){
- const node=$("p_interest_selected_"+kind);
- if(!node)return;
- node.innerHTML=profileInterestsDraft[kind].map((name,index)=>`<button type="button" class="ch on" aria-label="Quitar ${esc(name)}" onclick="removeProfileInterest('${kind}',${index})">${esc(name)} ×</button>`).join("");
+function interestDraft(scope){
+ return scope==="p"?profileInterestsDraft:$("social-compose")?.interestDraft;
 }
-function removeProfileInterest(kind,index){
- profileInterestsDraft[kind].splice(index,1);
- paintProfileInterests(kind);
+function paintInterests(kind,scope="p"){
+ const node=$(`${scope}_interest_selected_${kind}`),draft=interestDraft(scope);
+ if(!node||!draft)return;
+ node.innerHTML=draft[kind].map((name,index)=>`<button type="button" class="ch on" aria-label="Quitar ${esc(name)}" onclick="removeInterest('${kind}',${index},'${scope}')">${esc(name)} ×</button>`).join("");
 }
-async function findProfileInterest(kind,input){
- const target=$("p_interest_results_"+kind),raw=input.value.trim();
+function removeInterest(kind,index,scope){
+ const draft=interestDraft(scope);
+ const saving=scope==="p"?$("profile-save")?.disabled:$("social-compose")?.querySelector("[type=submit]")?.disabled;
+ if(!draft||saving)return;
+ draft[kind].splice(index,1);
+ paintInterests(kind,scope);
+}
+async function findInterest(kind,input,scope){
+ const prefix=scope+"_interest_",target=$(prefix+"results_"+kind),raw=input.value.trim();
  const request=Symbol();input.interestRequest=request;input.interestMatch="";
  if(!target)return;
  if(raw&&!plainInterestName(raw)){target.textContent="Usa caracteres normales, sin emojis ni letras decorativas.";return}
@@ -1129,37 +1139,44 @@ async function findProfileInterest(kind,input){
  try{
   if(raw)remote=(await socialRpc("mypoca_find_interests",{interest_kind:kind,term:raw},true)||[]).map(row=>row.label);
  }catch(e){}
- if(input!==$("p_interest_"+kind)||request!==input.interestRequest)return;
+ const draft=interestDraft(scope);
+ if(input!==$(prefix+kind)||request!==input.interestRequest||!draft)return;
  const options=cleanInterestList(remote.concat(local).filter(name=>plainInterestName(name)&&interestKey(plainInterestName(name)).includes(q)));
  input.interestMatch=options.find(name=>interestKey(name)===q)||"";
- const picked=new Set(profileInterestsDraft[kind].map(interestKey));
- target.innerHTML=options.filter(name=>!picked.has(interestKey(name))).slice(0,8).map(name=>`<button type="button" class="ch" data-interest="${esc(name)}" onclick="addProfileInterest('${kind}',this.dataset.interest)">${esc(name)}</button>`).join("");
+ const picked=new Set(draft[kind].map(interestKey));
+ target.innerHTML=options.filter(name=>!picked.has(interestKey(name))).slice(0,8).map(name=>`<button type="button" class="ch" data-interest="${esc(name)}" onclick="addInterest('${kind}',this.dataset.interest,'${scope}')">${esc(name)}</button>`).join("");
 }
-function addProfileInterest(kind,choice){
- const input=$("p_interest_"+kind);
- if(!input||$("profile-save")?.disabled)return false;
+function addInterest(kind,choice,scope="p"){
+ const prefix=scope+"_interest_",input=$(prefix+kind),draft=interestDraft(scope);
+ const saving=scope==="p"?$("profile-save")?.disabled:input?.form?.querySelector("[type=submit]")?.disabled;
+ if(!input||!draft||saving)return false;
  const raw=choice||input.interestMatch||input.value.trim();
  if(!raw)return true;
  const name=requiredInterestName(raw);
  if(!name){input.focus();return false}
- const list=profileInterestsDraft[kind];
+ const list=draft[kind];
  if(!list.some(item=>interestKey(item)===interestKey(name))){
-  if(list.length>=20){alert("Puedes añadir hasta 20 en cada apartado.");return false}
+  if(scope==="p"?list.length>=20:draft.group.length+draft.bias.length>=6){
+   alert(scope==="p"?"Puedes añadir hasta 20 en cada apartado.":"Puedes añadir hasta 6 etiquetas por publicación.");return false;
+  }
   list.push(name);
  }
  input.value="";input.interestMatch="";input.interestRequest=null;
- $("p_interest_results_"+kind).textContent="";
- paintProfileInterests(kind);
+ $(prefix+"results_"+kind).textContent="";
+ paintInterests(kind,scope);
  return true;
 }
+async function registerInterests(kind,labels){
+ if(!auth)return labels;
+ return cleanInterestList(await Promise.all(labels.map(async label=>{
+  const result=await socialRpc("mypoca_register_interest",{interest_kind:kind,interest_label:label});
+  if(typeof result!=="string")throw new Error("No se pudo guardar en el catálogo compartido.");
+  return result;
+ })));
+}
 async function canonicalProfileInterests(next){
- if(!auth)return;
  for(const [kind,field] of Object.entries(PROFILE_INTEREST_FIELDS)){
-  next[field]=cleanInterestList(await Promise.all(next[field].map(async label=>{
-   const result=await socialRpc("mypoca_register_interest",{interest_kind:kind,interest_label:label});
-   if(typeof result!=="string")throw new Error("No se pudo guardar en el catálogo compartido.");
-   return result;
-  })));
+  next[field]=await registerInterests(kind,next[field]);
  }
 }
 
@@ -1198,7 +1215,7 @@ function editP(){
   <label for="p_n">Nombre</label><input id="p_n" value="${esc(p.name)}" onchange="paintProfileFrame()">
   <label for="p_u">Usuario</label><input id="p_u" value="${esc(p.user)}" placeholder="jblyuus" maxlength="31" autocapitalize="none" spellcheck="false" ${auth?"":"disabled"}>
   <div class="mu">${auth?"De 3 a 30 caracteres. Usa letras sin acento, números, puntos o guiones bajos.":"Inicia sesión para reservar tu @usuario."}</div>
-  ${profileInterestEditor("group")}${profileInterestEditor("bias")}
+  ${interestEditor("group")}${interestEditor("bias")}
   <div class="mu">Busca un nombre existente o añade uno nuevo con letras normales. Puedes elegir varios.</div>
   <label for="p_d">Descripción</label><textarea id="p_d" rows="3" maxlength="160" placeholder="Cuéntanos algo sobre ti">${esc(p.desc)}</textarea>
  </section>
@@ -1223,7 +1240,7 @@ function editP(){
  $("sheet").scrollTop=0;
  paintProfileColor();
  paintProfileFrame();
- paintProfileInterests("group");paintProfileInterests("bias");
+ paintInterests("group");paintInterests("bias");
  loadOwnFrameAccess();
 }
 function pickProfilePhoto(input){
@@ -1248,7 +1265,7 @@ function pickProfilePhoto(input){
 async function okP(){
  const btn=$("profile-save");
  if(btn&&btn.disabled)return;
- if(!addProfileInterest("group")||!addProfileInterest("bias"))return;
+ if(!addInterest("group")||!addInterest("bias"))return;
  if(bnCropping)bnApply();
  const bn=bnResult(),old=S.profile||{};
  const selected=profileFrameDraft;
@@ -2540,9 +2557,13 @@ function composeSocialPost(){
   <label for="post-image">Foto</label><input id="post-image" type="file" accept="image/jpeg,image/png,image/webp" required onchange="previewSocialPost(this)">
   <img id="post-preview" class="social-post-photo" hidden alt="Vista previa">
   <label for="post-caption">Texto (opcional)</label><textarea id="post-caption" maxlength="400" rows="3"></textarea>
-  <label for="post-tags">Artistas o grupos (opcional)</label><input id="post-tags" maxlength="220" placeholder="Sunoo, ENHYPEN">
+  <fieldset class="post-interest-fields"><legend>Etiquetas (opcional)</legend>
+   ${interestEditor("group","post")}${interestEditor("bias","post")}
+   <p class="mu">Elige etiquetas del catálogo o añade una nueva. Puedes usar hasta 6 por publicación.</p>
+  </fieldset>
   <div id="post-message" class="mu" role="status"></div>
   <div class="fbar"><button class="pri" type="submit">Publicar</button><button class="sec" type="button" onclick="closeM()">Cancelar</button></div></form>`);
+ $("social-compose").interestDraft={group:[],bias:[]};
  $("sheet").scrollTop=0;
 }
 async function previewSocialPost(input){
@@ -2566,11 +2587,16 @@ async function publishSocialPost(form){
  const user=meId(),btn=form.querySelector("[type=submit]"),message=$("post-message");
  if(!user||btn.disabled)return;
  if(!form.postData){message.textContent="Elige una foto y espera a que aparezca la vista previa.";return}
- const photo=form.postData,caption=$("post-caption").value.trim(),tags=[...new Set($("post-tags").value.split(",").map(s=>s.trim().slice(0,36)).filter(Boolean))].slice(0,6);
+ if(!addInterest("group",null,"post")||!addInterest("bias",null,"post"))return;
+ const photo=form.postData,caption=$("post-caption").value.trim();
+ const {group,bias}=form.interestDraft;
  form.postId=form.postId||crypto.randomUUID();
  const controls=Array.from(form.elements);controls.forEach(el=>el.disabled=true);
  message.textContent="Publicando…";
  try{
+  const [groups,artists]=await Promise.all([registerInterests("group",group),registerInterests("bias",bias)]);
+  if(user!==meId())return;
+  const tags=cleanInterestList(groups.concat(artists));
   const image=await imgPut(photo);
   if(user!==meId())return;
   await socialRpc("social_publish_post",{post_id:form.postId,photo_url:image,post_caption:caption,post_tags:tags});
@@ -2778,9 +2804,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.32",VK="mypoca-ver";
+const APP_VER="1.33",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.33",items:[["Etiquetas de publicaciones","Busca grupos y artistas en el mismo catálogo del perfil o añade un nombre nuevo."]]},
  {v:"1.32",items:[["Conversaciones en posts","Comenta y da me gusta en las publicaciones públicas."],["Más en Descubrir","Encuentra perfiles y publicaciones por artistas, grupos y GOs socios."]]},
  {v:"1.31",items:[["Grupos y bias","Vuelve a elegir tus grupos favoritos y bias en Editar perfil. Ahora puedes seleccionar varios desde un catálogo compartido."]]},
  {v:"1.30",items:[["Social","Busca perfiles por artista o grupo y comparte fotos con tus amistades."],["Perfiles por pestañas","Explora Inicio, Posts y Photocards. Sin caja ahora está dentro de Pedidos."]]},
