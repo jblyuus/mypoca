@@ -488,12 +488,20 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 @keyframes frame-glint{0%,100%{opacity:.38;transform:scale(.8)}50%{opacity:1;transform:scale(1.12)}}
 .frame-wing{transform-origin:28px 52px;transform-box:view-box;animation:frame-flight 2.5s cubic-bezier(.44,.04,.42,.99) infinite}
 .frame-halo{animation:frame-halo 2.5s ease-in-out infinite;filter:drop-shadow(0 0 3px currentColor)}
-.frame-crystal{transform-box:fill-box;transform-origin:center;animation:frame-crystal 3.6s ease-in-out infinite}
-.frame-crystal--lower{animation-delay:-1.8s}
+.frame-garden{--bloom:color-mix(in srgb,var(--frame-accent) 48%,#ffa9cb);--bloom-light:color-mix(in srgb,var(--bloom) 43%,white);--bloom-center:color-mix(in srgb,var(--bloom) 62%,#98588d);--garden-leaf:color-mix(in srgb,var(--frame-accent) 32%,#90c7a3)}
+.frame-garden-spray{transform-box:fill-box;transform-origin:34% 70%;animation:frame-garden-sway 3.2s ease-in-out infinite}
+.frame-garden-spray--lower{transform-origin:70% 28%;animation-delay:-1.6s}
+.frame-blossom{transform-box:fill-box;transform-origin:center;animation:frame-bloom 3.2s ease-in-out infinite}
+.frame-blossom--offset{animation-delay:-1.45s}
+.frame-petal{transform-box:fill-box;transform-origin:center;animation:frame-petal-drift 3.4s linear infinite}
+.frame-petal--second{animation-delay:-1.7s;animation-duration:3.8s}
+.frame-petal--third{animation-delay:-2.55s;animation-direction:reverse}
 @keyframes frame-flight{0%,100%{transform:rotate(6deg) scaleX(.92)}38%{transform:rotate(-24deg) scaleX(1.04)}62%{transform:rotate(10deg) scaleX(.91)}}
 @keyframes frame-halo{50%{opacity:.8;filter:drop-shadow(0 0 6px currentColor)}}
-@keyframes frame-crystal{50%{transform:translateY(-2px);filter:drop-shadow(0 0 4px currentColor)}}
-@media(prefers-reduced-motion:reduce){.frame-orbit,.frame-float,.frame-glint,.frame-wing,.frame-halo,.frame-crystal{animation:none}}
+@keyframes frame-garden-sway{0%,100%{transform:rotate(-5deg)}50%{transform:translateY(-2px) rotate(8deg)}}
+@keyframes frame-bloom{0%,100%{transform:rotate(-6deg) scale(.92)}50%{transform:rotate(9deg) scale(1.1)}}
+@keyframes frame-petal-drift{0%{opacity:0;transform:translate(0,-4px) rotate(-30deg)}20%{opacity:1}75%{opacity:.9}100%{opacity:0;transform:translate(-13px,16px) rotate(95deg)}}
+@media(prefers-reduced-motion:reduce){.frame-orbit,.frame-float,.frame-glint,.frame-wing,.frame-halo,.frame-garden-spray,.frame-blossom,.frame-petal{animation:none}}
 .profile-editor{padding-bottom:4px}
 .profile-editor h3{margin:0 0 14px}
 .profile-editor h4{margin:0 0 8px;font-size:1.05rem}
@@ -1345,7 +1353,7 @@ function levelInfo(){const pcs=ev().filter(i=>i.type=="PC"),pr=ev().length-pcs.l
  return {xp,lvl,lo,hi,parts,ach,pct:Math.min(100,(xp-lo)/(hi-lo)*100)}}
 const PROFILE_FRAMES={
  orbit:{name:"Órbita",level:5},
- constellation:{name:"Constelación",level:10},
+ constellation:{name:"Jardín en flor",level:10},
  creator:{name:"Alas de luz",role:"creator"},
  gom:{name:"Corona GOM",role:"gom"}
 };
@@ -1364,16 +1372,30 @@ function frameArt(id){
   <ellipse cx="60" cy="11" rx="20" ry="6.5" stroke-width="3.6"/>
   <path d="M41 10Q60 1 79 10M43 14Q60 20 77 14" stroke="white" stroke-width="1.1"/>
  </g></g>`;
- const facets=`<path d="M60 7 88 17 106 39 113 60 105 86 85 105 60 113 35 105 15 86 7 60 14 39 32 17Z
-  M32 17 38 24M88 17 82 24M106 39 97 43M105 86 96 81M85 105 80 98M35 105 40 98M15 86 24 81M14 39 23 43" stroke-width="1.6"/>
-  <path d="M22 88 12 71 11 51M98 88 108 71 109 51M30 99 43 110M90 99 77 110" stroke="white" opacity=".75" stroke-width="2.1"/>`;
- const crystal=(x,y,lower=false)=>`<g transform="translate(${x} ${y})"><g class="frame-crystal${lower?" frame-crystal--lower":""}">
-  <path d="M0-10 7-2 5 4 0 10-5 4-7-2Z" fill="currentColor" fill-opacity=".82" stroke="white" stroke-width="1.25"/>
-  <path d="M0-10 2-2 0 10M-7-2H7" stroke="white" opacity=".72" stroke-width=".9"/>
+ const petal='M0 0C-3.8-1.8-5.7-5.8-3.8-9.1C-2.9-10.8-1.1-10.9 0-9.3C1.4-10.9 3.1-10.7 4-8.9C5.5-5.4 3.6-1.8 0 0Z';
+ const blossom=(x,y,size,offset=false)=>`<g transform="translate(${x} ${y}) scale(${size})"><g class="frame-blossom${offset?" frame-blossom--offset":""}">
+  ${[0,72,144,216,288].map(angle=>`<path transform="rotate(${angle})" d="${petal}" fill="var(--bloom)" stroke="var(--bloom-light)" stroke-width=".85"/>`).join("")}
+  <circle r="2.8" fill="var(--bloom-center)" stroke="var(--bloom-light)" stroke-width=".9"/><circle cx="-.7" cy="-.55" r=".8" fill="white" stroke="none"/>
  </g></g>`;
+ const leaf=(x,y,angle)=>`<path transform="translate(${x} ${y}) rotate(${angle})" d="M0 0Q1-8 9-10Q9-3 0 0Z" fill="var(--garden-leaf)" stroke="var(--bloom-light)" stroke-width=".65"/>`;
+ const falling=(x,y,variant)=>`<g transform="translate(${x} ${y})"><path class="frame-petal ${variant}" d="M0 0Q-3-5 1-7Q5-7 4-3Q3-1 0 0Z" fill="var(--bloom)" stroke="var(--bloom-light)" stroke-width=".65"/></g>`;
+ const garden=`<g class="frame-garden">
+  <path d="M13 66C10 45 20 28 34 21M86 103C101 95 110 77 108 59" stroke="var(--bloom-light)" stroke-width="1.1" opacity=".75"/>
+  <g class="frame-garden-spray">
+   <path d="M42 17Q64 5 84 17T107 44M72 14Q87 8 100 17" stroke="var(--garden-leaf)" stroke-width="1.6"/>
+   ${leaf(53,13,-43)}${leaf(95,25,6)}${leaf(103,36,80)}${leaf(78,13,-16)}
+   ${blossom(83,15,1.16)}${blossom(103,27,.69,true)}${blossom(61,11,.52,true)}
+  </g>
+  <g class="frame-garden-spray frame-garden-spray--lower">
+   <path d="M7 76Q13 98 32 105T77 109M22 98Q20 109 30 116" stroke="var(--garden-leaf)" stroke-width="1.6"/>
+   ${leaf(13,89,-94)}${leaf(30,105,118)}${leaf(53,111,30)}${leaf(62,111,55)}
+   ${blossom(21,100,1.15,true)}${blossom(42,112,.72)}${blossom(10,80,.48)}
+  </g>
+  ${falling(111,48,"")}${falling(82,111,"frame-petal--second")}${falling(21,42,"frame-petal--third")}
+ </g>`;
  const art={
   orbit:orbit+'<g class="frame-orbit"><path d="M28 24A48 48 0 0 1 71 13" stroke-width="2.7"/><circle cx="91" cy="97" r="2" fill="currentColor"/></g>',
-  constellation:facets+crystal(60,8)+crystal(60,112,true)+frameSpark(10,56,"white")+frameSpark(110,64,"white"),
+  constellation:garden,
   creator:orbit+`<path d="M20 78Q33 112 60 111Q87 112 100 78" stroke-width="2.3"/>${wing}<g transform="translate(120 0) scale(-1 1)">${wing}</g>${halo}`+frameSpark(14,68,"white")+frameSpark(105,70)+frameSpark(34,101)+frameSpark(85,103,"white")+frameSpark(85,12,"white"),
   gom:orbit+'<g class="frame-float" stroke-width="2" fill="currentColor" fill-opacity=".22"><path d="M48 10l6 4 6-6 6 6 6-4-3 12H51Z"/><path d="M53 25h14"/></g>'+frameSpark(16,55)+frameSpark(103,65)+frameSpark(79,105,"white")
  };
@@ -2037,9 +2059,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.25",VK="mypoca-ver";
+const APP_VER="1.26",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.26",items:[["Jardín en flor","El marco de nivel 10 se renueva con ramas que se balancean y pétalos flotantes."]]},
  {v:"1.25",items:[["Marcos renovados","Alas de luz ahora aletea y Constelación tiene un borde facetado con cristales."],["Eras en Pedidos","Solo se muestran las eras con photocards en esa vista."]]},
  {v:"1.24",items:[["Editar perfil","Cambia el banner, la foto y el marco desde una vista previa."],["Recompensas de nivel","Desbloquea marcos animados en los niveles 5 y 10."]]},
  {v:"1.23",items:[["Envíos y aduanas por GO","Los cargos se reparten automáticamente entre los GOs de sus artículos vinculados."]]},
