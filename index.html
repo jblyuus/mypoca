@@ -488,7 +488,7 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 @keyframes frame-glint{0%,100%{opacity:.38;transform:scale(.8)}50%{opacity:1;transform:scale(1.12)}}
 .frame-wing{transform-origin:28px 52px;transform-box:view-box;animation:frame-flight 2.5s cubic-bezier(.44,.04,.42,.99) infinite}
 .frame-halo{animation:frame-halo 2.5s ease-in-out infinite;filter:drop-shadow(0 0 3px currentColor)}
-.frame-garden{--bloom:color-mix(in srgb,var(--frame-accent) 48%,#ffa9cb);--bloom-light:color-mix(in srgb,var(--bloom) 43%,white);--bloom-center:color-mix(in srgb,var(--bloom) 62%,#98588d);--garden-leaf:color-mix(in srgb,var(--frame-accent) 32%,#90c7a3)}
+.frame-garden{--flower-tone:var(--profile-flower,var(--ac));--bloom:color-mix(in srgb,var(--flower-tone) 72%,white);--bloom-light:color-mix(in srgb,var(--bloom) 43%,white);--bloom-center:color-mix(in srgb,var(--flower-tone) 69%,#332c48);--garden-leaf:color-mix(in srgb,var(--flower-tone) 28%,#90c7a3)}
 .frame-garden-spray{transform-box:fill-box;transform-origin:34% 70%;animation:frame-garden-sway 3.2s ease-in-out infinite}
 .frame-garden-spray--lower{transform-origin:70% 28%;animation-delay:-1.6s}
 .frame-blossom{transform-box:fill-box;transform-origin:center;animation:frame-bloom 3.2s ease-in-out infinite}
@@ -515,6 +515,10 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 .pe-identity .avatar-frame{width:78px;height:78px;background:var(--card);border-radius:50%}
 .pe-identity .sec{margin-bottom:2px}
 .pe-section{margin:16px 0;padding:13px;border:1px solid var(--bd);border-radius:16px;background:var(--card)}
+.pe-palette{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#sheet .pe-palette label{margin:0}
+#sheet .pe-palette input[type=color]{width:52px;height:40px;padding:4px;cursor:pointer}
+.pe-color-preview{margin-top:9px;min-height:38px;border-radius:10px;background:linear-gradient(135deg,var(--g1),var(--g2) 55%,var(--g3));border:1px solid var(--bd)}
 .pe-section summary{cursor:pointer;font-weight:650}
 .pe-section details+details{margin-top:14px}
 .pe-actions{position:sticky;bottom:0;z-index:3;display:flex;gap:8px;padding:8px 0;background:var(--card)}
@@ -975,13 +979,13 @@ function editSoc(){const p=S.profile||{};openM(`<h3>Redes sociales</h3><div clas
 function okSoc(){const p=S.profile=S.profile||{};for(const k of Object.keys(SOC)){const raw=$("s_"+k).value.trim(),u=socUrl(raw);if(raw&&!u)return alert("El enlace de "+SOC[k].n+" no es válido.");p[k]=u}save();schedPub();closeM();render()}
 function editP(){
  const p=S.profile||{};
- img=p.photo||"";profileFrameDraft=p.frame||"";profileEditorReturn=null;
+ img=p.photo||"";profileFrameDraft=p.frame||"";profileColorDraft=profileColor(p.cardColor);profileEditorReturn=null;
  PG=(p.gos||[]).map(g=>({id:g.id,n:g.n,ext:g.ext}));
  PGV=Array.isArray(p.gosVis)?p.gosVis.slice():null;
  BC=null;bnAccepted=null;bnCropping=false;bnGif=null;bnDel=false;
  openM(`<div class="profile-editor">
  <h3>Editar perfil</h3>
- <div class="pe-cover"${bannerStyle(p)}>
+ <div class="pe-cover" id="pe-cover"${bannerStyle(p)}>
   <input id="bnf" aria-label="Imagen del banner" type="file" accept="image/*" hidden onchange="pickBanner(this.files[0]);this.value=''">
   <div id="bnbox">${bnHtml()}</div>
   <div class="pe-identity">
@@ -990,6 +994,14 @@ function editP(){
    <button type="button" class="sec sm" onclick="$('profile-photo-file').click()">Cambiar foto</button>
   </div>
  </div>
+ <section class="pe-section" aria-labelledby="profile-color-heading">
+  <h4 id="profile-color-heading">Color del perfil</h4>
+  <div class="pe-palette">
+   <label for="p_color">Elegir color</label><input type="color" id="p_color" value="${profileColor(p.cardColor)||"#8473af"}" oninput="profileColorDraft=this.value;paintProfileColor()" onchange="profileColorDraft=this.value;paintProfileColor()">
+   <button type="button" id="p_color_reset" class="sec sm" onclick="profileColorDraft='';paintProfileColor()">Automático</button>
+  </div>
+  <div id="pe-color-preview" class="pe-color-preview" aria-hidden="true"></div>
+ </section>
  <section class="pe-section" aria-labelledby="profile-frames-heading">
   <h4 id="profile-frames-heading">Marco de perfil</h4>
   <div id="profile-frame-options" class="frame-options" role="group" aria-labelledby="profile-frames-heading"></div>
@@ -1017,6 +1029,7 @@ function editP(){
  <div class="pe-actions"><button type="button" id="profile-save" class="pri" onclick="okP()">Guardar</button><button type="button" class="sec" onclick="closeM()">Cancelar</button></div>
 </div>`);
  $("sheet").scrollTop=0;
+ paintProfileColor();
  paintProfileFrame();
  loadOwnFrameAccess();
 }
@@ -1048,7 +1061,7 @@ async function okP(){
  if(selected&&selected!==old.frame&&!allowedFrame(selected,myFrameLevel(),ownFrameAccess())){
   return alert("Ese marco todavía no está disponible en tu cuenta.");
  }
- const next={frame:selected,frameLevel:old.frameLevel,photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
+ const next={cardColor:profileColor(profileColorDraft),frame:selected,frameLevel:old.frameLevel,photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
  if(auth){
   const candidate=next.user.replace(/^@/,"").toLowerCase();
   if((candidate&&!/^[a-z0-9_.]{3,30}$/.test(candidate))||(!candidate&&old.pub)){
@@ -1235,13 +1248,7 @@ function paintBn(){
  const e=$("bnbox");if(!e)return;
  e.innerHTML=bnHtml();
  if(bnCropping)bcInit();
- else{
-  const colors=bnDel?[]:BC?.W?bnCols:(S.profile||{}).bcol;
-  ["--g1","--g2","--g3"].forEach((key,i)=>{
-   if(colors?.[i])e.parentElement.style.setProperty(key,colors[i]);
-   else e.parentElement.style.removeProperty(key);
-  });
- }
+ paintProfileColor();
 }
 function pickBanner(f){if(!f)return;const input=$("bnf"),request=Symbol();input.bannerRequest=request;bnGif=null;const r=new FileReader();r.onload=()=>{const m=new Image();m.onload=()=>{if(input!==$("bnf")||input.bannerRequest!==request)return;BC={m,z:1,x:0,y:0,W:0,H:0,s0:1};bnCropping=true;paintBn()};m.onerror=()=>{if(input===$("bnf"))toast("No se pudo abrir el banner.")};m.src=r.result};r.readAsDataURL(f)}
 function bnApply(){
@@ -1259,7 +1266,52 @@ function colsOf(cv){try{const w=cv.width,h=cv.height,d=cv.getContext("2d").getIm
  const c=hex2hsl("#"+[r/t,g/t,b/t].map(v=>Math.round(v).toString(16).padStart(2,"0")).join(""));if(!c)return[];const sp=c.s<8?c.s:clamp(c.s,32,80),l2=clamp(c.l,48,66),H=l=>`hsl(${Math.round(c.h)} ${Math.round(sp)}% ${Math.round(l)}%)`;return[H(l2-16),H(l2),H(Math.min(82,l2+14))]}catch(e){return[]}}
 function colsFromSrc(src){return new Promise(res=>{const m=new Image();if(/^https?:/i.test(src))m.crossOrigin="anonymous";m.onload=()=>{const c=document.createElement("canvas");c.width=32;c.height=13;c.getContext("2d").drawImage(m,0,0,32,13);res(colsOf(c))};m.onerror=()=>res([]);m.src=src})}
 let bcBusy=false;
-function bannerStyle(p){if(!p.banner)return"";if(p.bcol===undefined&&!bcBusy){bcBusy=true;colsFromSrc(p.banner).then(c=>{bcBusy=false;if(S.profile&&S.profile.banner===p.banner){S.profile.bcol=c;save(true);render()}})}const c=p.bcol;return c&&c.length==3?` style="--g1:${c[0]};--g2:${c[1]};--g3:${c[2]}"`:""}
+let profileColorDraft="";
+function profileColor(value){return typeof value==="string"&&/^#[0-9a-f]{6}$/i.test(value)?value:""}
+function profilePalette(color,bannerColors){
+ const custom=profileColor(color);
+ if(custom){
+  return {"--g1":`color-mix(in srgb,${custom} 35%,#15111e)`,
+   "--g2":`color-mix(in srgb,${custom} 51%,#201a2b)`,
+   "--g3":`color-mix(in srgb,${custom} 65%,#221c2c)`,"--profile-flower":custom};
+ }
+ if(Array.isArray(bannerColors)&&bannerColors.length===3&&bannerColors.every(c=>typeof c==="string"&&/^hsl\(\d{1,3} \d{1,3}% \d{1,3}%\)$/.test(c))){
+  return {"--g1":bannerColors[0],"--g2":bannerColors[1],"--g3":bannerColors[2]};
+ }
+ return {};
+}
+function profileColorStyle(color,bannerColors){
+ const css=Object.entries(profilePalette(color,bannerColors)).map(([name,value])=>name+":"+value).join(";");
+ return css?` style="${css}"`:"";
+}
+function paintProfileColor(){
+ const cover=$("pe-cover"),preview=$("pe-color-preview"),reset=$("p_color_reset");
+ if(!cover||!preview||!reset)return;
+ const automatic=bnDel?[]:!bnCropping&&BC?.W?bnCols:(S.profile||{}).bcol;
+ const palette=profilePalette(profileColorDraft,automatic);
+ for(const element of [cover,preview]){
+  for(const name of ["--g1","--g2","--g3","--profile-flower"]){
+   if(palette[name])element.style.setProperty(name,palette[name]);
+   else element.style.removeProperty(name);
+  }
+ }
+ const options=$("profile-frame-options");
+ if(options){
+  if(profileColorDraft)options.style.setProperty("--profile-flower",profileColorDraft);
+  else options.style.removeProperty("--profile-flower");
+ }
+ reset.disabled=!profileColorDraft;
+}
+function bannerStyle(p){
+ if(p.banner&&p.bcol===undefined&&!bcBusy){
+  bcBusy=true;
+  colsFromSrc(p.banner).then(colors=>{
+   bcBusy=false;
+   if(S.profile&&S.profile.banner===p.banner){S.profile.bcol=colors;save(true);render();paintProfileColor()}
+  });
+ }
+ return profileColorStyle(p.cardColor,p.banner?p.bcol:null);
+}
 function bnResult(){const B=BC;if(bnGif&&!bnDel){bnCols=bnGifCols;return bnGif}if(B&&B.W){const s=B.s0*B.z,c=document.createElement("canvas");c.width=1000;c.height=400;c.getContext("2d").drawImage(B.m,-B.x/s,-B.y/s,B.W/s,B.H/s,0,0,1000,400);const sm=document.createElement("canvas");sm.width=32;sm.height=13;sm.getContext("2d").drawImage(c,0,0,32,13);bnCols=colsOf(sm);return c.toDataURL("image/jpeg",.82)}bnCols=bnDel?[]:(S.profile||{}).bcol;return bnDel?"":(S.profile||{}).banner||""}
 try{matchMedia("(prefers-color-scheme:dark)").addEventListener("change",applyTheme)}catch(e){}
 /* ===== Cambiar fuentes ===== */
@@ -1672,8 +1724,24 @@ function favSec(c,mode,sl){c=Object.assign({},FV_DEF,c||fvCfg());mode=mode||"me"
  return `<div class="${cls.join(" ")}" style="${fvStyle(c)}">${fvParts(c)}<div class="fvh"><div class="fvt">${esc(c.t)}</div>${me?`<button type="button" class="fvpen" onclick="editFav()" aria-label="Personalizar favoritas">${PEN}</button>`:""}</div><div class="fvg">${[0,1,2,3].map(k=>slot(sl[k]||null,k)).join("")}</div></div>`}
 function favPub(fv){if(!fv||!Array.isArray(fv.s)||!fv.s.some(x=>x&&x.i))return"";
  return favSec(fv.c,"pub",[0,1,2,3].map(k=>{const x=fv.s[k];return x&&x.i?{img:x.i,name:x.n||""}:null}))}
-async function favPubData(){const sl=fvSlots();if(!sl.some(Boolean))return undefined;
- const s=await Promise.all(sl.map(async i=>i?{i:await pubImg(i.img,220),n:i.name||""}:null));return{c:fvCfg(),s}}
+function visiblePublicFavorites(fv,privacy){
+ if(!Array.isArray(fv?.s))return fv;
+ return {...fv,s:fv.s.map(slot=>{
+  if(!slot)return null;
+  if(slot.src==="wish"||slot.src==="col")return privacy[slot.src]?null:slot;
+  return privacy.col||privacy.wish?null:slot;
+ })};
+}
+async function favPubData(privacy){
+ const sl=fvSlots();
+ if(!sl.some(Boolean))return undefined;
+ const s=await Promise.all(sl.map(async i=>{
+  if(!i)return null;
+  const src=i._w?"wish":"col";
+  return privacy[src]?null:{i:await pubImg(i.img,220),n:i.name||"",src};
+ }));
+ return {c:fvCfg(),s};
+}
 /* ventana flotante: solo Colección normal */
 function pickFav(k){FVS=k;fvPicker()}
 function fvPicker(){const pool=fvPool(),f=(S.profile||{}).favs||[],mine=f[FVS],
@@ -1844,8 +1912,8 @@ async function pubPush(){const p=S.profile||{},u=uname(p.user);if(!auth||!p.pub)
   used=new Set(col.concat(ped).filter(i=>i.type=="PC"&&i.era).map(i=>i.era)),er2=await Promise.all(ER().filter(e=>e.group&&(used.has(e.id)||col.concat(ped).some(i=>i.type=="PC"&&i.grupo==e.group))).map(async e=>({id:e.id,g:e.group,n:e.name,i:await pubImg(e.img,120)}))),
   w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:(i.kind||"pc")=="pc"?1:0,i:await pubImg(i.img,220)}))),
   photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
- const fv=await favPubData();
- const row={user_id:auth.user.id,username:u,name:p.name||"",photo,data:{bn,bc,th,frame:allowedFrame(p.frame,frameLevel(lvl,p.frameLevel),{creator:true,gom:true}),frameLevel:p.frameLevel,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:goVis(goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))])).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
+ const fv=await favPubData(pv);
+ const row={user_id:auth.user.id,username:u,name:p.name||"",photo,data:{bn,bc,th,cardColor:profileColor(p.cardColor),frame:allowedFrame(p.frame,frameLevel(lvl,p.frameLevel),{creator:true,gom:true}),frameLevel:p.frameLevel,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:goVis(goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))])).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
  try{await api("POST","perfiles?on_conflict=user_id",[row],{Prefer:"resolution=merge-duplicates,return=minimal"})}catch(e){if(/23505|duplicate/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro en Editar perfil.");throw e}}
 function schedPub(){if(auth&&S.profile&&S.profile.pub){clearTimeout(pbt);pbt=setTimeout(()=>pubPush().then(()=>{pubMsg="Publicado "+hora()}).catch(e=>toast(e.message)),4000)}}
 async function togglePub(){const p=S.profile=S.profile||{};
@@ -1900,19 +1968,37 @@ const PUBK=["bg","card","tx","mu","ac","bd","o1","o2","o3","g1","g2","g3","gb"];
 function pubThemeClear(){["pubp","modal"].forEach(id=>{const e=$(id);if(e){PUBK.forEach(k=>e.style.removeProperty("--"+k));e.style.colorScheme=""}})}
 function pubTheme(){pubThemeClear();const r=PUB,th=r&&r.data&&r.data.th;if(!th||!th.color)return;const t=S.theme||{mode:"auto"},dk=t.mode=="dark"||(t.mode!="light"&&matchMedia("(prefers-color-scheme:dark)").matches);let pal;try{pal=th.color=="custom"&&th.custom?customPal(th.custom,dk):palette(th.color=="custom"?"base":th.color,dk)}catch(e){return}if(!pal)return;["pubp","modal"].forEach(id=>{const e=$(id);for(const k in pal)e.style.setProperty("--"+k,pal[k]);e.style.setProperty("--gb",dk?"rgba(255,255,255,.14)":"rgba(255,255,255,.65)")})}
 function setPubS(a,b){if(a)pubSrc=a;if(b)pubTab=b;paintPub()}
-function paintPub(){const r=PUB;if(!r)return;const d=Object.assign({},r.data||{},{pg:""});if(isGif(d.bn))d.bn="";const wl=pubSrc=="wish",po=pubSrc=="ped",all=wl?d.wish||[]:po?d.ped||[]:d.col||[],prod=pubTab=="prod",
- pcs=all.filter(x=>x.p),prs=all.filter(x=>!x.p),pvd=d.priv||{},lock=!!(wl?pvd.wish:po?pvd.ped:pvd.col),full=lock?[]:(prod?prs:pcs);PUBGL=ordG([...new Set(full.map(x=>x.g||"Sin grupo"))]);if(pubG&&!PUBGL.includes(pubG))pubG="";const list=full.filter(x=>!pubG||(x.g||"Sin grupo")==pubG);PUBL=list;
- const cp=(d.col||[]).concat(d.ped||[]).filter(x=>x.p).length,ca=(d.col||[]).concat(d.ped||[]).filter(x=>!x.p).length,gs=[...new Set(list.map(x=>x.g||"Sin grupo"))];
+function publicProfileSections(privacy,owner){
+ return [["ped","Pedidos"],["col","Colección"],["wish","Wishlist"]].filter(([key])=>owner||!privacy[key]);
+}
+function paintPub(){
+ const r=PUB;if(!r)return;
+ const d={...r.data};if(isGif(d.bn))d.bn="";
+ const privacy=d.priv||{},me=meId(),owner=!!me&&me===r.user_id,sections=publicProfileSections(privacy,owner);
+ if(!sections.some(([key])=>key===pubSrc)){pubSrc=sections[0]?.[0]||"";pubG=""}
+ const wl=pubSrc==="wish",po=pubSrc==="ped",locked=!!privacy[pubSrc],prod=pubTab==="prod";
+ const all=pubSrc&&!locked?d[pubSrc]||[]:[];
+ const pcs=all.filter(x=>x.p),prs=all.filter(x=>!x.p),full=prod?prs:pcs;
+ PUBGL=ordG([...new Set(full.map(x=>x.g||"Sin grupo"))]);
+ if(pubG&&!PUBGL.includes(pubG))pubG="";
+ const list=full.filter(x=>!pubG||(x.g||"Sin grupo")==pubG);PUBL=list;
+ const publicItems=(privacy.col?[]:d.col||[]).concat(privacy.ped?[]:d.ped||[]);
+ const cp=publicItems.filter(x=>x.p).length,ca=publicItems.length-cp;
+ const stats=(!privacy.col||!privacy.ped?`<div><b>${cp}</b><span>photocards</span></div><div><b>${ca}</b><span>artículos</span></div>`:"")
+  +(!privacy.wish?`<div><b>${d.nw||0}</b><span>wishlist</span></div>`:"");
  let h=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="closePub()">‹ Cerrar</button><b>@${esc(r.username)}</b></div>
- <div class="pcard${d.bn?" pme":""}"${d.bn&&d.bc&&d.bc.length==3?` style="--g1:${esc(d.bc[0])};--g2:${esc(d.bc[1])};--g3:${esc(d.bc[2])}"`:""}>${d.bn?`<div class="pbn" style="background-image:url('${esc(d.bn)}')"></div>`:""}<div class="phead"><div id="public-frame-avatar">${framedAvatar(r.photo,r.name||r.username,publicFrame(r))}</div><div class="pid"><div class="pname">${esc(r.name||r.username)}</div><div class="puser">@${esc(r.username)}</div></div></div>
+ <div class="pcard${d.bn?" pme":""}"${profileColorStyle(d.cardColor,d.bn?d.bc:null)}>${d.bn?`<div class="pbn" style="background-image:url('${esc(d.bn)}')"></div>`:""}<div class="phead"><div id="public-frame-avatar">${framedAvatar(r.photo,r.name||r.username,publicFrame(r))}</div><div class="pid"><div class="pname">${esc(r.name||r.username)}</div><div class="puser">@${esc(r.username)}</div></div></div>
  ${d.desc?`<div class="pdesc">${esc(d.desc)}</div>`:""}${socUrl(d.ig)||socUrl(d.tt)?`<div class="psoc">${socHtml(d,false)}</div>`:""}<div class="pchips"><span class="ptags" id="pubtags">${tagsHtml(r._tg)}</span>${goChips(d.gos)}${d.group?`<span class="pchip big2">${esc(d.group)}</span>`:""}${d.bias?`<span class="pchip">Bias · ${esc(d.bias)}</span>`:""}${d.lvl?`<span class="pchip">Nivel ${d.lvl}</span>`:""}</div>
- <div class="pstats"><div><b>${cp}</b><span>photocards</span></div><div><b>${ca}</b><span>artículos</span></div><div><b>${d.nw||0}</b><span>wishlist</span></div></div></div>
- <div id="pubact">${pubActHtml()}</div>${sigWrap(favPub(d.fv),"fvs")}<div class="seg"><button class="${po?"on":""}" onclick="setPubS('ped')">Pedidos</button><button class="${wl||po?"":"on"}" onclick="setPubS('col')">Colección</button><button class="${wl?"on":""}" onclick="setPubS('wish')">Wishlist</button></div>
- <div class="seg"><button class="${prod?"":"on"}" onclick="setPubS(null,'pc')">Photocards <small>${lock?0:pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPubS(null,'prod')">Artículos <small>${lock?0:prs.length}</small></button></div>${lock?"":pubChips()}`;
- const ER_=d.er||[];
- h+=lock?`<div class="empty">🔒 Esta persona mantiene privado su apartado de ${wl?"Wishlist":po?"Pedidos":"Colección"}.</div>`:list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||wl||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?`<img src="${x.i}" onclick="pubItem(${k})">`:"").join("")}</div>`;
+ ${stats?`<div class="pstats">${stats}</div>`:""}</div>
+ <div id="pubact">${pubActHtml()}</div>${sigWrap(favPub(visiblePublicFavorites(d.fv,privacy)),"fvs")}`;
+ if(sections.length){
+  h+=`<div class="seg">${sections.map(([key,label])=>`<button class="${key===pubSrc?"on":""}" onclick="setPubS('${key}')">${label}</button>`).join("")}</div>`;
+  if(!locked)h+=`<div class="seg"><button class="${prod?"":"on"}" onclick="setPubS(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPubS(null,'prod')">Artículos <small>${prs.length}</small></button></div>${pubChips()}`;
+  const ER_=d.er||[];
+  h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||wl||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?`<img src="${x.i}" onclick="pubItem(${k})">`:"").join("")}</div>`;
   const its=list.map((x,k)=>({x,k})).filter(o=>(o.x.g||"Sin grupo")==g);
   return mgEra(g,its,o=>`<img src="${o.x.i}" onclick="pubItem(${o.k})">`,ER_.filter(e=>e.g==g).map(e=>({id:e.id,name:e.n,img:e.i})),o=>o.x.e,"")}).join(""):`<div class="empty">Aún no hay nada aquí.</div>`;
+ }
  pubTheme();{const box=$("pubp").firstElementChild;let ok=false;if(box){const t=document.createElement("div");t.innerHTML=h;ok=keepPatch(box,t,[".fvs"])}if(!ok)$("pubp").innerHTML="<div>"+h+"</div>"}}
 function pubItem(k){const x=PUBL[k];if(!x)return;$("sheet").innerHTML='<div class="vw"><h3>'+esc(x.n||(x.p?"Photocard":"Artículo"))+'</h3>'+pic({img:x.i})+((x.t||[]).length?`<div class="ctags" style="margin:2px 0 10px">${x.t.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",x.go)+kv("Grupo",x.g)+kv("Era",((((PUB&&PUB.data&&PUB.data.er)||[]).find(e=>e.id==x.e))||{}).n)+kv("Estado",x.s)+(x.d?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(x.d)}</div>`:"")+'<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>';$("modal").classList.add("on")}
 {const u=new URLSearchParams(location.search).get("u");if(u)openPub(u)}
@@ -2059,9 +2145,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.26",VK="mypoca-ver";
+const APP_VER="1.27",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.27",items:[["Color del perfil","Personaliza la tarjeta del perfil y el color de Jardín en flor."],["Privacidad del perfil","Las secciones privadas quedan ocultas para las visitas."]]},
  {v:"1.26",items:[["Jardín en flor","El marco de nivel 10 se renueva con ramas que se balancean y pétalos flotantes."]]},
  {v:"1.25",items:[["Marcos renovados","Alas de luz ahora aletea y Constelación tiene un borde facetado con cristales."],["Eras en Pedidos","Solo se muestran las eras con photocards en esa vista."]]},
  {v:"1.24",items:[["Editar perfil","Cambia el banner, la foto y el marco desde una vista previa."],["Recompensas de nivel","Desbloquea marcos animados en los niveles 5 y 10."]]},
