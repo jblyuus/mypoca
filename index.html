@@ -602,6 +602,10 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .catalog-match-heading .mu{white-space:nowrap}
 .catalog-match button{margin-top:5px}
 .catalog-match-list summary{margin:9px 0;cursor:pointer}
+#mypoca-catalog-crop{margin:9px 0}
+.catalog-crop-image{position:relative;display:block;width:fit-content;max-width:100%;margin:auto;overflow:hidden;touch-action:none;cursor:crosshair}
+.catalog-crop-image img{display:block;max-width:100%;max-height:42vh;width:auto;height:auto;pointer-events:none}
+.catalog-crop-box{position:absolute;inset:0;box-shadow:0 0 0 100vw #0009;border:2px solid #fff;pointer-events:none}
 .news-editor h3,.news-reader h3{margin:0 0 12px}
 .news-editor h4{font-size:15px;margin:15px 0 6px}
 .news-editor-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,24%);gap:9px}
@@ -1631,7 +1635,14 @@ function catalogHash(pixels){
  const ones=[...value].filter(bit=>bit==="1").length;
  return ones>=14&&ones<=114?value:"";
 }
-async function catalogFingerprint(src){
+function catalogQueryRects(){
+ return [
+  [0,0,1,1],[.06,.06,.88,.88],[.12,.12,.76,.76],[.18,.18,.64,.64],
+  [.24,.24,.52,.52],[.1,.02,.8,.8],[.1,.18,.8,.8],[.02,.1,.8,.8],
+  [.18,.1,.8,.8],[.22,.07,.56,.86],[.07,.22,.86,.56]
+ ];
+}
+async function catalogFingerprint(src,crop=null,includeQuery=false){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
  let blob;
  try{
@@ -1643,20 +1654,31 @@ async function catalogFingerprint(src){
  try{
   const image=new Image();
   image.src=url;await image.decode();
-  const w=image.naturalWidth,h=image.naturalHeight,shape=w/h;
+  const [left,top,width,height]=crop||[0,0,1,1];
+  const iw=image.naturalWidth,ih=image.naturalHeight;
+  const w=iw*width,h=ih*height,shape=w/h;
   if(!w||!h||shape<.15||shape>6.7)throw new Error("La imagen tiene una proporción incompatible.");
-  const canvas=document.createElement("canvas");
-  const ctx=canvas.getContext("2d",{willReadFrequently:true});
-  function sample(size,margin){
+  const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{willReadFrequently:true});
+  function sample(size,[x,y,fw,fh]){
    canvas.width=canvas.height=size;
    ctx.fillStyle="#fff";ctx.fillRect(0,0,size,size);
-   ctx.drawImage(image,w*margin,h*margin,w*(1-2*margin),h*(1-2*margin),0,0,size,size);
+   ctx.drawImage(image,iw*left+w*x,ih*top+h*y,w*fw,h*fh,0,0,size,size);
    return ctx.getImageData(0,0,size,size).data;
   }
-  const digest=await crypto.subtle.digest("SHA-256",sample(48,0));
+  const digest=await crypto.subtle.digest("SHA-256",sample(48,[0,0,1,1]));
   const exact_hash=[...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,"0")).join("");
-  const hashes=[...new Set([0,.08,.16].map(margin=>catalogHash(sample(9,margin))).filter(Boolean))];
-  return {exact_hash,hashes,shape:Math.round(shape*1000)/1000};
+  const hashes=[...new Set([0,.08,.16].map(margin=>catalogHash(sample(9,[margin,margin,1-2*margin,1-2*margin]))).filter(Boolean))];
+  const result={exact_hash,hashes,shape:Math.round(shape*1000)/1000};
+  if(includeQuery){
+   const variants=new Map();
+   for(const rect of catalogQueryRects()){
+    const frameShape=Math.round(shape*rect[2]/rect[3]*1000)/1000;
+    const hash=catalogHash(sample(9,rect));
+    if(hash&&frameShape>=.15&&frameShape<=6.7)variants.set(hash+":"+frameShape,{hash,shape:frameShape});
+   }
+   result.frames=[...variants.values()];
+  }
+  return result;
  }finally{URL.revokeObjectURL(url)}
 }
 function scheduleCatalogIndex(){
@@ -1692,8 +1714,9 @@ async function indexCatalogBatch(){
 function catalogActions(){
  return `<div class="catalog-actions">
   <button type="button" class="pri sm" onclick="searchMypocaCatalog()">Buscar en mypoca</button>
+  <button type="button" class="sec sm" onclick="openCatalogCrop()">Ajustar encuadre</button>
   <button type="button" class="sec sm" onclick="buscar(imgBig||img)">Buscar origen</button>
- </div><div class="mu catalog-note">Al sincronizar, el nombre, grupo, artista y tags de la pieza se añaden al catálogo junto con una huella de su foto.</div><div id="bres" class="mu"></div><div id="mypoca-catalog-results" aria-live="polite"></div>`;
+ </div><div class="mu catalog-note">Al sincronizar, el nombre, grupo, artista y tags de la pieza se añaden al catálogo junto con una huella de su foto.</div><div id="bres" class="mu"></div><div id="mypoca-catalog-crop" hidden></div><div id="mypoca-catalog-results" aria-live="polite"></div>`;
 }
 function catalogItemKind(){
  if($("f_t"))return $("f_t").value==="PC"?"pc":"item";
@@ -1701,24 +1724,81 @@ function catalogItemKind(){
  return colKind==="pc"?"pc":"item";
 }
 function resetCatalogResults(){
+ const crop=$("mypoca-catalog-crop");
+ if(crop){crop.hidden=true;crop.replaceChildren()}
  const node=$("mypoca-catalog-results");
  if(!node)return;
- node.catalogRequest=null;node.catalogMatches=[];node.replaceChildren();
+ node.catalogRequest=null;node.catalogMatches=[];node.catalogCrop=null;node.replaceChildren();
+}
+function openCatalogCrop(){
+ const panel=$("mypoca-catalog-crop"),results=$("mypoca-catalog-results");
+ if(!panel||!results)return;
+ if(!img){results.textContent="Primero añade tu foto.";return}
+ panel.hidden=false;
+ panel.innerHTML=`<p class="mu">Arrastra desde una esquina de la tarjeta hasta la opuesta.</p>
+  <div class="catalog-crop-image" onpointerdown="catalogCropPointer(event)" onpointermove="catalogCropPointer(event)" onpointerup="catalogCropPointer(event)" onpointercancel="catalogCropPointer(event)">
+   <img src="${esc(img)}" alt="Tu foto para recortar" draggable="false"><span class="catalog-crop-box" aria-hidden="true"></span>
+  </div>
+  <div class="catalog-actions"><button type="button" class="pri sm" onclick="searchMypocaCatalog()">Buscar con este encuadre</button>
+   <button type="button" class="sec sm" onclick="clearCatalogCrop()">Restablecer</button>
+   <button type="button" class="sec sm" onclick="this.closest('#mypoca-catalog-crop').hidden=true">Cerrar ajuste</button></div>`;
+ paintCatalogCrop();
+}
+function setCatalogCrop(rect){
+ const results=$("mypoca-catalog-results");
+ results.catalogCrop=rect;
+ results.catalogRequest=null;
+ results.catalogMatches=[];
+ results.textContent="Toca Buscar con este encuadre para comparar tu foto.";
+ paintCatalogCrop();
+}
+function clearCatalogCrop(){setCatalogCrop(null)}
+function paintCatalogCrop(temporary){
+ const node=$("mypoca-catalog-crop")?.querySelector(".catalog-crop-box");
+ if(!node)return;
+ const [x,y,w,h]=temporary||$("mypoca-catalog-results").catalogCrop||[0,0,1,1];
+ node.style.left=x*100+"%";node.style.top=y*100+"%";
+ node.style.width=w*100+"%";node.style.height=h*100+"%";
+}
+function catalogCropPointer(event){
+ const surface=event.currentTarget;
+ if(event.type==="pointerdown"&&surface.catalogPointer)return;
+ const bounds=surface.getBoundingClientRect();
+ const point=[clamp((event.clientX-bounds.left)/bounds.width,0,1),clamp((event.clientY-bounds.top)/bounds.height,0,1)];
+ if(event.type==="pointerdown"){
+  if(event.button!==0)return;
+  surface.setPointerCapture(event.pointerId);
+  surface.catalogPointer={id:event.pointerId,point};
+  return;
+ }
+ const start=surface.catalogPointer;
+ if(start?.id!==event.pointerId)return;
+ if(event.type==="pointercancel"){surface.catalogPointer=null;paintCatalogCrop();return}
+ const [x,y]=start.point,[endX,endY]=point;
+ const rect=[Math.min(x,endX),Math.min(y,endY),Math.abs(endX-x),Math.abs(endY-y)];
+ if(event.type==="pointerup"){
+  surface.catalogPointer=null;
+  if(rect[2]>=.12&&rect[3]>=.12)setCatalogCrop(rect);
+  else paintCatalogCrop();
+ }else paintCatalogCrop(rect);
 }
 async function searchMypocaCatalog(){
  const node=$("mypoca-catalog-results"),source=img;
  if(!node)return;
  if(!source){node.textContent="Primero añade tu foto.";return}
- const request=Symbol(),kind=catalogItemKind();
+ const request=Symbol(),kind=catalogItemKind(),crop=node.catalogCrop;
+ const cropKey=JSON.stringify(crop||null);
  node.catalogRequest=request;node.catalogMatches=[];node.textContent="Buscando coincidencias…";
- if(catalogFingerprintWork?.source!==source)catalogFingerprintWork={source,result:catalogFingerprint(source)};
+ if(catalogFingerprintWork?.source!==source||catalogFingerprintWork?.cropKey!==cropKey){
+  catalogFingerprintWork={source,cropKey,result:catalogFingerprint(source,crop,true)};
+ }
  const work=catalogFingerprintWork;
  const isCurrent=()=>node===$("mypoca-catalog-results")&&node.catalogRequest===request&&source===img&&kind===catalogItemKind();
  try{
   const photo=await work.result;
   if(!isCurrent())return;
-  const result=await socialRpc("mypoca_catalog_search",{
-   item_kind:kind,photo_exact:photo.exact_hash,photo_hashes:photo.hashes,photo_shape:photo.shape
+  const result=await socialRpc("mypoca_catalog_search_v2",{
+   item_kind:kind,photo_exact:photo.exact_hash,photo_variants:{frames:photo.frames}
   },true);
   if(!isCurrent())return;
   node.catalogMatches=Array.isArray(result?.matches)?result.matches.slice(0,3):[];
@@ -1729,10 +1809,13 @@ async function searchMypocaCatalog(){
  }
 }
 function catalogMatchesHtml(rows,result){
- if(!rows.length)return '<p class="mu">No encontramos coincidencias. Puedes usar Buscar origen. Al sincronizar una pieza con datos, se añadirá al catálogo.</p>';
+ if(!rows.length){
+  if(result?.indexed===false)return '<p class="mu">Todavía no hay piezas de este tipo indexadas. Las piezas guardadas se incorporan cuando sincronizan.</p>';
+  return '<p class="mu">No encontramos coincidencias. Prueba <b>Ajustar encuadre</b> para marcar la tarjeta completa, sin mesa ni bordes de la funda. También puedes usar Buscar origen.</p>';
+ }
  const people=Array.isArray(result?.profiles)?result.profiles:[];
  const count=Math.max(0,Number(result?.owner_count)||0);
- return `<div class="catalog-match-list"><p class="mu">Posibles coincidencias de ${count} ${count===1?"persona":"personas"}. Elige los datos que prefieras.</p>
+ return `<div class="catalog-match-list"><p class="mu">${result?.own_only?"Encontramos coincidencias entre tus propias fichas.":`Posibles coincidencias de ${count} ${count===1?"persona":"personas"}.`} Elige los datos que prefieras.</p>
   ${rows.map((row,index)=>`<div class="card catalog-match">
    <div class="catalog-match-heading"><b>${esc(row.name||"Pieza sin nombre")}</b><span class="mu">${row.exact?"Huella exacta":"Foto parecida"}</span></div>
    <div class="mu">${[row.group_name,row.artist_name].filter(Boolean).map(esc).join(" · ")}</div>
@@ -2467,7 +2550,7 @@ function socialRpc(name,args,publicRead=false){
  if(!publicRead)return Promise.reject(new Error("Inicia sesión para continuar."));
  const query=new URLSearchParams();
  for(const [key,value] of Object.entries(args)){
-  if(value!=null)query.set(key,Array.isArray(value)?"{"+value.map(x=>JSON.stringify(x)).join(",")+"}":value);
+  if(value!=null)query.set(key,Array.isArray(value)?"{"+value.map(x=>JSON.stringify(x)).join(",")+"}":typeof value==="object"?JSON.stringify(value):value);
  }
  return apiPub("rpc/"+name+"?"+query);
 }
@@ -3088,7 +3171,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.40",VK="mypoca-ver";
+const APP_VER="1.41",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
