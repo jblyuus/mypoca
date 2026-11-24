@@ -373,6 +373,8 @@ nav button.on{background:none;box-shadow:none}
 .gotab i,.gochip i{position:absolute;width:9px;height:9px;left:var(--x);top:var(--y);background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);opacity:0;transform:scale(0);animation:tgTw 2.4s var(--d) ease-in-out infinite;pointer-events:none}
 .gotag{display:inline-block;font-weight:700}
 .gochip{display:inline-flex;align-items:center;cursor:pointer;font-weight:700;border-radius:20px;padding:4px 12px;font-size:13px}
+#go-info{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:20px;padding:18px;width:calc(100% - 40px);max-width:420px;max-height:85vh}
+#go-info::backdrop{background:#0007}
 .gochip.big{font-size:15px;padding:6px 16px}
 .gochip button{all:unset;cursor:pointer;margin-left:8px;font-weight:700;position:relative;z-index:2}
 .mgrid>div{position:relative}
@@ -480,6 +482,7 @@ nav button.on{background:none;box-shadow:none}
 <input type="file" id="erafile" accept="image/*" hidden onchange="eraFile(this)">
 <div id="wel"></div><div id="intro"></div>
 <div id="pubp"></div>
+<dialog id="go-info" aria-labelledby="go-info-title"></dialog>
 <div id="modal" onclick="if(event.target==this)closeM()"><div id="sheet"></div></div>
 <script>
 const KEY="pedidos-v1",PAISES=["Corea","Japón","México","Pocamarket","Otro"],TIPOS=["PC","Álbum","Otro","Papelería"],
@@ -504,8 +507,11 @@ const gos=()=>[...new Set(S.items.concat(S.col||[]).map(i=>i.go).filter(Boolean)
 const GSPP=[["8%","4px","0s"],["calc(100% - 18px)","3px",".7s"],["30%","calc(100% - 12px)","1.3s"],["calc(100% - 34px)","calc(100% - 11px)","1.9s"]],
 GSP=GSPP.map(a=>`<i style="--x:${a[0]};--y:${a[1]};--d:${a[2]}"></i>`).join("");
 const goTag=(i,c)=>i&&i.go?`<span class="${c} gotag">${esc(i.go)}</span>`:"";
-const goChips=l=>(l||[]).map(g=>`<span class="pchip gochip" data-i="${esc(g.id||("n:"+g.n))}" onclick="showGoInfo(this.dataset.i)">✦ ${esc(g.n)}${GSP}</span>`).join("");
-/* GOs del perfil + GOs usados en tus piezas (sin duplicar por nombre) */
+function goChip(g){
+ const id=g.id||("n:"+g.n);
+ return `<button type="button" class="pchip gochip" data-go-id="${esc(id)}" data-go-name="${esc(g.n)}" onclick="showGoInfo(this.dataset.goId,this.dataset.goName)">✦ ${esc(g.n)}${GSP}</button>`;
+}
+const goChips=l=>(l||[]).map(goChip).join("");
 function goMerge(l,used){const o=(l||[]).slice(),seen=new Set(o.map(g=>nrm(g.n)));(used||[]).forEach(n=>{if(n&&!seen.has(nrm(n))){seen.add(nrm(n));o.push({id:"n:"+n,n})}});return o}
 function setGO(k){gof=k<0?"":gos()[k];anim=true;render()}
 function gochips(){const g=gos();if(gof&&!g.includes(gof))gof="";if(!g.length)return"";return `<div class="gorow"><button class="gotab ${gof?"":"on"}" onclick="setGO(-1)">Todos</button>${g.map((x,k)=>`<button class="gotab go ${x==gof?"on":""}" onclick="setGO(${k})">✦ ${esc(x)}${GSP}</button>`).join("")}</div>`}
@@ -532,7 +538,7 @@ var GOSOC=[],GOSL=0,GOERR="",PG=[],GF="",GOB=0;
 const sqlGo=m=>/42501|permission|42P01|PGRST205|does not exist|relation/i.test(String(m))?"Falta crear la tabla gos_socios en Supabase (ejecuta el SQL de GOs socios).":m;
 function loadGoSoc(force){if(GOSL&&!force)return GOSL;GOSL=(async()=>{const q="gos_socios?select=id,name,info,gom&order=name";let r=null,er="";
  try{r=await apiPub(q)}catch(e){er=String(e&&e.message||e)}
- if(!r&&auth&&auth.access_token){try{r=await api("GET",q)}catch(e){er=er||String(e&&e.message||e)}}
+ if((!r||!r.length)&&auth&&auth.access_token){try{r=await api("GET",q)}catch(e){er=er||String(e&&e.message||e)}}
  if(r){GOSOC=r;GOERR="";try{localStorage.setItem("gosoc-cache",JSON.stringify(r))}catch(e){}}
  else{let c=null;try{c=JSON.parse(localStorage.getItem("gosoc-cache"))}catch(e){}
   if(Array.isArray(c)&&c.length){if(!(GOSOC||[]).length)GOSOC=c;GOERR=""}else{GOERR=er||"Sin conexión";GOSL=0}}})();return GOSL}
@@ -547,7 +553,10 @@ function gvPaint(){const e=$("pg_vis");if(e)e.innerHTML=gvHtml()}
 function gvTog(k){const a=gvAvail(),g=a[k];if(!g)return;const n=nrm(g.n);if(PGV===null)PGV=a.map(x=>nrm(x.n));const i=PGV.indexOf(n);if(i<0)PGV.push(n);else PGV.splice(i,1);gvPaint()}
 function gvAll(f){PGV=f?null:[];gvPaint()}
 function gvNew(n){if(PGV!==null&&n&&!PGV.includes(nrm(n)))PGV.push(nrm(n))}
-function pgSelHtml(){return PG.length?PG.map(g=>false?`<span class="tag" style="font-size:13px;padding:4px 12px;margin:0 6px 6px 0;display:inline-flex;gap:8px">${esc(g.n)}<button type="button" aria-label="Quitar" style="all:unset;cursor:pointer;font-weight:700" onclick="pgDel('${esc(g.id)}')">×</button></span>`:`<span class="gochip" style="margin:0 6px 6px 0">✦ ${esc(g.n)}${GSP}<button type="button" aria-label="Quitar" onclick="pgDel('${esc(g.id)}')">×</button></span>`).join(""):'<div class="mu">Aún no has agregado ningún GO.</div>'}
+function pgSelHtml(){
+ if(!PG.length)return '<div class="mu">Aún no has agregado ningún GO.</div>';
+ return PG.map(g=>`<span style="display:inline-flex;gap:4px;margin:0 6px 6px 0">${goChip(g)}<button type="button" class="sec sm" aria-label="Quitar ${esc(g.n)}" data-go-id="${esc(g.id)}" onclick="pgDel(this.dataset.goId)">×</button></span>`).join("");
+}
 async function pgSearch(){const o=$("pg_res");if(!o)return;const raw=(($("pg_q")||{}).value||"").trim(),q=nrm(raw);if(!q){o.innerHTML="";return}
   o.innerHTML='<div class="mu">Buscando…</div>';await loadGoSoc();if(!$("pg_res"))return;
   const r=GOERR?[]:GOSOC.filter(g=>!PG.some(x=>x.id==g.id)&&nrm(g.name).includes(q)).slice(0,8),
@@ -558,9 +567,25 @@ function pgExt(){const v=(($("pg_q")||{}).value||"").trim().slice(0,60);if(!v||P
 function pgAdd(id){const g=GOSOC.find(x=>x.id==id);if(!g||PG.some(x=>x.id==id))return;PG.push({id:g.id,n:g.name});gvNew(g.name);$("pg_q").value="";$("pg_res").innerHTML="";$("pg_sel").innerHTML=pgSelHtml();gvPaint()}
 function pgDel(id){PG=PG.filter(x=>x.id!=id);$("pg_sel").innerHTML=pgSelHtml();gvPaint()}
 function pgHtml(){return `<label>GOs de los que soy miembro</label><div class="mu">Busca tu GO entre los GOs socios de mypoca. Aparecerá como etiqueta en tu perfil.</div><div id="pg_sel" style="margin-top:8px">${pgSelHtml()}</div><input id="pg_q" placeholder="Buscar GO socio…" autocomplete="off" oninput="pgSearch()" onfocus="loadGoSoc()"><div id="pg_res"></div><label>Etiquetas de GO visibles en mi perfil</label><div class="mu">Elige cuáles se muestran (también incluye los GOs que usas en tus piezas). Toca para mostrar u ocultar.</div><div id="pg_vis" style="margin-top:8px">${gvHtml()}</div><div class="mu" style="margin-top:12px">¿No ves tu go? El gom debe mandar una solicitud para agregar la información.</div><button type="button" class="sec" style="width:100%;margin-top:8px" onclick="goReqOpen()">Enviar solicitud</button>${isAdmin()?`<button type="button" class="sec" style="width:100%;margin-top:8px" onclick="stashP();goMgr(1)">Administrar GOs socios</button>`:""}`}
-function stashP(){const p=S.profile=S.profile||{},g=id=>(($(id)||{}).value||"").trim();if($("p_n")){p.name=g("p_n");p.user=g("p_u");p.group=g("p_g");p.bias=g("p_b");p.desc=g("p_d")}p.gos=PG.slice();p.gosVis=PGV===null?null:PGV.slice();save()}
-async function showGoInfo(id){await loadGoSoc();const nm=String(id).startsWith("n:")?String(id).slice(2):"",mine=((S.profile||{}).gos||[]).concat((PUB&&PUB.data&&PUB.data.gos)||[]).find(x=>x.id==id),g=GOSOC.find(x=>x.id==id)||GOSOC.find(x=>nrm(x.name)==nrm(nm||(mine?mine.n:"\u0000"))),n=g?g.name:(mine?mine.n:(nm||"GO"));
-  openM(`<div class="vw"><div style="text-align:center;margin-bottom:8px"><span class="gochip big">✦ ${esc(n)}${GSP}</span></div>${g?kv("GOM",g.gom)+(g.info?`<div class="mu" style="margin-top:12px;white-space:pre-wrap;line-height:1.5">${esc(g.info)}</div>`:`<div class="mu" style="margin-top:10px">Sin información adicional.</div>`):`<div class="mu" style="margin-top:10px">No se encontró la información de este GO.</div>`}<div style="margin-top:16px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>`)}
+function stashP(){const p=S.profile=S.profile||{},g=id=>(($(id)||{}).value||"").trim();if($("p_n")){p.name=g("p_n");goProfileUserDraft=g("p_u");p.group=g("p_g");p.bias=g("p_b");p.desc=g("p_d")}p.gos=PG.slice();p.gosVis=PGV===null?null:PGV.slice();save()}
+let goProfileUserDraft="";
+async function showGoInfo(id,name){
+ const dialog=$("go-info");
+ if(dialog.open)return;
+ const fallback=name||(String(id).startsWith("n:")?String(id).slice(2):"GO");
+ dialog.innerHTML=`<h3 id="go-info-title">${esc(fallback)}</h3><div id="go-info-body" class="mu" role="status">Cargando información…</div><form method="dialog" style="margin-top:16px"><button class="sec" autofocus>Cerrar</button></form>`;
+ const body=$("go-info-body");
+ dialog.showModal();
+ await loadGoSoc(true);
+ if(!dialog.open||body!==$("go-info-body"))return;
+ const go=GOSOC.find(g=>String(g.id)===String(id))||GOSOC.find(g=>nrm(g.name)===nrm(fallback));
+ if(go){
+  $("go-info-title").textContent=go.name;
+  body.innerHTML=kv("GOM",go.gom)+`<div style="white-space:pre-wrap;line-height:1.5">${esc(go.info||"Sin información adicional.")}</div>`;
+ }else{
+  body.textContent=GOERR?"No se pudo cargar la información del GO. Vuelve a intentarlo.":"Este GO no tiene una ficha de GO socio.";
+ }
+}
 function goReqOpen(){const q=(($("pg_q")||{}).value||"").trim();let o=$("goreq");if(o)o.remove();o=document.createElement("div");o.id="goreq";o.className="gofl";o.onclick=e=>{if(e.target==o)o.remove()};
   o.innerHTML=`<div><h3 style="margin:0 0 4px">Solicitar GO socio</h3><div class="mu" style="margin-bottom:6px">Nombre, descripción y cuentas del gom</div><label>Nombre del go</label><input id="gr_n" maxlength="60" value="${esc(q)}"><label>Descripción</label><textarea id="gr_d" rows="4" maxlength="500" placeholder="¿Cómo es la dinámica de tu go?¿Qué tipo de pedidos haces?"></textarea><label>Cuenta del gom</label><input id="gr_g" maxlength="80" placeholder="Cuenta del gom ig o facebook" autocapitalize="none"><label>Cuenta del gom mypoca</label><input id="gr_m" maxlength="80" placeholder="Cuenta del gom mypoca" autocapitalize="none"><div style="display:flex;gap:8px;margin-top:14px"><button class="pri" style="flex:1" onclick="goReqSend()">Enviar</button><button class="sec" style="flex:1" onclick="$('goreq').remove()">Cancelar</button></div></div>`;document.body.appendChild(o)}
 async function goReqSend(){const n=$("gr_n").value.trim(),c=$("gr_d").value.trim(),g0=$("gr_g").value.trim(),m=$("gr_m").value.trim(),g=g0+(m?(g0?" | ":"")+"MyPoca: "+m:"");if(!n||!c||!g)return alert("Llena el nombre del go, la descripción y al menos una cuenta del gom.");
@@ -571,7 +596,7 @@ async function goReqAct(id,a){if(!isAdmin())return;const x=(NF.go||[]).find(r=>r
    await api("PATCH","go_solicitudes?id=eq."+id,{estado:a=="ok"?"aprobada":"rechazada"},{Prefer:"return=minimal"});toast(a=="ok"?"GO socio aprobado":"Solicitud rechazada")}
   catch(e){alert("No se pudo: "+sqlGo(e.message))}await loadNotifs();nfPaint()}
 async function goMgr(back){if(!isAdmin())return;GOB=back?1:0;await loadGoSoc(true);
-  openM(`<h3>GOs socios</h3><div class="mu">Los usuarios podrán buscarlos y agregarlos a su perfil.</div>${GOERR?`<div class="mu" style="color:#e5484d;margin-top:8px">${esc(sqlGo(GOERR))}</div>`:""}${GOSOC.map(g=>`<div class="gores" onclick="goForm('${esc(g.id)}')"><div class="grow"><div class="nm">${esc(g.name)}</div><div class="mu">GOM: ${esc(g.gom||"—")}</div></div><span class="mu">Editar ›</span></div>`).join("")||(GOERR?"":'<div class="mu" style="margin:10px 0">Aún no hay GOs socios.</div>')}<div style="margin-top:14px;display:flex;gap:8px"><button class="sec" style="flex:1" onclick="${back?"editP()":"closeM()"}">${back?"‹ Volver":"Cerrar"}</button><button class="pri" style="flex:1" onclick="goForm()">Nuevo GO socio</button></div>`)}
+  openM(`<h3>GOs socios</h3><div class="mu">Los usuarios podrán buscarlos y agregarlos a su perfil.</div>${GOERR?`<div class="mu" style="color:#e5484d;margin-top:8px">${esc(sqlGo(GOERR))}</div>`:""}${GOSOC.map(g=>`<div class="gores" onclick="goForm('${esc(g.id)}')"><div class="grow"><div class="nm">${esc(g.name)}</div><div class="mu">GOM: ${esc(g.gom||"—")}</div></div><span class="mu">Editar ›</span></div>`).join("")||(GOERR?"":'<div class="mu" style="margin:10px 0">Aún no hay GOs socios.</div>')}<div style="margin-top:14px;display:flex;gap:8px"><button class="sec" style="flex:1" onclick="${back?"editP(true)":"closeM()"}">${back?"‹ Volver":"Cerrar"}</button><button class="pri" style="flex:1" onclick="goForm()">Nuevo GO socio</button></div>`)}
 function goForm(id){if(!isAdmin())return;const g=id&&GOSOC.find(x=>x.id==id)||null;GF=g?g.id:"";
   openM(`<h3>${g?"Editar GO socio":"Nuevo GO socio"}</h3><label>Nombre del GO</label><input id="gf_n" maxlength="60" value="${esc(g?g.name:"")}" placeholder="Ej. Dearcupid GO"><label>Persona GOM</label><input id="gf_g" maxlength="60" value="${esc(g?g.gom:"")}" placeholder="Nombre o @usuario del GOM"><label>Información del GO</label><textarea id="gf_i" rows="6" maxlength="1500" placeholder="Cómo funciona, fechas, enlaces, reglas…">${esc(g?g.info:"")}</textarea><div class="fbar"><button class="pri" onclick="goSave()">Guardar</button><button class="sec" onclick="goMgr(GOB)">Cancelar</button>${g?`<button class="sec" style="margin-left:auto" onclick="goDel()">Borrar</button>`:""}</div>`)}
 async function goSave(){const n=$("gf_n").value.trim();if(!n)return alert("Escribe el nombre del GO.");const id=GF||"go"+Date.now().toString(36);
@@ -647,6 +672,7 @@ function render(){afFix();
   <div class="kv"><span>Envíos domésticos KA</span><b>${money(ka)}</b></div>
   <label class="mu" style="display:block;margin-top:8px">Gasto previo (antes de usar la app)<input type="number" inputmode="decimal" value="${S.prev||""}" onchange="S.prev=parseFloat(this.value)||0;save();render()"></label></div>
   <h2>Cargos de envío y aduana</h2><div class="card">${cargosHtml()}</div>
+  <h2>Por GO</h2><div class="card">${goExpensesHtml()}</div>
   <h2>Por tipo de pedido</h2><div class="card">${PAISES.map(p=>`<div class="kv"><span>${p}</span><b>${money(S.items.filter(i=>i.country==p).reduce((a,i)=>a+(+i.price||0),0))}</b></div>`).join("")}</div>
   <h2>Respaldo</h2><div class="card"><button class="sec" onclick="exp()">Exportar respaldo</button> <button class="sec" onclick="$('imp').click()">Importar</button><input type="file" id="imp" accept=".json" hidden onchange="imp(this.files[0])"><div class="mu" style="margin-top:6px">Los datos se guardan en este navegador. Exporta un respaldo de vez en cuando.</div></div>`;
  }
@@ -708,6 +734,41 @@ function selHtml(){const gs={};S.items.filter(selF).concat(selCol?(S.col||[]).fi
 function togI(id,c){selIds=c?[...new Set([...selIds,id])]:selIds.filter(x=>x!=id);$("selw").innerHTML=selHtml()}
 function togG(n,c){SG[n].forEach(id=>{selIds=c?[...new Set([...selIds,id])]:selIds.filter(x=>x!=id)});$("selw").innerHTML=selHtml()}
 function openM(h){$("sheet").innerHTML=h;$("modal").classList.add("on")}
+function goExpenses(state){
+ const buckets=new Map();
+ const allItems=state.items.concat(state.col||[]);
+ const itemsById=new Map(allItems.map(item=>[String(item.id),item]));
+ const keyOf=item=>nrm((item?.go||"").trim());
+ const names=new Map(allItems.filter(item=>keyOf(item)).map(item=>[keyOf(item),item.go.trim()]));
+ const shared=Symbol(),unassigned=Symbol();
+ const get=key=>{
+  if(!buckets.has(key))buckets.set(key,{name:names.get(key),products:0,fees:0});
+  return buckets.get(key);
+ };
+ for(const item of state.items)get(keyOf(item)).products+=Number(item.price)||0;
+ for(const fee of state.cargos||[]){
+  const total=Number(fee.amt)||0;
+  if(!total)continue;
+  const ids=fee.ids||[];
+  const keys=new Set(ids.map(id=>itemsById.has(String(id))?keyOf(itemsById.get(String(id))):unassigned));
+  const key=keys.size>1?shared:keys.size===1?[...keys][0]:unassigned;
+  get(key).fees+=total;
+ }
+ for(const box of Object.values(state.boxes||{})){
+  const total=(Number(box.ship)||0)+(Number(box.customs)||0);
+  if(total)get(unassigned).fees+=total;
+ }
+ const previous=Number(state.prev)||0;
+ return {groups:[...buckets.values()].filter(row=>row.name).sort((a,b)=>a.name.localeCompare(b.name,"es")),
+  noGo:buckets.get(""),shared:buckets.get(shared),unassigned:buckets.get(unassigned),previous};
+}
+function goExpensesHtml(){
+ const {groups,noGo,shared,unassigned,previous}=goExpenses(S);
+ const rows=groups.concat(noGo?[{...noGo,name:"Sin GO"}]:[],shared?[{...shared,name:"Cargos compartidos"}]:[],
+  unassigned?[{...unassigned,name:"Cargos sin asignar"}]:[]);
+ return (rows.length?rows.map(row=>`<div class="kv"><span>${esc(row.name)}<span class="mu" style="display:block">Productos ${money(row.products)} · Cargos ${money(row.fees)}</span></span><b>${money(row.products+row.fees)}</b></div>`).join("")
+  :'<div class="mu">Aún no hay gastos para desglosar.</div>')+(previous?kv("Gasto previo",money(previous)):"");
+}
 function cargosHtml(){return (S.cargos.length?S.cargos.map(c=>`<div class="kv" onclick="editC('${c.id}')"><span>${KN[c.kind]}<div class="mu">${c.ids.length} artículo${c.ids.length==1?"":"s"}${c.note?" · "+esc(c.note):""}</div></span><b>${money(c.amt)}</b></div>`).join(""):`<div class="mu">Aún no hay cargos.</div>`)+`<div style="margin-top:10px"><button class="pri" onclick="editC()">+ Agregar cargo</button></div>`}
 function editC(id){cur=id?S.cargos.find(c=>c.id==id):null;const c=cur||{kind:"mx",amt:"",note:"",ids:[]};selIds=[...c.ids];showHome=false;selCol=false;selF=i=>showHome||i.status!="En casa"||selIds.includes(i.id);
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nuevo"} cargo</h3>
@@ -756,16 +817,25 @@ function socUrl(v){v=String(v||"").trim();if(!v)return"";if(!/^https?:\/\//i.tes
 function socHtml(o,own){o=o||{};const on=Object.keys(SOC).filter(k=>socUrl(o[k]));return on.map(k=>`<a class="psc" href="${esc(socUrl(o[k]))}" target="_blank" rel="noopener noreferrer">${SOC[k].svg}<span>${SOC[k].n}</span></a>`).join("")+(own&&on.length<Object.keys(SOC).length?`<button class="psc add" onclick="editSoc()">+ Conectar red</button>`:"")}
 function editSoc(){const p=S.profile||{};openM(`<h3>Redes sociales</h3><div class="mu">Pega el enlace de tu perfil. Déjalo vacío para desconectar.</div>${Object.keys(SOC).map(k=>`<div class="sclab"><label style="margin:0;display:flex;align-items:center;gap:8px">${SOC[k].svg}${SOC[k].n}</label></div><input id="s_${k}" type="url" inputmode="url" autocapitalize="none" value="${esc(p[k])}" placeholder="${SOC[k].ph}">`).join("")}<div style="display:flex;gap:8px;margin-top:14px"><button class="pri" onclick="okSoc()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
 function okSoc(){const p=S.profile=S.profile||{};for(const k of Object.keys(SOC)){const raw=$("s_"+k).value.trim(),u=socUrl(raw);if(raw&&!u)return alert("El enlace de "+SOC[k].n+" no es válido.");p[k]=u}save();schedPub();closeM();render()}
-function editP(){const p=S.profile||{};img=p.photo||"";PG=(p.gos||[]).map(g=>({id:g.id,n:g.n,ext:g.ext}));PGV=Array.isArray(p.gosVis)?p.gosVis.slice():null;BC=null;bnGif=null;bnDel=false;openM(`<h3>Mi perfil</h3><label>Foto</label><input type="file" accept="image/*" onchange="pick(this.files[0])"><div id="pv">${img?`<img class="th" style="margin-top:6px;border-radius:50%;width:60px;height:60px" src="${img}">`:""}</div><label>Nombre</label><input id="p_n" value="${esc(p.name)}"><label>Usuario</label><input id="p_u" value="${esc(p.user)}" placeholder="jblyuus"><label>Grupo favorito (ult)</label><input id="p_g" list="gl2" value="${esc(p.group)}"><datalist id="gl2">${allG().map(g=>`<option value="${esc(g)}">`).join("")}</datalist><label>Bias</label><input id="p_b" value="${esc(p.bias)}"><label>Descripción</label><textarea id="p_d" rows="3" maxlength="160" placeholder="Cuéntanos algo sobre ti">${esc(p.desc)}</textarea>${pgHtml()}<label>Privacidad</label><div class="mu">Lo que marques no se mostrará a otros usuarios en tu perfil público.</div><div class="sg"><label class="sh"><input type="checkbox" id="p_pv_ped" ${(p.priv||{}).ped?"checked":""}>Ocultar mis Pedidos</label><label class="sh"><input type="checkbox" id="p_pv_col" ${(p.priv||{}).col?"checked":""}>Ocultar mi Colección</label><label><input type="checkbox" id="p_pv_wish" ${(p.priv||{}).wish?"checked":""}>Ocultar mi Wishlist</label></div><label>Banner</label><input id="bnf" type="file" accept="image/*" hidden onchange="pickBanner(this.files[0]);this.value=''"><div id="bnbox">${bnHtml()}</div><div style="display:flex;gap:8px;margin-top:14px"><button class="pri" onclick="okP()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
+function editP(fromGoManager){const p=S.profile||{};img=p.photo||"";PG=(p.gos||[]).map(g=>({id:g.id,n:g.n,ext:g.ext}));PGV=Array.isArray(p.gosVis)?p.gosVis.slice():null;BC=null;bnGif=null;bnDel=false;openM(`<h3>Mi perfil</h3><label>Foto</label><input type="file" accept="image/*" onchange="pick(this.files[0])"><div id="pv">${img?`<img class="th" style="margin-top:6px;border-radius:50%;width:60px;height:60px" src="${img}">`:""}</div><label>Nombre</label><input id="p_n" value="${esc(p.name)}"><label for="p_u">Usuario</label><input id="p_u" value="${esc(fromGoManager?goProfileUserDraft:p.user)}" placeholder="jblyuus" maxlength="31" autocapitalize="none" spellcheck="false" ${auth?"":"disabled"}><div class="mu">${auth?"De 3 a 30 caracteres. Usa letras sin acento, números, puntos o guiones bajos.":"Inicia sesión para reservar tu @usuario."}</div><label>Grupo favorito (ult)</label><input id="p_g" list="gl2" value="${esc(p.group)}"><datalist id="gl2">${allG().map(g=>`<option value="${esc(g)}">`).join("")}</datalist><label>Bias</label><input id="p_b" value="${esc(p.bias)}"><label>Descripción</label><textarea id="p_d" rows="3" maxlength="160" placeholder="Cuéntanos algo sobre ti">${esc(p.desc)}</textarea>${pgHtml()}<label>Privacidad</label><div class="mu">Lo que marques no se mostrará a otros usuarios en tu perfil público.</div><div class="sg"><label class="sh"><input type="checkbox" id="p_pv_ped" ${(p.priv||{}).ped?"checked":""}>Ocultar mis Pedidos</label><label class="sh"><input type="checkbox" id="p_pv_col" ${(p.priv||{}).col?"checked":""}>Ocultar mi Colección</label><label><input type="checkbox" id="p_pv_wish" ${(p.priv||{}).wish?"checked":""}>Ocultar mi Wishlist</label></div><label>Banner</label><input id="bnf" type="file" accept="image/*" hidden onchange="pickBanner(this.files[0]);this.value=''"><div id="bnbox">${bnHtml()}</div><div style="display:flex;gap:8px;margin-top:14px"><button class="pri" onclick="okP()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
 async function okP(){
  const btn=document.querySelector('#modal .pri, .modal .pri');
  if(btn&&btn.disabled)return;
  const bn=bnResult(),old=S.profile||{};
  const next={photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
- if(btn){btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent="Guardando imágenes…"}
+ if(auth){
+  const candidate=next.user.replace(/^@/,"").toLowerCase();
+  if((candidate&&!/^[a-z0-9_.]{3,30}$/.test(candidate))||(!candidate&&old.pub)){
+   $("p_u").focus();
+   return alert("Escribe un @usuario válido de 3 a 30 caracteres.");
+  }
+  next.user=candidate;
+ }
+ if(btn){btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent="Guardando perfil…"}
  try{
   if((isData(next.photo)||isData(next.banner))&&!imgOn())throw new Error("Inicia sesión para guardar las imágenes en Supabase Storage.");
   for(const k of ["photo","banner"]){if(isData(next[k]))next[k]=await imgPut(next[k]);}
+  if(auth&&next.user)await reserveUsername(next.user);
   S.profile=next;BC=null;bnDel=false;bnGif=null;
   save();closeM();render();
  }catch(e){alert("No se pudo guardar el perfil. No se perdieron tus cambios.\n"+String(e&&e.message||e));}
@@ -1351,6 +1421,14 @@ if(auth)syncNow(false).then(render);
 /* ===== Social: perfil público, buscar amigos, enlace ===== */
 var pbt,pubMsg="";
 const uname=s=>String(s||"").replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_.]/g,"").slice(0,30);
+async function reserveUsername(username){
+ try{await api("POST","rpc/reserve_username",{requested_username:username})}
+ catch(e){
+  if(/username_taken|23505/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro.");
+  if(/PGRST202/i.test(e.message))throw new Error("El registro de usuarios todavía no está configurado en Supabase.");
+  throw e;
+ }
+}
 const cmpC=new Map();
 function shrink(src,n){return new Promise(res=>{if(!src)return res("");const k=n+"|"+src.length+"|"+src.slice(-48);if(cmpC.has(k))return res(cmpC.get(k));const m=new Image();m.onload=()=>{const f=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*f);c.height=Math.round(m.height*f);c.getContext("2d").drawImage(m,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.6);cmpC.set(k,o);res(o)};m.onerror=()=>res("");m.src=src})}
 async function apiPub(path){const r=await fetch(SB+"/rest/v1/"+path,{headers:{apikey:KEYP}});const t=await r.text();if(!r.ok)throw new Error(t||"Error "+r.status);return t?JSON.parse(t):[]}
@@ -1577,9 +1655,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.20",VK="mypoca-ver";
+const APP_VER="1.21",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.21",items:[["Gastos por GO","Consulta el desglose usando tus pedidos y cargos guardados."],["GOs socios","Toca la etiqueta para ver la ficha del GO."],["@usuario único","Reserva tu nombre de usuario desde Editar perfil."]]},
   {v:"1.20",items:[["GO (group order)","Marca tus pedidos y artículos con su GO y filtra por pestañas con brillos."],["GOs no asociados","Si tu GO no es socio, agrégalo igual (sin brillo) o pide que el GOM envíe una solicitud."],["GOs socios","Busca tu GO en Editar perfil y agrégalo como etiqueta; toca la etiqueta para ver su información."]]},
  {v:"1.18",items:[["Banner y color en perfiles","Al entrar al perfil de alguien verás su banner y su color de tema."],["Etiquetas especiales","Creador, Primer usuario y Dearcupid gom, con brillos."],["Avisos de novedades","Verás aquí lo nuevo cada vez que haya una actualización."]]},
  {v:"1.17",items:[["Banners de perfil"],["Colores personalizados"],["Enlazar redes sociales al perfil"],["Página de inicio de sesión y tutoriales"]]}
