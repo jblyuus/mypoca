@@ -375,6 +375,7 @@ nav button.on{background:none;box-shadow:none}
 .gochip{display:inline-flex;align-items:center;cursor:pointer;font-weight:700;border-radius:20px;padding:4px 12px;font-size:13px}
 #go-info{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:20px;padding:18px;width:calc(100% - 40px);max-width:420px;max-height:85vh}
 #go-info::backdrop{background:#0007}
+button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;text-align:inherit}
 .gochip.big{font-size:15px;padding:6px 16px}
 .gochip button{all:unset;cursor:pointer;margin-left:8px;font-weight:700;position:relative;z-index:2}
 .mgrid>div{position:relative}
@@ -514,7 +515,19 @@ function goChip(g){
 const goChips=l=>(l||[]).map(goChip).join("");
 function goMerge(l,used){const o=(l||[]).slice(),seen=new Set(o.map(g=>nrm(g.n)));(used||[]).forEach(n=>{if(n&&!seen.has(nrm(n))){seen.add(nrm(n));o.push({id:"n:"+n,n})}});return o}
 function setGO(k){gof=k<0?"":gos()[k];anim=true;render()}
-function gochips(){const g=gos();if(gof&&!g.includes(gof))gof="";if(!g.length)return"";return `<div class="gorow"><button class="gotab ${gof?"":"on"}" onclick="setGO(-1)">Todos</button>${g.map((x,k)=>`<button class="gotab go ${x==gof?"on":""}" onclick="setGO(${k})">✦ ${esc(x)}${GSP}</button>`).join("")}</div>`}
+function goTabs(options,selected,handler){
+ if(!options.length)return "";
+ const button=(label,index,glow)=>{
+  const on=index===selected;
+  return `<button type="button" class="gotab${glow?" go":""}${on?" on":""}" aria-pressed="${on}" onclick="${handler}(${index},this)">${glow?"✦ ":""}${esc(label)}${glow?GSP:""}</button>`;
+ };
+ return `<div class="gorow">${button("Todos",-1,false)}${options.map((opt,index)=>button(opt.name,index,opt.glow)).join("")}</div>`;
+}
+function gochips(){
+ const g=gos(),selected=g.indexOf(gof);
+ if(selected<0)gof="";
+ return goTabs(g.map(name=>({name,glow:true})),selected,"setGO");
+}
 /* selector de GO en formularios */
 let fO="";
 const allO=()=>[...new Set([...gos(),...((S.profile||{}).gos||[]).map(g=>g.n),...(S.golist||[]),...(GOSOC||[]).map(g=>g.name).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"es"));
@@ -536,12 +549,55 @@ function addO(){const v=$("nw_o").value.trim();if(!v)return;S.golist=S.golist||[
 /* GOs socios (los administra el admin, los eligen los usuarios en su perfil) */
 var GOSOC=[],GOSL=0,GOERR="",PG=[],GF="",GOB=0;
 const sqlGo=m=>/42501|permission|42P01|PGRST205|does not exist|relation/i.test(String(m))?"Falta crear la tabla gos_socios en Supabase (ejecuta el SQL de GOs socios).":m;
-function loadGoSoc(force){if(GOSL&&!force)return GOSL;GOSL=(async()=>{const q="gos_socios?select=id,name,info,gom&order=name";let r=null,er="";
- try{r=await apiPub(q)}catch(e){er=String(e&&e.message||e)}
- if((!r||!r.length)&&auth&&auth.access_token){try{r=await api("GET",q)}catch(e){er=er||String(e&&e.message||e)}}
- if(r){GOSOC=r;GOERR="";try{localStorage.setItem("gosoc-cache",JSON.stringify(r))}catch(e){}}
- else{let c=null;try{c=JSON.parse(localStorage.getItem("gosoc-cache"))}catch(e){}
-  if(Array.isArray(c)&&c.length){if(!(GOSOC||[]).length)GOSOC=c;GOERR=""}else{GOERR=er||"Sin conexión";GOSL=0}}})();return GOSL}
+function loadGoSoc(force){
+ if(GOSL&&!force&&!GOERR)return GOSL;
+ GOSL=(async()=>{
+  const query="gos_socios?select=id,name,info,gom&order=name";
+  const reads=isAdmin()?[
+   ()=>api("GET",query),
+   ()=>apiPub("rpc/public_go_catalog"),
+   ()=>apiPub(query)
+  ]:[
+   ()=>apiPub("rpc/public_go_catalog"),
+   ()=>apiPub(query),
+   ...(auth?[()=>api("GET",query)]:[])
+  ];
+  let rows=null,error="";
+  for(const read of reads){
+   try{
+    const result=await read();
+    if(!Array.isArray(result))continue;
+    rows=result;
+    if(rows.length)break;
+   }catch(e){error=String(e&&e.message||e)}
+  }
+  if(rows){
+   GOSOC=rows;GOERR="";
+   try{localStorage.setItem("gosoc-cache",JSON.stringify(rows))}catch(e){}
+   return;
+  }
+  GOERR=error||"Sin conexión";
+  try{
+   const cache=JSON.parse(localStorage.getItem("gosoc-cache"));
+   if(!GOSOC.length&&Array.isArray(cache))GOSOC=cache;
+  }catch(e){}
+ })();
+ return GOSL;
+}
+function findGoSoc(catalog,id,name){
+ const byId=catalog.find(go=>String(go.id)===String(id));
+ if(byId)return byId;
+ const normalized=nrm(name.trim());
+ const exact=catalog.filter(go=>nrm(go.name.trim())===normalized);
+ if(exact.length===1)return exact[0];
+ if(exact.length)return;
+ // Old labels can omit the decoration after the first symbol, e.g. Woneesgarden.co + ♫.
+ const plain=value=>nrm(value.trim()).replace(/\s+[^\p{L}\p{N}].*$/u,"").replace(/[^\p{L}\p{N}]+$/u,"");
+ const key=plain(name);
+ if(!key)return;
+ const matches=catalog.filter(go=>plain(go.name)===key);
+ return matches.length===1?matches[0]:undefined;
+}
 /* etiquetas de GO visibles en el perfil (null = todas) */
 var PGV=null;
 function goVis(l,v){v=v===undefined?(S.profile||{}).gosVis:v;return Array.isArray(v)?(l||[]).filter(g=>v.includes(nrm(g.n))):(l||[])}
@@ -559,7 +615,7 @@ function pgSelHtml(){
 }
 async function pgSearch(){const o=$("pg_res");if(!o)return;const raw=(($("pg_q")||{}).value||"").trim(),q=nrm(raw);if(!q){o.innerHTML="";return}
   o.innerHTML='<div class="mu">Buscando…</div>';await loadGoSoc();if(!$("pg_res"))return;
-  const r=GOERR?[]:GOSOC.filter(g=>!PG.some(x=>x.id==g.id)&&nrm(g.name).includes(q)).slice(0,8),
+  const r=GOSOC.filter(g=>!PG.some(x=>x.id==g.id)&&nrm(g.name).includes(q)).slice(0,8),
    dup=GOSOC.some(g=>nrm(g.name)==q)||PG.some(x=>nrm(x.n)==q),
    ext=dup?"":`<div class="gores" onclick="pgExt()"><div class="grow"><div class="nm">Agregar «${esc(raw)}»</div><div class="mu">GO no asociado a mypoca (sin brillo)</div></div><span class="tag">+ Agregar</span></div>`;
   $("pg_res").innerHTML=(GOERR?`<div class="mu">${esc(sqlGo(GOERR))}</div>`:"")+r.map(g=>`<div class="gores" onclick="pgAdd('${esc(g.id)}')"><div class="grow"><div class="nm">✦ ${esc(g.name)}</div>${g.gom?`<div class="mu">GOM: ${esc(g.gom)} · GO socio</div>`:'<div class="mu">GO socio</div>'}</div><span class="gochip">+ Agregar</span></div>`).join("")+ext+(!r.length&&!GOERR?'<div class="mu" style="margin-top:6px">Ese GO no está entre los GOs socios de mypoca.</div>':"")}
@@ -578,7 +634,7 @@ async function showGoInfo(id,name){
  dialog.showModal();
  await loadGoSoc(true);
  if(!dialog.open||body!==$("go-info-body"))return;
- const go=GOSOC.find(g=>String(g.id)===String(id))||GOSOC.find(g=>nrm(g.name)===nrm(fallback));
+ const go=findGoSoc(GOSOC,id,fallback);
  if(go){
   $("go-info-title").textContent=go.name;
   body.innerHTML=kv("GOM",go.gom)+`<div style="white-space:pre-wrap;line-height:1.5">${esc(go.info||"Sin información adicional.")}</div>`;
@@ -664,7 +720,11 @@ function render(){afFix();
  if(tab=="gas"){
   const prod=S.items.reduce((a,i)=>a+(+i.price||0),0),bx=Object.values(S.boxes),cg=k=>S.cargos.filter(c=>c.kind==k).reduce((a,c)=>a+c.amt,0),
   ship=bx.reduce((a,b)=>a+(b.ship||0),0)+cg("mx"),cus=bx.reduce((a,b)=>a+(b.customs||0),0)+cg("adu"),nac=cg("nac"),ka=cg("ka"),tot=S.prev+prod+ship+cus+nac+ka;
-  h=`<div class="card"><div class="mu">Total gastado</div><div class="big">${money(tot)}</div></div>
+  const expenses=goExpenseRows();
+  const selected=expenses.findIndex(row=>row.key===goExpenseFilter);
+  const tabs=goTabs(expenses,selected,"setGoExpense");
+  if(selected>=0)h=tabs+goExpenseDetail(expenses[selected]);
+  else h=tabs+`<div class="card"><div class="mu">Total gastado</div><div class="big">${money(tot)}</div></div>
   <div class="card"><div class="kv"><span>Productos (con precio)</span><b>${money(prod)}</b></div>
   <div class="kv"><span>Envíos a México</span><b>${money(ship)}</b></div>
   <div class="kv"><span>Aduanas</span><b>${money(cus)}</b></div>
@@ -672,7 +732,6 @@ function render(){afFix();
   <div class="kv"><span>Envíos domésticos KA</span><b>${money(ka)}</b></div>
   <label class="mu" style="display:block;margin-top:8px">Gasto previo (antes de usar la app)<input type="number" inputmode="decimal" value="${S.prev||""}" onchange="S.prev=parseFloat(this.value)||0;save();render()"></label></div>
   <h2>Cargos de envío y aduana</h2><div class="card">${cargosHtml()}</div>
-  <h2>Por GO</h2><div class="card">${goExpensesHtml()}</div>
   <h2>Por tipo de pedido</h2><div class="card">${PAISES.map(p=>`<div class="kv"><span>${p}</span><b>${money(S.items.filter(i=>i.country==p).reduce((a,i)=>a+(+i.price||0),0))}</b></div>`).join("")}</div>
   <h2>Respaldo</h2><div class="card"><button class="sec" onclick="exp()">Exportar respaldo</button> <button class="sec" onclick="$('imp').click()">Importar</button><input type="file" id="imp" accept=".json" hidden onchange="imp(this.files[0])"><div class="mu" style="margin-top:6px">Los datos se guardan en este navegador. Exporta un respaldo de vez en cuando.</div></div>`;
  }
@@ -734,15 +793,23 @@ function selHtml(){const gs={};S.items.filter(selF).concat(selCol?(S.col||[]).fi
 function togI(id,c){selIds=c?[...new Set([...selIds,id])]:selIds.filter(x=>x!=id);$("selw").innerHTML=selHtml()}
 function togG(n,c){SG[n].forEach(id=>{selIds=c?[...new Set([...selIds,id])]:selIds.filter(x=>x!=id)});$("selw").innerHTML=selHtml()}
 function openM(h){$("sheet").innerHTML=h;$("modal").classList.add("on")}
+let goExpenseFilter=null;
+function setGoExpense(index,button){
+ const scroll=button.parentElement.scrollLeft;
+ goExpenseFilter=index<0?null:goExpenseRows()[index]?.key;
+ render();
+ const bar=$("v").querySelector(".gorow");
+ if(bar)bar.scrollLeft=scroll;
+}
+const SHARED_GO_EXPENSE=Symbol(),UNASSIGNED_GO_EXPENSE=Symbol();
 function goExpenses(state){
  const buckets=new Map();
  const allItems=state.items.concat(state.col||[]);
  const itemsById=new Map(allItems.map(item=>[String(item.id),item]));
  const keyOf=item=>nrm((item?.go||"").trim());
  const names=new Map(allItems.filter(item=>keyOf(item)).map(item=>[keyOf(item),item.go.trim()]));
- const shared=Symbol(),unassigned=Symbol();
  const get=key=>{
-  if(!buckets.has(key))buckets.set(key,{name:names.get(key),products:0,fees:0});
+  if(!buckets.has(key))buckets.set(key,{key,name:names.get(key),products:0,fees:0,charges:[]});
   return buckets.get(key);
  };
  for(const item of state.items)get(keyOf(item)).products+=Number(item.price)||0;
@@ -750,26 +817,30 @@ function goExpenses(state){
   const total=Number(fee.amt)||0;
   if(!total)continue;
   const ids=fee.ids||[];
-  const keys=new Set(ids.map(id=>itemsById.has(String(id))?keyOf(itemsById.get(String(id))):unassigned));
-  const key=keys.size>1?shared:keys.size===1?[...keys][0]:unassigned;
-  get(key).fees+=total;
+  const keys=new Set(ids.map(id=>itemsById.has(String(id))?keyOf(itemsById.get(String(id))):UNASSIGNED_GO_EXPENSE));
+  const key=keys.size>1?SHARED_GO_EXPENSE:keys.size===1?[...keys][0]:UNASSIGNED_GO_EXPENSE;
+  const bucket=get(key);
+  bucket.fees+=total;
+  bucket.charges.push(fee);
  }
  for(const box of Object.values(state.boxes||{})){
   const total=(Number(box.ship)||0)+(Number(box.customs)||0);
-  if(total)get(unassigned).fees+=total;
+  if(total)get(UNASSIGNED_GO_EXPENSE).fees+=total;
  }
- const previous=Number(state.prev)||0;
  return {groups:[...buckets.values()].filter(row=>row.name).sort((a,b)=>a.name.localeCompare(b.name,"es")),
-  noGo:buckets.get(""),shared:buckets.get(shared),unassigned:buckets.get(unassigned),previous};
+  noGo:buckets.get(""),shared:buckets.get(SHARED_GO_EXPENSE),unassigned:buckets.get(UNASSIGNED_GO_EXPENSE)};
 }
-function goExpensesHtml(){
- const {groups,noGo,shared,unassigned,previous}=goExpenses(S);
- const rows=groups.concat(noGo?[{...noGo,name:"Sin GO"}]:[],shared?[{...shared,name:"Cargos compartidos"}]:[],
-  unassigned?[{...unassigned,name:"Cargos sin asignar"}]:[]);
- return (rows.length?rows.map(row=>`<div class="kv"><span>${esc(row.name)}<span class="mu" style="display:block">Productos ${money(row.products)} · Cargos ${money(row.fees)}</span></span><b>${money(row.products+row.fees)}</b></div>`).join("")
-  :'<div class="mu">Aún no hay gastos para desglosar.</div>')+(previous?kv("Gasto previo",money(previous)):"");
+function goExpenseRows(){
+ const {groups,noGo,shared,unassigned}=goExpenses(S);
+ return groups.map(row=>({...row,glow:true})).concat(noGo?[{...noGo,name:"Sin GO"}]:[],
+  shared?[{...shared,name:"Cargos compartidos"}]:[],unassigned?[{...unassigned,name:"Cargos sin asignar"}]:[]);
 }
-function cargosHtml(){return (S.cargos.length?S.cargos.map(c=>`<div class="kv" onclick="editC('${c.id}')"><span>${KN[c.kind]}<div class="mu">${c.ids.length} artículo${c.ids.length==1?"":"s"}${c.note?" · "+esc(c.note):""}</div></span><b>${money(c.amt)}</b></div>`).join(""):`<div class="mu">Aún no hay cargos.</div>`)+`<div style="margin-top:10px"><button class="pri" onclick="editC()">+ Agregar cargo</button></div>`}
+function goExpenseDetail(row){
+ return `<div class="card"><div class="mu">${esc(row.name)}</div><div class="big">${money(row.products+row.fees)}</div></div>
+ <div class="card">${kv("Productos",money(row.products))}${kv("Cargos de envío y aduana",money(row.fees))}</div>
+ ${row.charges.length?`<h2>Cargos de envío y aduana</h2><div class="card">${cargosHtml(row.charges,false)}</div>`:""}`;
+}
+function cargosHtml(charges=S.cargos,add=true){return (charges.length?charges.map(c=>`<div class="kv" onclick="editC('${c.id}')"><span>${KN[c.kind]}<div class="mu">${c.ids.length} artículo${c.ids.length==1?"":"s"}${c.note?" · "+esc(c.note):""}</div></span><b>${money(c.amt)}</b></div>`).join(""):`<div class="mu">Aún no hay cargos.</div>`)+(add?`<div style="margin-top:10px"><button class="pri" onclick="editC()">+ Agregar cargo</button></div>`:"")}
 function editC(id){cur=id?S.cargos.find(c=>c.id==id):null;const c=cur||{kind:"mx",amt:"",note:"",ids:[]};selIds=[...c.ids];showHome=false;selCol=false;selF=i=>showHome||i.status!="En casa"||selIds.includes(i.id);
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nuevo"} cargo</h3>
  <div class="fs"><label>Tipo de cargo</label><input type="hidden" id="c_k" value="${c.kind}"><div class="pick">${Object.keys(KN).map(k=>`<button type="button" class="ch ${k==c.kind?"on":""}" data-v="${k}" onclick="setF('c_k',this)">${KN[k]}</button>`).join("")}</div></div>
@@ -1655,9 +1726,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.21",VK="mypoca-ver";
+const APP_VER="1.22",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.22",items:[["Pestañas de Gastos por GO","Filtra tus gastos con las mismas pestañas brillantes de Pedidos."],["Fichas de GO","Las etiquetas anteriores también pueden abrir la descripción del GO socio."]]},
  {v:"1.21",items:[["Gastos por GO","Consulta el desglose usando tus pedidos y cargos guardados."],["GOs socios","Toca la etiqueta para ver la ficha del GO."],["@usuario único","Reserva tu nombre de usuario desde Editar perfil."]]},
   {v:"1.20",items:[["GO (group order)","Marca tus pedidos y artículos con su GO y filtra por pestañas con brillos."],["GOs no asociados","Si tu GO no es socio, agrégalo igual (sin brillo) o pide que el GOM envíe una solicitud."],["GOs socios","Busca tu GO en Editar perfil y agrégalo como etiqueta; toca la etiqueta para ver su información."]]},
  {v:"1.18",items:[["Banner y color en perfiles","Al entrar al perfil de alguien verás su banner y su color de tema."],["Etiquetas especiales","Creador, Primer usuario y Dearcupid gom, con brillos."],["Avisos de novedades","Verás aquí lo nuevo cada vez que haya una actualización."]]},
