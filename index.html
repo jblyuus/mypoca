@@ -664,12 +664,18 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .poster-background label{display:flex;align-items:center;gap:6px;margin:0}
 #sheet #poster-color{width:38px;height:32px;padding:3px;cursor:pointer}
 .poster-background [hidden]{display:none}
+.poster-title-color{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.poster-title-color label{margin:0}
+#sheet #poster-title-picker{width:38px;height:32px;padding:3px;cursor:pointer}
+#sheet #poster-title-hex{width:112px}
+#poster-title-color-error:not(:empty){margin:0 0 8px}
 .poster-stage{position:relative;width:100%;margin:10px 0;background:#faf8f6;box-shadow:0 8px 25px #0002}
 .poster-stage canvas{display:block;width:100%;height:auto}
 .poster-card-controls{position:absolute;inset:0;pointer-events:none}
-.poster-card-control{position:absolute;padding:0;border:0;border-radius:4px;background:transparent;pointer-events:auto;touch-action:none;cursor:grab}
+.poster-card-control{position:absolute;padding:0;border:0;border-radius:4px;background:transparent;pointer-events:auto;touch-action:none;cursor:grab;user-select:none;-webkit-touch-callout:none}
 .poster-card-control:focus-visible,.poster-card-control.drop-target{outline:2px solid #ec6bae;outline-offset:2px}
 .poster-card-control.dragging{background:#28102149;cursor:grabbing}
+.poster-card-control[aria-pressed]{cursor:pointer;touch-action:manipulation}
 .poster-editor #poster-status:not(:empty){margin-bottom:8px}
 </style></head><body><div class="bgfx"><i></i><i></i><i></i></div>
 <header><h1 id="ttl">Mis pedidos</h1><div style="display:flex;gap:10px;align-items:center"><button id="bell" class="avb bell" aria-label="Notificaciones" onclick="openNotifs()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span id="bb" class="bbadge"></span></button><button id="av" class="avb" aria-label="Perfil" onclick="go('perfil')"></button></div></header>
@@ -917,7 +923,7 @@ function render(){afFix();
  if(tab=="wish"){
   const misc=wtab==="misc",items=S.wish.filter(i=>(i.kind||"pc")===(misc?"misc":"pc")&&(!gf||i.grupo===gf)&&afm(i));
   const cell=i=>`<div data-id="${esc(i.id)}" onclick="viewW(this.dataset.id)">${i.img?`<img src="${esc(i.img)}" alt="">`:'<div class="mph">Sin foto</div>'}
-   ${misc?`<div class="nm wish-card-name">${esc(i.name)}</div>`:""}${wishlistTags(i.tags)}${misc&&i.det?`<div class="mu wish-card-name">${esc(i.det)}</div>`:""}</div>`;
+   ${wishlistCardName(i.name)}${wishlistTags(i.tags)}${misc&&i.det?`<div class="mu wish-card-name">${esc(i.det)}</div>`:""}</div>`;
   h=`<div class="seg"><button class="${misc?"":"on"}" onclick="setW('pc')">Photocards</button><button class="${misc?"on":""}" onclick="setW('misc')">Artículos varios</button></div>
    <div class="wish-toolbar"><span class="mu">${items.length} deseado${items.length===1?"":"s"}</span><div>
    ${items.length?'<button type="button" class="sec sm" onclick="editOrd()">Ordenar grupos</button>':""}
@@ -936,7 +942,7 @@ function render(){afFix();
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="${trk(e.carr,e.guia)}" target="_blank" rel="noopener">Rastrear</a><button class="sec" onclick="updE('${e.id}')">Actualizar</button><button class="sec" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(e.guia)}')">Copiar guía</button></div></div>`}).join(""):`<div class="empty">Sin envíos todavía.<br>Toca + para agregar una guía.</div>`;
  }
  if(tab=="perfil"){
-  const p=S.profile||{},wl=ptabP=="wish",po=ptabP=="ped",prod=ptabK=="prod",sc=i=>po?(!i.manual&&!home(i)):home(i),pcs=(wl?S.wish.filter(i=>(i.kind||"pc")=="pc"):ev().filter(i=>i.type=="PC"&&sc(i))).filter(i=>i.img),prs=wl?S.wish.filter(i=>i.kind=="misc"):ev().filter(i=>i.type!="PC"&&sc(i)),base=(prod?prs:pcs).filter(i=>wl||!prod||!gof||i.go==gof),pfl=(PFL=ordG([...new Set(base.map(i=>i.grupo||"Sin grupo"))])),list=(pfg&&!pfl.includes(pfg)&&(pfg=""),base.filter(i=>!pfg||(i.grupo||"Sin grupo")==pfg)),fnv=i=>wl?"viewW":i.manual?"viewC":"view",cellP=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;${fnv(i)}('${i.id}')">${i.img?`<img src="${i.img}">`:`<div class="mph">${esc(i.name||"Sin foto")}</div>`}${goTag(i,"gopos")}</div>`;
+  const p=S.profile||{},wl=ptabP=="wish",po=ptabP=="ped",prod=ptabK=="prod",sc=i=>po?(!i.manual&&!home(i)):home(i),pcs=(wl?S.wish.filter(i=>(i.kind||"pc")=="pc"):ev().filter(i=>i.type=="PC"&&sc(i))).filter(i=>wl||i.img),prs=wl?S.wish.filter(i=>i.kind=="misc"):ev().filter(i=>i.type!="PC"&&sc(i)),base=(prod?prs:pcs).filter(i=>wl||!prod||!gof||i.go==gof),pfl=(PFL=ordG([...new Set(base.map(i=>i.grupo||"Sin grupo"))])),list=(pfg&&!pfl.includes(pfg)&&(pfg=""),base.filter(i=>!pfg||(i.grupo||"Sin grupo")==pfg)),fnv=i=>wl?"viewW":i.manual?"viewC":"view",cellP=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;${fnv(i)}('${i.id}')">${i.img?`<img src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${goTag(i,"gopos")}${wl?wishlistCardName(i.name):""}</div>`;
   h=`<div class="pcard pme"${bannerStyle(p)}>${p.banner?`<div class="pbn" style="background-image:url('${esc(p.banner)}')"></div>`:""}<div class="phead">${framedAvatar(p.photo,p.name,allowedFrame(p.frame,myFrameLevel(),ownFrameAccess()))}<div class="pid"><div class="pname">${esc(p.name||"Tu nombre")}</div><div class="puser">@${esc((p.user||"usuario").replace(/^@/,""))}</div></div></div>
   <button class="sec pedit pgear" onclick="editTheme()" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button><button class="sec pedit" onclick="editP()" aria-label="Editar perfil">${PEN}</button>
   <div class="pdesc pdme${p.desc?"":" ph"}">${p.desc?esc(p.desc):"Agrega una descripción"}</div>
@@ -1122,6 +1128,7 @@ const SC={"Pendiente":"#9fb0c8","Comprado":"#6f9de0","En camino":"#5ec2d6","En d
 function wishlistTags(tags){
  return tags?.length?`<div class="ctags wish-tags">${tags.map(tag=>`<span class="ctag" style="${tcol(tag)}">${esc(tag)}</span>`).join("")}</div>`:"";
 }
+function wishlistCardName(name){return name?`<div class="nm wish-card-name">${esc(name)}</div>`:""}
 function tagPalette(tag){
  let hue=0;
  for(const char of tag)hue=(hue*31+char.charCodeAt(0))%360;
@@ -2273,6 +2280,13 @@ function editWishlistPoster(){
    <div><label for="poster-font">Tipografía</label><select id="poster-font" onchange="posterChange('font',this.value)">${posterOptions(fonts.map(font=>[font,fname(font)]),state.font)}</select></div>
    <div><label for="poster-size">Proporción</label><select id="poster-size" onchange="posterChange('size',this.value)">${posterOptions(Object.keys(POSTER_SIZES).map(size=>[size,size]),state.size)}</select></div>
   </div>
+  <div class="poster-title-color">
+   <label for="poster-title-picker">Color del título</label>
+   <input id="poster-title-picker" type="color" value="${posterTitleColor(state)}" oninput="setPosterTitleColor(this.value)">
+   <input id="poster-title-hex" type="text" value="${esc(state.titleColor||"")}" placeholder="#322334" maxlength="7" aria-label="Código HEX del título" aria-describedby="poster-title-color-error" oninput="editPosterTitleHex(this)" onchange="editPosterTitleHex(this,true)">
+   <button type="button" class="sec sm" onclick="setPosterTitleColor('')">Automático</button>
+  </div>
+  <div class="mu" id="poster-title-color-error" role="status"></div>
   <div class="mu poster-font-status" id="poster-font-status" role="status"></div>
   <div class="poster-toolbar">
    <div id="poster-banner-tools" ${state.design==="banner"?"":"hidden"}>${posterImageControls(state,"banner","banner")}</div>
@@ -2288,7 +2302,7 @@ function editWishlistPoster(){
    <input id="poster-background" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="posterPickImage(this,'background')">
    <button type="button" class="sec sm" id="poster-remove-background" onclick="posterChange('background','')" ${state.background?"":"hidden"}>Quitar imagen de fondo</button>
   </div>
-  <div id="poster-instructions" class="mu">Mantén pulsada una photocard y arrástrala dentro de su era para cambiar el orden.</div>
+  <div id="poster-instructions" class="mu">${posterInstructions(state.priorityMode)}</div>
   <div id="poster-stage" class="poster-stage">
    <canvas id="poster-canvas" aria-label="Vista previa de la wishlist"></canvas>
    <div id="poster-card-controls" class="poster-card-controls"></div>
@@ -2346,6 +2360,8 @@ function posterChange(field,value){
   $("poster-banner-tools").hidden=value!=="banner";
   $("poster-polaroids-tools").hidden=value!=="polaroids";
  }
+ const titlePicker=$("poster-title-picker");
+ if(titlePicker&&(field==="color"||field==="design"))titlePicker.value=posterTitleColor(WP);
  const add=$("poster-add-"+field);
  if(add)add.textContent=`${value?"Cambiar":"Añadir"} ${add.dataset.label}`;
  const remove=$("poster-remove-"+field);
@@ -2354,6 +2370,29 @@ function posterChange(field,value){
   if(!value)WP[field+"Request"]=null;
  }
  requestPosterPaint();
+}
+function posterTitleColor(state){
+ return state.titleColor||(state.design!=="notebook"&&lum(state.color||POSTER_COLOR)<.5?"#fff8fb":"#322334");
+}
+function setPosterTitleColor(color,updateHex=true){
+ if(!WP)return;
+ WP.titleColor=color;
+ $("poster-title-picker").value=posterTitleColor(WP);
+ const hex=$("poster-title-hex");
+ if(updateHex)hex.value=color;
+ hex.removeAttribute("aria-invalid");
+ $("poster-title-color-error").textContent="";
+ requestPosterPaint();
+}
+function editPosterTitleHex(input,complete=false){
+ const code=input.value.trim().replace(/^#/,"").toLowerCase();
+ if(/^[0-9a-f]{6}$/.test(code))setPosterTitleColor("#"+code,complete);
+ else if(complete&&/^[0-9a-f]{3}$/.test(code))setPosterTitleColor("#"+[...code].map(char=>char+char).join(""));
+ else if(complete&&!code)setPosterTitleColor("");
+ else if(complete){
+  input.setAttribute("aria-invalid","true");
+  $("poster-title-color-error").textContent="Ingresa un código HEX, como #322334.";
+ }
 }
 function posterPickImage(input,field){
  const file=input.files[0],state=WP;
@@ -2386,7 +2425,7 @@ function posterTagRows(tags){
  if(row.length)rows.push(row);
  return rows;
 }
-function posterLayout(sections,size,design="banner"){
+function posterLayout(sections,size,design="banner",priorities=new Set()){
  const [width,height]=POSTER_SIZES[size]||POSTER_SIZES["9:16"];
  const edge=Math.min(width,height),margin=edge*.055,banner=Math.min(height*.21,width*.32);
  const paper=design==="notebook"?{x:edge*.085,y:edge*.05,w:width-edge*.15,h:height-edge*.109}:null;
@@ -2396,9 +2435,20 @@ function posterLayout(sections,size,design="banner"){
  const gridBottom=paper?paper.y+paper.h-edge*.026:height-edge*.069;
  const availableWidth=right-left,availableHeight=gridBottom-gridTop;
  const aspect=55/85,cGap=.1,vGap=.085,labelGap=.23;
- const entries=sections.flatMap((section,block)=>section.items.map((item,index)=>({
-  item,block,index,era:index===0?section.name:"",tags:posterTagRows(item.tags)
- })));
+ const pinned=[],regular=[];
+ sections.forEach((section,block)=>{
+  let startsEra=true;
+  section.items.forEach((item,index)=>{
+   const tags=posterTagRows(item.tags);
+   if(priorities.has(String(item.id))){
+    pinned.push({item,block:-1,index,era:pinned.length?"":"PRIO",tags});
+   }else{
+    regular.push({item,block,index,era:startsEra?section.name:"",tags});
+    startsEra=false;
+   }
+  });
+ });
+ const entries=pinned.concat(regular);
  let best={cardWidth:0};
  for(let columns=1;columns<=Math.min(30,Math.max(1,entries.length));columns++){
   const rows=[];
@@ -2425,8 +2475,8 @@ function posterLayout(sections,size,design="banner"){
   });
   starts.forEach((col,index)=>{
    const end=starts[index+1]??row.length;
-   headings.push({label:row[col].era,x:origin+col*stride,y:y-cardWidth*.114,
-    size:Math.min(edge*.024,cardWidth*.18),maxWidth:(end-col-1)*stride+cardWidth});
+   headings.push({label:row[col].era,block:row[col].block,x:origin+col*stride,y:y-cardWidth*labelGap/2,
+    size:Math.min(edge*.024,cardWidth*.18),maxWidth:(end-col-1)*stride+cardWidth,height:cardWidth*labelGap});
   });
   y+=cardWidth*rowHeight;
  }
@@ -2587,13 +2637,16 @@ function drawPosterCanvas(canvas,state,layout){
  }
  ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
  const title=state.title.trim()||state.group,lightText=dark&&!paper,outline=backdrop&&!paper;
- ctx.fillStyle=lightText?"#fff8fb":"#322334";
- ctx.strokeStyle=lightText?"#281b2b":"#fff8fb";
+ const titleColor=posterTitleColor({...state,design});
+ ctx.fillStyle=titleColor;
+ ctx.strokeStyle=lum(titleColor)<.5?"#fff8fb":"#281b2b";
  const titleFamily=state.titleFont&&state.titleFont.status!=="loaded"?"Georgia":state.font;
  ctx.font=posterFont(titleFamily,edge*.085);
  ctx.lineWidth=edge*.006;
  if(!paper)ctx.strokeText(title,titleX,titleY,titleWidth);
  ctx.fillText(title,titleX,titleY,titleWidth);
+ ctx.fillStyle=lightText?"#fff8fb":"#322334";
+ ctx.strokeStyle=lightText?"#281b2b":"#fff8fb";
  if(!paper){
   ctx.font=`600 ${edge*.014}px Outfit, sans-serif`;
   ctx.lineWidth=edge*.0025;
@@ -2614,13 +2667,6 @@ function drawPosterCanvas(canvas,state,layout){
    ctx.fillStyle="#eadde3";ctx.fillRect(x,y,w,h);
    ctx.font=`${Math.max(5,w*.125)}px Outfit, sans-serif`;ctx.fillStyle="#654c60";ctx.textAlign="center";
    ctx.fillText("Sin foto",x+w/2,y+h/2,w*.85);ctx.textAlign="left";
-  }
-  if(state.priorities.has(String(item.id))){
-   const badgeW=w*.49,badgeH=w*.24;
-   ctx.fillStyle="#732d52";ctx.fillRect(x+w-badgeW,y,badgeW,badgeH);
-   ctx.textAlign="center";ctx.fillStyle="#fff";
-   ctx.font=`700 ${w*.148}px Outfit, sans-serif`;
-   ctx.fillText("PRIO",x+w-badgeW/2,y+badgeH/2);ctx.textAlign="left";
   }
   ctx.textAlign="center";ctx.font=`600 ${w*.115}px Outfit, sans-serif`;
   tags.forEach((row,line)=>{
@@ -2654,7 +2700,7 @@ function requestPosterPaint(){
  });
 }
 function paintWishlistPoster(state){
- const layout=posterLayout(state.sections,state.size,state.design);
+ const layout=posterLayout(state.sections,state.size,state.design,state.priorities);
  state.layout=layout;
  const images=preparePosterAssets(state);
  const font=preparePosterFont(state),fontStatus=$("poster-font-status");
@@ -2663,11 +2709,21 @@ function paintWishlistPoster(state){
  drawPosterCanvas($("poster-canvas"),state,layout);
  paintPosterCropPreviews(state,layout);
  const controls=$("poster-card-controls");
- if(!posterDrag)controls.innerHTML=layout.cards.map((card,index)=>`<button type="button" class="poster-card-control"
-  style="left:${card.x/layout.width*100}%;top:${card.y/layout.height*100}%;width:${card.w/layout.width*100}%;height:${card.h/layout.height*100}%"
-  data-poster-card="${index}" aria-label="${esc(card.item.name||"Photocard")} " aria-pressed="${state.priorities.has(String(card.item.id))}"
-  onpointerdown="posterPointerDown(event)" onpointermove="posterPointerMove(event)" onpointerup="posterPointerEnd(event)" onpointercancel="posterPointerEnd(event)"
-  onkeydown="posterCardKey(event)" oncontextmenu="event.preventDefault()" onclick="posterCardClick(this)"></button>`).join("");
+ if(!posterDrag){
+  const style=(x,y,w,h)=>`left:${x/layout.width*100}%;top:${y/layout.height*100}%;width:${w/layout.width*100}%;height:${h/layout.height*100}%`;
+  const gesture='onpointerdown="posterPointerDown(event)" onpointermove="posterPointerMove(event)" onpointerup="posterPointerEnd(event)" onpointercancel="posterPointerEnd(event)" oncontextmenu="event.preventDefault()"';
+  const eraControls=state.priorityMode?[]:layout.headings.filter(heading=>heading.block>=0).map(heading=>`<button type="button" class="poster-card-control"
+   style="${style(heading.x,heading.y-heading.height/2,heading.maxWidth,heading.height)}" data-poster-era="${heading.block}"
+   aria-label="Mover era: ${esc(heading.label)}" ${gesture} onkeydown="posterEraKey(event)"></button>`);
+  const cardControls=layout.cards.map((card,index)=>{
+   const bounds=style(card.x,card.y,card.w,card.h);
+   if(state.priorityMode)return `<button type="button" class="poster-card-control" style="${bounds}" data-poster-card="${index}"
+    aria-label="${esc(card.item.name||"Photocard")}" aria-pressed="${card.block===-1}" onclick="posterCardClick(this)"></button>`;
+   if(card.block<0)return "";
+   return `<div class="poster-card-control" style="${bounds}" data-poster-era="${card.block}" aria-hidden="true" ${gesture}></div>`;
+  });
+  controls.innerHTML=eraControls.concat(cardControls).join("");
+ }
  const pending=images.filter(entry=>entry.pending).length,failed=images.filter(entry=>!entry.pending&&!entry.photo).length;
  const status=$("poster-status");
  if(!state.exporting&&(pending||failed||status.dataset.images)){
@@ -2675,31 +2731,40 @@ function paintWishlistPoster(state){
   status.dataset.images=pending||failed?"1":"";
  }
  if(state.focusCard!=null){
-  controls.querySelector(`[data-poster-card="${state.focusCard}"]`)?.focus({preventScroll:true});
+  const index=layout.cards.findIndex(card=>String(card.item.id)===state.focusCard);
+  controls.querySelector(`[data-poster-card="${index}"]`)?.focus({preventScroll:true});
   state.focusCard=null;
  }
+ if(state.focusEra){
+  const block=state.sections.indexOf(state.focusEra);
+  controls.querySelector(`button[data-poster-era="${block}"]`)?.focus({preventScroll:true});
+  state.focusEra=null;
+ }
+}
+function posterInstructions(priorityMode){
+ return priorityMode?"Toca una photocard para marcarla o quitarla de PRIO. Las PRIO van al inicio.":
+  "Mantén pulsado el encabezado o una photocard para arrastrar toda su era.";
 }
 function togglePosterPriorities(){
  if(!WP)return;
  WP.priorityMode=!WP.priorityMode;
  $("poster-prios").setAttribute("aria-pressed",String(WP.priorityMode));
- $("poster-instructions").textContent=WP.priorityMode?
-  "Toca las photocards que quieras destacar con la etiqueta PRIO.":
-  "Mantén pulsada una photocard y arrástrala dentro de su era para cambiar el orden.";
+ $("poster-instructions").textContent=posterInstructions(WP.priorityMode);
+ requestPosterPaint();
 }
 function posterCardClick(button){
  if(!WP?.priorityMode)return;
- const index=Number(button.dataset.posterCard),card=WP.layout?.cards[index];
+ const card=WP.layout?.cards[Number(button.dataset.posterCard)];
  if(!card)return;
  const id=String(card.item.id);
  if(WP.priorities.has(id))WP.priorities.delete(id);else WP.priorities.add(id);
- WP.focusCard=index;
+ WP.focusCard=id;
  requestPosterPaint();
 }
 function posterPointerDown(event){
  if(!WP||WP.priorityMode||event.button!==0||posterDrag)return;
- const origin=event.currentTarget,index=Number(origin.dataset.posterCard);
- const drag={origin,index,target:index,id:event.pointerId,x:event.clientX,y:event.clientY,active:false};
+ const origin=event.currentTarget,block=Number(origin.dataset.posterEra);
+ const drag={origin,block,target:block,id:event.pointerId,x:event.clientX,y:event.clientY,active:false};
  posterDrag=drag;
  origin.setPointerCapture(event.pointerId);
  drag.timer=setTimeout(()=>{
@@ -2708,6 +2773,11 @@ function posterPointerDown(event){
   origin.classList.add("dragging");
  },350);
 }
+function posterEraAt(layout,x,y){
+ const heading=layout.headings.find(h=>x>=h.x&&x<=h.x+h.maxWidth&&Math.abs(y-h.y)<=h.height/2);
+ if(heading)return heading.block;
+ return layout.cards.find(c=>x>=c.x&&x<=c.x+c.w&&y>=c.y&&y<=c.y+c.h)?.block??-1;
+}
 function posterPointerMove(event){
  const drag=posterDrag,layout=WP?.layout;
  if(!drag||!layout||drag.id!==event.pointerId)return;
@@ -2715,18 +2785,35 @@ function posterPointerMove(event){
   if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>10){clearTimeout(drag.timer);posterDrag=null}
   return;
  }
- const rect=$("poster-stage").getBoundingClientRect(),x=(event.clientX-rect.left)/rect.width*layout.width,y=(event.clientY-rect.top)/rect.height*layout.height;
- const origin=layout.cards[drag.index];
- const target=layout.cards.findIndex(card=>card.block===origin.block&&x>=card.x&&y>=card.y&&x<=card.x+card.w&&y<=card.y+card.h);
+ drag.x=event.clientX;drag.y=event.clientY;
+ updatePosterDropTarget(drag,layout);
+ if(!drag.scrollFrame)drag.scrollFrame=requestAnimationFrame(()=>scrollPosterDrag(drag));
+}
+function updatePosterDropTarget(drag,layout){
+ const rect=$("poster-stage").getBoundingClientRect(),x=(drag.x-rect.left)/rect.width*layout.width,y=(drag.y-rect.top)/rect.height*layout.height;
  const controls=$("poster-card-controls");
  controls.querySelector(".drop-target")?.classList.remove("drop-target");
- drag.target=target;
- if(target>=0)controls.querySelector(`[data-poster-card="${target}"]`)?.classList.add("drop-target");
+ drag.target=posterEraAt(layout,x,y);
+ if(drag.target>=0&&drag.target!==drag.block)controls.querySelector(`button[data-poster-era="${drag.target}"]`)?.classList.add("drop-target");
 }
-function movePosterCard(state,from,to){
- if(!from||!to||from.block!==to.block||from.index===to.index)return false;
- const items=state.sections[from.block].items;
- items.splice(to.index,0,items.splice(from.index,1)[0]);
+function scrollPosterDrag(drag){
+ drag.scrollFrame=0;
+ if(posterDrag!==drag||!WP?.layout)return;
+ const sheet=$("sheet"),rect=sheet.getBoundingClientRect(),edge=48;
+ const top=Math.max(rect.top,0),bottom=Math.min(rect.bottom,innerHeight);
+ const speed=drag.y<top+edge?-8:drag.y>bottom-edge?8:0;
+ if(!speed)return;
+ const previous=sheet.scrollTop;
+ sheet.scrollTop+=speed;
+ if(sheet.scrollTop===previous)return;
+ updatePosterDropTarget(drag,WP.layout);
+ drag.scrollFrame=requestAnimationFrame(()=>scrollPosterDrag(drag));
+}
+function movePosterEra(state,from,to){
+ if(from===to||!state.sections[from]||!state.sections[to])return false;
+ const [section]=state.sections.splice(from,1);
+ state.sections.splice(to,0,section);
+ state.focusEra=section;
  return true;
 }
 function posterPointerEnd(event){
@@ -2735,15 +2822,17 @@ function posterPointerEnd(event){
  clearTimeout(drag.timer);posterDrag=null;
  drag.origin.classList.remove("dragging");
  $("poster-card-controls")?.querySelector(".drop-target")?.classList.remove("drop-target");
- if(event.type==="pointercancel"||!drag.active||drag.target<0||!WP)return;
- if(movePosterCard(WP,WP.layout.cards[drag.index],WP.layout.cards[drag.target]))requestPosterPaint();
+ if(event.type!=="pointercancel"&&drag.active&&WP&&!WP.priorityMode)movePosterEra(WP,drag.block,drag.target);
+ requestPosterPaint();
 }
-function posterCardKey(event){
+function posterEraKey(event){
  if(!WP||WP.priorityMode||!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))return;
- const index=Number(event.currentTarget.dataset.posterCard);
- const target=index+(["ArrowLeft","ArrowUp"].includes(event.key)?-1:1);
- if(movePosterCard(WP,WP.layout.cards[index],WP.layout.cards[target])){
-  event.preventDefault();WP.focusCard=target;requestPosterPaint();
+ const block=Number(event.currentTarget.dataset.posterEra);
+ const visible=WP.layout.headings.filter(heading=>heading.block>=0).map(heading=>heading.block);
+ const direction=["ArrowLeft","ArrowUp"].includes(event.key)?-1:1;
+ if(movePosterEra(WP,block,visible[visible.indexOf(block)+direction])){
+  event.preventDefault();
+  requestPosterPaint();
  }
 }
 async function downloadWishlistPoster(){
@@ -2758,7 +2847,7 @@ async function downloadWishlistPoster(){
   await Promise.all([font.ready,...photos.map(entry=>entry.ready)]);
   if(WP!==state||!button.isConnected||!$("modal").classList.contains("on"))return;
   const canvas=document.createElement("canvas");
-  drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design));
+  drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design,snapshot.priorities));
   const blob=await new Promise((resolve,reject)=>canvas.toBlob(data=>data?resolve(data):reject(new Error("PNG")),"image/png"));
   if(WP!==state||!button.isConnected)return;
   const url=URL.createObjectURL(blob),link=document.createElement("a");
@@ -3038,10 +3127,10 @@ function closeV(){const r=retBook;closeM();if(r){showBook();$("sheet").scrollTop
 function showBook(src,tab){if(src)bkSrc=src;if(tab)bkTab=tab;
  const wl=bkSrc=="wish",prod=bkTab=="prod",
   po=bkSrc=="ped",sc=i=>po?(!i.manual&&!home(i)):home(i),
-  pcs=(wl?S.wish.filter(i=>(i.kind||"pc")=="pc"):ev().filter(i=>i.type=="PC"&&sc(i))).filter(i=>i.img),
+  pcs=(wl?S.wish.filter(i=>(i.kind||"pc")=="pc"):ev().filter(i=>i.type=="PC"&&sc(i))).filter(i=>wl||i.img),
   prs=wl?S.wish.filter(i=>i.kind=="misc"):ev().filter(i=>i.type!="PC"&&sc(i)),
   list=prod?prs:pcs,fn=i=>wl?"viewW":i.manual?"viewC":"view",
-  cell=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;bkSc=$('sheet').scrollTop;retBook=1;${fn(i)}('${i.id}')">${i.img?`<img src="${i.img}">`:`<div class="mph">${esc(i.name||"Sin foto")}</div>`}</div>`;
+  cell=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;bkSc=$('sheet').scrollTop;retBook=1;${fn(i)}('${i.id}')">${i.img?`<img src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${wl?wishlistCardName(i.name):""}</div>`;
  openM(`<div class="vw cbk"><div class="bkh"><h3 style="margin:0">${wl?"Wishlist":po?"Collect Book · Pedidos":"Collect Book · Colección"}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div><div class="seg"><button class="${prod?"":"on"}" onclick="showBook(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="showBook(null,'prod')">Artículos <small>${prs.length}</small></button></div>${list.length?`<div class="mu" style="text-align:center;margin:2px 0 6px">Mantén presionado y arrastra para ordenar</div>${ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,eraList(g),i=>i.era,wl?"w":"i")).join("")}`:`<div class="empty">${prod?"Aún no hay artículos aquí.":"Aún no hay photocards aquí."}</div>`}</div>`);retBook=0}
 function useImg(m){resetCatalogResults();const mk=n=>{const k=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*k);c.height=Math.round(m.height*k);c.getContext("2d").drawImage(m,0,0,c.width,c.height);return c};img=mk(360).toDataURL("image/jpeg",.7);imgBig=mk(900).toDataURL("image/jpeg",.85);const p=$("pv");if(p)p.innerHTML=`<img class="pvimg" src="${img}">`}
 const isGif=x=>/^data:image\/gif/i.test(x||""),GIF_PH=1048576,GIF_BN=2097152;let bnGif=null,bnGifCols=[];
@@ -3681,10 +3770,10 @@ function paintPub(){
  if(publicProfilePane==="cards"&&sections.length){
   h+=`<div class="seg">${sections.map(([key,label])=>`<button class="${key===pubSrc?"on":""}" onclick="setPubS('${key}')">${label}</button>`).join("")}</div>`;
   if(!locked)h+=`<div class="seg"><button class="${prod?"":"on"}" onclick="setPubS(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPubS(null,'prod')">Artículos <small>${prs.length}</small></button></div>${pubChips()}`;
-  const ER_=d.er||[];
-  h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?`<img src="${x.i}" onclick="pubItem(${k})">`:"").join("")}</div>`;
+  const ER_=d.er||[],cell=(x,k)=>wl?`<div onclick="pubItem(${k})"><img src="${esc(x.i)}" alt="">${wishlistCardName(x.n)}</div>`:`<img src="${x.i}" onclick="pubItem(${k})">`;
+  h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?cell(x,k):"").join("")}</div>`;
   const its=list.map((x,k)=>({x,k})).filter(o=>(o.x.g||"Sin grupo")==g);
-  return mgEra(g,its,o=>`<img src="${o.x.i}" onclick="pubItem(${o.k})">`,ER_.filter(e=>e.g==g).map(e=>({id:e.id,name:e.n,img:e.i})),o=>o.x.e,"")}).join(""):`<div class="empty">Aún no hay nada aquí.</div>`;
+  return mgEra(g,its,o=>cell(o.x,o.k),ER_.filter(e=>e.g==g).map(e=>({id:e.id,name:e.n,img:e.i})),o=>o.x.e,"")}).join(""):`<div class="empty">Aún no hay nada aquí.</div>`;
  }
  pubTheme();{const box=$("pubp").firstElementChild;let ok=false;if(box){const t=document.createElement("div");t.innerHTML=h;ok=keepPatch(box,t,[".fvs"])}if(!ok)$("pubp").innerHTML="<div>"+h+"</div>"}}
 function pubItem(k){const x=PUBL[k];if(!x)return;$("sheet").innerHTML='<div class="vw"><h3>'+esc(x.n||(x.p?"Photocard":"Artículo"))+'</h3>'+pic({img:x.i})+((x.t||[]).length?`<div class="ctags" style="margin:2px 0 10px">${x.t.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",x.go)+kv("Grupo",x.g)+kv("Era",((((PUB&&PUB.data&&PUB.data.er)||[]).find(e=>e.id==x.e))||{}).n)+kv("Estado",x.s)+(x.d?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(x.d)}</div>`:"")+'<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>';$("modal").classList.add("on")}
@@ -3833,7 +3922,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.48",VK="mypoca-ver";
+const APP_VER="1.49",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
