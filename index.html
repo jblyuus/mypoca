@@ -1467,7 +1467,7 @@ function applyTheme(){try{if(typeof PUB!="undefined"&&PUB)setTimeout(pubTheme,0)
  for(const k in p)r.setProperty("--"+k,p[k]);r.setProperty("--gb",dk?"rgba(255,255,255,.14)":"rgba(255,255,255,.65)");r.colorScheme=dk?"dark":"light";applyFonts()}
 function setMode(m){S.theme=Object.assign({},S.theme,{mode:m});save();applyTheme();render();editTheme()}
 function setColor(c){S.theme=Object.assign({},S.theme,{color:c,chosen:true});save();applyTheme();render();editTheme()}
-function themeHtml(){const th=S.theme||{mode:"auto",color:"base"};return `<h3>Ajustes</h3><div class="mu">Apariencia</div><div class="seg">${[["light","Claro"],["dark","Oscuro"],["auto","Auto"]].map(m=>`<button class="${th.mode==m[0]?"on":""}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join("")}</div><div class="mu" style="margin:12px 0 10px">Color</div><div class="sw">${Object.keys(PAL).map(c=>`<div class="swi"><button class="swb ${c=="base"?"sbase ":""}${th.color==c?"on":""}" aria-label="${PALN[c]}" onclick="setColor('${c}')" style="background:${c=="base"?"linear-gradient(135deg,#fff 50%,#000 50%)":palette(c,false).g2}"></button><span>${PALN[c]}</span></div>`).join("")}${th.custom?`<div class="swi"><button class="swb ${th.color=="custom"?"on":""}" aria-label="Personalizado" onclick="setColor('custom')" style="background:${esc(th.custom)}"></button><span>Personalizado</span></div>`:""}<div class="swi"><button class="swb swadd" aria-label="Agregar color" onclick="editCustom()">+</button><span>Agregar color</span></div></div><button class="sec" style="width:100%;margin:2px 0 8px" onclick="editFonts()">Cambiar fuentes</button><button class="sec" style="width:100%;margin:0 0 4px" onclick="closeM();showIntro()">Ver guía de uso</button>${acctHtml()}${isAdmin()?`<button class="sec" style="width:100%;margin:6px 0 4px" onclick="tagMgr()">Crear etiquetas</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="goMgr()">GOs socios</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="editNews()">Publicar novedad</button>`:""}${pubSetHtml()}<button class="pri" onclick="closeM()">Listo</button>`}
+function themeHtml(){const th=S.theme||{mode:"auto",color:"base"};return `<h3>Ajustes</h3><div class="mu">Apariencia</div><div class="seg">${[["light","Claro"],["dark","Oscuro"],["auto","Auto"]].map(m=>`<button class="${th.mode==m[0]?"on":""}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join("")}</div><div class="mu" style="margin:12px 0 10px">Color</div><div class="sw">${Object.keys(PAL).map(c=>`<div class="swi"><button class="swb ${c=="base"?"sbase ":""}${th.color==c?"on":""}" aria-label="${PALN[c]}" onclick="setColor('${c}')" style="background:${c=="base"?"linear-gradient(135deg,#fff 50%,#000 50%)":palette(c,false).g2}"></button><span>${PALN[c]}</span></div>`).join("")}${th.custom?`<div class="swi"><button class="swb ${th.color=="custom"?"on":""}" aria-label="Personalizado" onclick="setColor('custom')" style="background:${esc(th.custom)}"></button><span>Personalizado</span></div>`:""}<div class="swi"><button class="swb swadd" aria-label="Agregar color" onclick="editCustom()">+</button><span>Agregar color</span></div></div><button class="sec" style="width:100%;margin:2px 0 8px" onclick="editFonts()">Cambiar fuentes</button><button class="sec" style="width:100%;margin:0 0 4px" onclick="closeM();showIntro()">Ver guía de uso</button>${acctHtml()}${isAdmin()?publicCatalogSettings():""}${isAdmin()?`<button class="sec" style="width:100%;margin:6px 0 4px" onclick="tagMgr()">Crear etiquetas</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="goMgr()">GOs socios</button><button class="sec" style="width:100%;margin:6px 0 4px" onclick="editNews()">Publicar novedad</button>`:""}${pubSetHtml()}<button class="pri" onclick="closeM()">Listo</button>`}
 function editTheme(){openM(themeHtml())}
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 function hex2hsl(hx){hx=String(hx||"").trim();let m=/^#?([0-9a-f]{6})$/i.exec(hx),t;if(!m){t=/^#?([0-9a-f]{3})$/i.exec(hx);if(!t)return null;m=[0,t[1].split("").map(c=>c+c).join("")]}const n=parseInt(m[1],16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;if(d){s=d/(1-Math.abs(2*l-1));h=mx==r?((g-b)/d)%6:mx==g?(b-r)/d+2:(r-g)/d+4;h=(h*60+360)%360}return{h,s:s*100,l:l*100}}
@@ -1661,6 +1661,7 @@ async function catalogFingerprint(src){
 }
 function scheduleCatalogIndex(){
  if(!auth)return;
+ schedulePublishedCatalogIndex();
  if(catalogRunning){catalogReschedule=true;return}
  clearTimeout(catalogTimer);
  catalogTimer=setTimeout(indexCatalogBatch,1200);
@@ -1760,6 +1761,64 @@ function applyCatalogMatch(index){
  rpAll();
  panel.catalogMatches=[];
  panel.textContent="Datos aplicados. Revisa los campos antes de guardar.";
+}
+
+let publicCatalogTimer,publicCatalogRunning=false,publicCatalogScanned=0;
+let publicCatalogSkipped=new Set(),publicCatalogMessage="La revisión empieza al abrir mypoca.";
+function publicCatalogSettings(){
+ return `<h3 style="margin:22px 0 4px">Catálogo de piezas publicadas</h3>
+ <div id="public-catalog-status" class="mu" role="status">${esc(publicCatalogMessage)}</div>
+ <button id="public-catalog-retry" type="button" class="sec sm" style="margin-top:8px" onclick="retryPublishedCatalogIndex()" ${publicCatalogRunning?"disabled":""}>Revisar piezas pendientes</button>`;
+}
+function updatePublicCatalogStatus(message){
+ publicCatalogMessage=message;
+ const status=$("public-catalog-status"),button=$("public-catalog-retry");
+ if(status)status.textContent=message;
+ if(button)button.disabled=publicCatalogRunning;
+}
+function retryPublishedCatalogIndex(){
+ if(!isAdmin()||publicCatalogRunning)return;
+ publicCatalogSkipped.clear();
+ schedulePublishedCatalogIndex();
+}
+function schedulePublishedCatalogIndex(){
+ if(!isAdmin()||document.hidden||publicCatalogRunning||publicCatalogTimer)return;
+ publicCatalogTimer=setTimeout(indexPublishedCatalog,1500);
+}
+async function indexPublishedCatalog(){
+ publicCatalogTimer=null;
+ if(!isAdmin()||document.hidden||publicCatalogRunning)return;
+ const user=auth.user.id;
+ publicCatalogRunning=true;
+ let more=false;
+ try{
+  updatePublicCatalogStatus(publicCatalogScanned?`Revisando piezas publicadas · ${publicCatalogScanned} procesadas.`:"Revisando piezas publicadas…");
+  if(publicCatalogSkipped.size>=120){
+   updatePublicCatalogStatus("La revisión se detuvo tras varias fotos inaccesibles. Puedes reintentar.");
+   return;
+  }
+  const rows=await api("POST","rpc/mypoca_catalog_public_pending",{skip_markers:[...publicCatalogSkipped]});
+  if(auth?.user?.id!==user)return;
+  const fingerprints=await Promise.all((rows||[]).map(async row=>{
+   try{return {owner_id:row.owner_id,item_ref:row.item_ref,image_marker:row.image_marker,...await catalogFingerprint(row.image_source)}}
+   catch(e){publicCatalogSkipped.add(row.image_marker);return null}
+  }));
+  if(auth?.user?.id!==user)return;
+  const batch=fingerprints.filter(Boolean);
+  if(batch.length){
+   await api("POST","rpc/mypoca_catalog_public_store",{fingerprints:batch});
+   publicCatalogScanned+=batch.length;
+  }
+  more=rows?.length===6;
+  const missing=publicCatalogSkipped.size?` ${publicCatalogSkipped.size} fotos no se pudieron leer.`:"";
+  updatePublicCatalogStatus(more?`Revisando piezas publicadas · ${publicCatalogScanned} procesadas.`:"Revisión de piezas publicadas completada."+missing);
+ }catch(e){
+  updatePublicCatalogStatus(/PGRST202|schema cache/i.test(e.message)?"Falta instalar la migración del catálogo de piezas publicadas.":"No se pudo completar la revisión. Puedes reintentar.");
+ }finally{
+  publicCatalogRunning=false;
+  updatePublicCatalogStatus(publicCatalogMessage);
+  if(more)schedulePublishedCatalogIndex();
+ }
 }
 
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)scheduleCatalogIndex()});
@@ -3029,7 +3088,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.39",VK="mypoca-ver";
+const APP_VER="1.40",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
@@ -3409,4 +3468,5 @@ async function stripGifs(){const p=S.profile;if(!p)return;let ch=false;for(const
 setTimeout(stripGifs,600);
 document.addEventListener("change",e=>{const t=e.target;if(t&&t.type=="file"&&t.files&&[...t.files].some(f=>f.type=="image/gif"||/\.gif$/i.test(f.name))){e.stopImmediatePropagation();e.preventDefault();t.value="";alert("Los GIF no están permitidos. Usa una imagen JPG, PNG o WebP.")}},true);
 initNews();
+schedulePublishedCatalogIndex();
 </script></body></html>
