@@ -1221,13 +1221,9 @@ function editP(){
  </section>
  <section class="pe-section">
   <details><summary>GOs y etiquetas</summary>${pgHtml()}</details>
-  <details><summary>Descubrir personas</summary>
-   <div class="sg"><label><input type="checkbox" id="p_discover" ${p.discovery?.visible?"checked":""}>Aparecer en Descubrir</label>
-   <label><input type="checkbox" id="p_discover_private" ${p.discovery?.private?"checked":""}>Usar artistas y grupos de apartados privados</label></div>
-   <p class="mu">Con el perfil público activo, se mostrarán los artistas y grupos en común y tus GOs socios visibles. Las coincidencias no indican de dónde salió el interés ni muestran tus piezas o gastos.</p>
-  </details>
   <details><summary>Privacidad</summary>
-   <div class="mu">Elige qué apartados ocultar de tu perfil público. Las photocards de la Colección que elijas como favoritas seguirán visibles.</div>
+   <div class="mu">Los perfiles públicos aparecen automáticamente en Descubrir con sus intereses públicos y etiquetas visibles de GO socio.</div>
+   <div class="mu">Elige qué apartados ocultar. Las photocards de la Colección que selecciones como favoritas seguirán visibles.</div>
    <div class="sg">
     <label class="sh"><input type="checkbox" id="p_pv_ped" ${(p.priv||{}).ped?"checked":""}>Ocultar mis Pedidos</label>
     <label class="sh"><input type="checkbox" id="p_pv_col" ${(p.priv||{}).col?"checked":""}>Ocultar mi Colección</label>
@@ -1272,7 +1268,7 @@ async function okP(){
  if(selected&&selected!==old.frame&&!allowedFrame(selected,myFrameLevel(),ownFrameAccess())){
   return alert("Ese marco todavía no está disponible en tu cuenta.");
  }
- const next={discovery:{visible:!!$("p_discover").checked,private:!!$("p_discover_private").checked},cardColor:profileColor(profileColorDraft),frame:selected,frameLevel:old.frameLevel,photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),interestsVersion:1,favoriteGroups:profileInterestsDraft.group.slice(),biases:profileInterestsDraft.bias.slice(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
+ const next={cardColor:profileColor(profileColorDraft),frame:selected,frameLevel:old.frameLevel,photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),interestsVersion:1,favoriteGroups:profileInterestsDraft.group.slice(),biases:profileInterestsDraft.bias.slice(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
  if(auth){
   const candidate=next.user.replace(/^@/,"").toLowerCase();
   if((candidate&&!/^[a-z0-9_.]{3,30}$/.test(candidate))||(!candidate&&old.pub)){
@@ -2144,9 +2140,9 @@ async function pubPush(){const p=S.profile||{},u=uname(p.user),user=meId();if(!u
   photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
  const fv=await favPubData(pv);
  if(user!==meId()||S.profile!==p||!p.pub)return;
- const row={user_id:user,username:u,name:p.name||"",photo,data:{bn,bc,th,cardColor:profileColor(p.cardColor),frame:allowedFrame(p.frame,frameLevel(lvl,p.frameLevel),{creator:true,gom:true}),frameLevel:p.frameLevel,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",interestsVersion:1,favoriteGroups:cleanInterestList(p.favoriteGroups),biases:cleanInterestList(p.biases),gos:goVis(goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))])).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
+ const {artists,groups}=socialInterests();
+ const row={user_id:user,username:u,name:p.name||"",photo,data:{bn,bc,th,discoveryArtists:[...artists.keys()],discoveryGroups:[...groups.keys()],cardColor:profileColor(p.cardColor),frame:allowedFrame(p.frame,frameLevel(lvl,p.frameLevel),{creator:true,gom:true}),frameLevel:p.frameLevel,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",interestsVersion:1,favoriteGroups:cleanInterestList(p.favoriteGroups),biases:cleanInterestList(p.biases),gos:goVis(goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))])).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
  try{await api("POST","perfiles?on_conflict=user_id",[row],{Prefer:"resolution=merge-duplicates,return=minimal"})}catch(e){if(/23505|duplicate/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro en Editar perfil.");throw e}
- await publishDiscovery(p,user);
 }
 function schedPub(){if(auth&&S.profile&&S.profile.pub){clearTimeout(pbt);pbt=setTimeout(()=>pubPush().then(()=>{pubMsg="Publicado "+hora()}).catch(e=>toast(e.message)),4000)}}
 async function togglePub(){const p=S.profile=S.profile||{};
@@ -2210,7 +2206,7 @@ function pubTheme(){pubThemeClear();const r=PUB,th=r&&r.data&&r.data.th;if(!th||
 function setPubS(a,b){if(a)pubSrc=a;if(b)pubTab=b;paintPub()}
 const SOCIAL_PANES=[["home","Inicio"],["posts","Posts"],["cards","Photocards"]];
 let socialTab="discover",myProfilePane="home",publicProfilePane="home";
-let discoverQuery="",discoverResults=[],discoverPosts=[],discoverStatus="",discoverVersion=0;
+let discoverQuery="",discoverInput="",discoverResults=[],discoverPosts=[],discoverStatus="",discoverVersion=0;
 const POST_PAGE=20,socialPages=new Map(),socialPostStore=new Map(),pendingPostLikes=new Set();
 
 function socialRpc(name,args,publicRead=false){
@@ -2226,7 +2222,7 @@ function socialInterestKey(value){
  return nrm(String(value||"")).trim().replace(/\s+/g," ").slice(0,64);
 }
 function socialInterests(){
- const p=S.profile||{},priv=p.priv||{},allowPrivate=p.discovery?.private===true;
+ const p=S.profile||{},priv=p.priv||{};
  const artists=new Map(),groups=new Map();
  const add=(map,label)=>{
   const name=plainInterestName(label),key=interestKey(name);
@@ -2247,7 +2243,7 @@ function socialInterests(){
   ["wish",S.wish||[]],
   ["favorites",fvSlots().filter(item=>item&&(!item._w||!priv.wish))]
  ]){
-  if(!allowPrivate&&priv[section])continue;
+  if(priv[section])continue;
   for(const item of items){
    add(groups,item.grupo);
    const direct=artistIds.get(String(item.artist))||artistIds.get(String(item.unit));
@@ -2261,15 +2257,6 @@ function socialInterests(){
   }
  }
  return {artists,groups};
-}
-async function publishDiscovery(profile,user){
- if(user!==meId()||S.profile!==profile||!profile.pub)return;
- const visible=profile.discovery?.visible===true,{artists,groups}=visible?socialInterests():{artists:new Map(),groups:new Map()};
- try{
-  await socialRpc("social_set_discovery",{visible,artist_keys:[...artists.keys()],group_keys:[...groups.keys()]});
- }catch(e){
-  if(visible||!/PGRST202|PGRST205|schema cache/i.test(e.message))toast(socialError(e));
- }
 }
 function socialError(error){
  const msg=String(error?.message||error);
@@ -2302,7 +2289,7 @@ function socialTabHtml(){
  return socialSegments([["discover","Descubrir"],["feed","Publicaciones"]],socialTab,"setSocialTab")+(socialTab==="discover"?
   `<form class="social-search" onsubmit="event.preventDefault();findSocial($('social-search').value)">
    <label class="social-sr" for="social-search">Buscar personas, artistas, grupos o GOs socios</label>
-   <input id="social-search" placeholder="Persona, artista, grupo o GO" value="${esc(discoverQuery)}" maxlength="64" autocomplete="off">
+   <input id="social-search" placeholder="Persona, artista, grupo o GO" value="${esc(discoverInput)}" maxlength="64" autocomplete="off" oninput="editSocialQuery(this)">
    <button class="pri" type="submit">Buscar</button></form>
    ${socialInterestChips()}<div id="social-results" aria-live="polite">${socialDiscoverHtml()}</div>`:
   auth?`<div class="social-heading"><h2>Publicaciones de amigos</h2><button type="button" class="pri sm" onclick="composeSocialPost()">+ Publicar</button></div>${socialPostList("feed","feed")}`:
@@ -2318,7 +2305,30 @@ function socialPartnerGos(){
  const p=S.profile||{};
  return goVis(p.gos,p.gosVis).filter(go=>!go.ext&&go.id&&!String(go.id).startsWith("n:"));
 }
+function editSocialQuery(input){
+ discoverInput=input.value;
+ discoverVersion++;
+ const results=$("social-results");
+ if(results)results.innerHTML='<div class="mu social-state">Toca Buscar para ver las coincidencias.</div>';
+}
+function socialDiscoveryMatch(p,query,kind){
+ const matches=value=>value&&socialInterestKey(String(value).replace(/^#/,"")).includes(query);
+ const exact=value=>value&&socialInterestKey(String(value).replace(/^#/,""))===query;
+ const matchesPerson=matches(p.username)||matches(p.name);
+ if(kind==="group")return !!(exact(p.group_hit)||exact(p.tag_hit));
+ if(kind==="artist")return !!(exact(p.artist_hit)||exact(p.tag_hit));
+ if(kind==="go")return !!exact(p.go_name);
+ if(kind==="person")return !!matchesPerson;
+ return !!(matches(p.group_hit)||matches(p.artist_hit)||matches(p.go_name)||matches(p.tag_hit)||matchesPerson);
+}
 function socialDiscoveryReason(p,artists,groups){
+ if(discoverQuery){
+  if(p.tag_hit)return "Etiqueta · "+p.tag_hit;
+  if(p.group_hit)return "Grupo · "+(groups.get(p.group_hit)||p.group_hit);
+  if(p.artist_hit)return "Artista · "+(artists.get(p.artist_hit)||p.artist_hit);
+  if(p.go_name)return "GO socio · "+p.go_name;
+  return "Coincidencia de nombre o @usuario";
+ }
  const artist=p.artist_hit||p.artists?.[0],group=p.group_hit||p.groups?.[0],go=p.go_name;
  if(p.tag_hit)return "Etiqueta · "+p.tag_hit;
  if(artist)return `${artists.has(artist)?"También colecciona a":"Colecciona a"} ${artists.get(artist)||artist}`;
@@ -2327,13 +2337,14 @@ function socialDiscoveryReason(p,artists,groups){
  return group?`Le interesa ${groups.get(group)||group}`:"Perfil público";
 }
 function socialDiscoverHtml(){
+ if(discoverInput.trim()!==discoverQuery)return '<div class="mu social-state">Toca Buscar para ver las coincidencias.</div>';
  if(discoverStatus)return `<div class="empty">${esc(discoverStatus)}</div>`;
  if(!discoverResults.length&&!discoverPosts.length)return '<div class="empty">No encontramos coincidencias. Prueba otro artista, grupo, GO socio o @usuario.</div>';
  const {artists,groups}=socialInterests();
  const posts=discoverPosts.map(p=>socialPostCard(p,false,socialDiscoveryReason(p,artists,groups))).join("");
  const people=discoverResults.map(p=>`<button type="button" class="card social-person" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">
   ${socialAvatar(p)}<span class="grow"><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)}</span><span class="social-reason">${esc(socialDiscoveryReason(p,artists,groups))}</span></span><span aria-hidden="true">›</span></button>`).join("");
- return (posts?`<h2 class="social-discover-head">Publicaciones para ti</h2><div class="social-discover-posts">${posts}</div>`:"")
+ return (posts?`<h2 class="social-discover-head">${discoverQuery?"Publicaciones":"Publicaciones para ti"}</h2><div class="social-discover-posts">${posts}</div>`:"")
   +(people?`<h2 class="social-discover-head">Perfiles</h2>${people}`:"");
 }
 function rememberSocialPost(viewer,row){
@@ -2345,18 +2356,21 @@ function rememberSocialPost(viewer,row){
  return p;
 }
 async function findSocial(term){
- discoverQuery=String(term||"").trim().slice(0,64);
+ discoverInput=discoverQuery=String(term||"").trim().slice(0,64);
+ const query=socialInterestKey(discoverQuery.replace(/^[@#]/,""));
  const version=++discoverVersion,who=meId(),{artists,groups}=socialInterests();
  discoverStatus="Buscando perfiles y publicaciones…";
  if(tab==="social"&&socialTab==="discover")render();
  try{
   const result=await socialRpc("social_discover_content",{
-   term:socialInterestKey(discoverQuery.replace(/^[@#]/,"")),artist_keys:[...artists.keys()],
+   term:discoverQuery.startsWith("@")&&query?"@"+query:query,artist_keys:[...artists.keys()],
    group_keys:[...groups.keys()],go_ids:socialPartnerGos().map(go=>String(go.id))
   },true);
   if(version!==discoverVersion||who!==meId())return;
-  discoverResults=result?.profiles||[];
-  discoverPosts=(result?.posts||[]).map(row=>rememberSocialPost(who||"guest",row));
+  const kind=discoverQuery.startsWith("@")?"person":result?.search_kind;
+  const relevant=row=>!query||socialDiscoveryMatch(row,query,kind);
+  discoverResults=(result?.profiles||[]).filter(relevant);
+  discoverPosts=(result?.posts||[]).filter(relevant).map(row=>rememberSocialPost(who||"guest",row));
   discoverStatus="";
  }catch(e){
   if(version!==discoverVersion||who!==meId())return;
@@ -2804,9 +2818,11 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.33",VK="mypoca-ver";
+const APP_VER="1.35",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.35",items:[["Descubrir automático","Los perfiles públicos aparecen automáticamente con sus intereses públicos y sus GOs socios visibles."]]},
+ {v:"1.34",items:[["Búsquedas en Descubrir","Los resultados explican su coincidencia con el grupo, artista o GO que buscaste."]]},
  {v:"1.33",items:[["Etiquetas de publicaciones","Busca grupos y artistas en el mismo catálogo del perfil o añade un nombre nuevo."]]},
  {v:"1.32",items:[["Conversaciones en posts","Comenta y da me gusta en las publicaciones públicas."],["Más en Descubrir","Encuentra perfiles y publicaciones por artistas, grupos y GOs socios."]]},
  {v:"1.31",items:[["Grupos y bias","Vuelve a elegir tus grupos favoritos y bias en Editar perfil. Ahora puedes seleccionar varios desde un catálogo compartido."]]},
