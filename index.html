@@ -1022,7 +1022,7 @@ function editP(){
  <section class="pe-section">
   <details><summary>GOs y etiquetas</summary>${pgHtml()}</details>
   <details><summary>Privacidad</summary>
-   <div class="mu">Elige qué apartados ocultar de tu perfil público.</div>
+   <div class="mu">Elige qué apartados ocultar de tu perfil público. Las photocards de la Colección que elijas como favoritas seguirán visibles.</div>
    <div class="sg">
     <label class="sh"><input type="checkbox" id="p_pv_ped" ${(p.priv||{}).ped?"checked":""}>Ocultar mis Pedidos</label>
     <label class="sh"><input type="checkbox" id="p_pv_col" ${(p.priv||{}).col?"checked":""}>Ocultar mi Colección</label>
@@ -1748,8 +1748,7 @@ function visiblePublicFavorites(fv,privacy){
  if(!Array.isArray(fv?.s))return fv;
  return {...fv,s:fv.s.map(slot=>{
   if(!slot)return null;
-  if(slot.src==="wish"||slot.src==="col")return privacy[slot.src]?null:slot;
-  return privacy.col||privacy.wish?null:slot;
+  return privacy.wish&&slot.src!=="col"?null:slot;
  })};
 }
 async function favPubData(privacy){
@@ -1758,7 +1757,7 @@ async function favPubData(privacy){
  const s=await Promise.all(sl.map(async i=>{
   if(!i)return null;
   const src=i._w?"wish":"col";
-  return privacy[src]?null:{i:await pubImg(i.img,220),n:i.name||"",src};
+  return src==="wish"&&privacy.wish?null:{i:await pubImg(i.img,220),n:i.name||"",src};
  }));
  return {c:fvCfg(),s};
 }
@@ -2165,9 +2164,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.28",VK="mypoca-ver";
+const APP_VER="1.29",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.29",items:[["Favoritas en el perfil","Las photocards de tu Colección que marques como favoritas siguen visibles aunque ocultes la Colección."]]},
  {v:"1.28",items:[["Marco Gatito","El perfil de la creadora tiene un nuevo marco con orejas animadas."]]},
  {v:"1.27",items:[["Color del perfil","Personaliza la tarjeta del perfil y el color de Jardín en flor."],["Privacidad del perfil","Las secciones privadas quedan ocultas para las visitas."]]},
  {v:"1.26",items:[["Jardín en flor","El marco de nivel 10 se renueva con ramas que se balancean y pétalos flotantes."]]},
