@@ -801,7 +801,7 @@ function setGoExpense(index,button){
  const bar=$("v").querySelector(".gorow");
  if(bar)bar.scrollLeft=scroll;
 }
-const SHARED_GO_EXPENSE=Symbol(),UNASSIGNED_GO_EXPENSE=Symbol();
+const UNASSIGNED_GO_EXPENSE=Symbol();
 function goExpenses(state){
  const buckets=new Map();
  const allItems=state.items.concat(state.col||[]);
@@ -809,35 +809,54 @@ function goExpenses(state){
  const keyOf=item=>nrm((item?.go||"").trim());
  const names=new Map(allItems.filter(item=>keyOf(item)).map(item=>[keyOf(item),item.go.trim()]));
  const get=key=>{
-  if(!buckets.has(key))buckets.set(key,{key,name:names.get(key),products:0,fees:0,charges:[]});
+  if(!buckets.has(key))buckets.set(key,{key,name:names.get(key),products:0,feeCents:{},charges:[]});
   return buckets.get(key);
  };
+ const addFee=(bucket,kind,cents)=>{bucket.feeCents[kind]=(bucket.feeCents[kind]||0)+cents};
  for(const item of state.items)get(keyOf(item)).products+=Number(item.price)||0;
  for(const fee of state.cargos||[]){
-  const total=Number(fee.amt)||0;
-  if(!total)continue;
-  const ids=fee.ids||[];
-  const keys=new Set(ids.map(id=>itemsById.has(String(id))?keyOf(itemsById.get(String(id))):UNASSIGNED_GO_EXPENSE));
-  const key=keys.size>1?SHARED_GO_EXPENSE:keys.size===1?[...keys][0]:UNASSIGNED_GO_EXPENSE;
-  const bucket=get(key);
-  bucket.fees+=total;
-  bucket.charges.push(fee);
+  const cents=Math.round((Number(fee.amt)||0)*100);
+  if(!cents)continue;
+  const ids=[...new Set((fee.ids||[]).map(String))].sort();
+  const shares=new Map();
+  if(!ids.length)shares.set(UNASSIGNED_GO_EXPENSE,{cents,ids:[]});
+  else{
+   const perItem=Math.trunc(cents/ids.length);
+   const remainder=cents%ids.length;
+   ids.forEach((id,index)=>{
+    const item=itemsById.get(id);
+    const key=item?keyOf(item):UNASSIGNED_GO_EXPENSE;
+    if(!shares.has(key))shares.set(key,{cents:0,ids:[]});
+    const share=shares.get(key);
+    share.cents+=perItem+(index<Math.abs(remainder)?Math.sign(remainder):0);
+    share.ids.push(id);
+   });
+  }
+  for(const [key,share] of shares){
+   if(!share.cents)continue;
+   const bucket=get(key);
+   addFee(bucket,fee.kind,share.cents);
+   bucket.charges.push({...fee,amt:share.cents/100,ids:share.ids});
+  }
  }
  for(const box of Object.values(state.boxes||{})){
-  const total=(Number(box.ship)||0)+(Number(box.customs)||0);
-  if(total)get(UNASSIGNED_GO_EXPENSE).fees+=total;
+  const ship=Math.round((Number(box.ship)||0)*100);
+  const customs=Math.round((Number(box.customs)||0)*100);
+  if(ship)addFee(get(UNASSIGNED_GO_EXPENSE),"mx",ship);
+  if(customs)addFee(get(UNASSIGNED_GO_EXPENSE),"adu",customs);
  }
+ for(const row of buckets.values())row.fees=Object.values(row.feeCents).reduce((sum,cents)=>sum+cents,0)/100;
  return {groups:[...buckets.values()].filter(row=>row.name).sort((a,b)=>a.name.localeCompare(b.name,"es")),
-  noGo:buckets.get(""),shared:buckets.get(SHARED_GO_EXPENSE),unassigned:buckets.get(UNASSIGNED_GO_EXPENSE)};
+  noGo:buckets.get(""),unassigned:buckets.get(UNASSIGNED_GO_EXPENSE)};
 }
 function goExpenseRows(){
- const {groups,noGo,shared,unassigned}=goExpenses(S);
+ const {groups,noGo,unassigned}=goExpenses(S);
  return groups.map(row=>({...row,glow:true})).concat(noGo?[{...noGo,name:"Sin GO"}]:[],
-  shared?[{...shared,name:"Cargos compartidos"}]:[],unassigned?[{...unassigned,name:"Cargos sin asignar"}]:[]);
+  unassigned?[{...unassigned,name:"Cargos sin asignar"}]:[]);
 }
 function goExpenseDetail(row){
  return `<div class="card"><div class="mu">${esc(row.name)}</div><div class="big">${money(row.products+row.fees)}</div></div>
- <div class="card">${kv("Productos",money(row.products))}${kv("Cargos de envío y aduana",money(row.fees))}</div>
+ <div class="card">${kv("Productos",money(row.products))}${[["mx","Envíos a México"],["adu","Aduanas"],["nac","Envíos nacionales"],["ka","Envíos a KA"]].map(([kind,label])=>kv(label,money((row.feeCents[kind]||0)/100))).join("")}</div>
  ${row.charges.length?`<h2>Cargos de envío y aduana</h2><div class="card">${cargosHtml(row.charges,false)}</div>`:""}`;
 }
 function cargosHtml(charges=S.cargos,add=true){return (charges.length?charges.map(c=>`<div class="kv" onclick="editC('${c.id}')"><span>${KN[c.kind]}<div class="mu">${c.ids.length} artículo${c.ids.length==1?"":"s"}${c.note?" · "+esc(c.note):""}</div></span><b>${money(c.amt)}</b></div>`).join(""):`<div class="mu">Aún no hay cargos.</div>`)+(add?`<div style="margin-top:10px"><button class="pri" onclick="editC()">+ Agregar cargo</button></div>`:"")}
@@ -1726,9 +1745,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.22",VK="mypoca-ver";
+const APP_VER="1.23",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.23",items:[["Envíos y aduanas por GO","Los cargos se reparten automáticamente entre los GOs de sus artículos vinculados."]]},
  {v:"1.22",items:[["Pestañas de Gastos por GO","Filtra tus gastos con las mismas pestañas brillantes de Pedidos."],["Fichas de GO","Las etiquetas anteriores también pueden abrir la descripción del GO socio."]]},
  {v:"1.21",items:[["Gastos por GO","Consulta el desglose usando tus pedidos y cargos guardados."],["GOs socios","Toca la etiqueta para ver la ficha del GO."],["@usuario único","Reserva tu nombre de usuario desde Editar perfil."]]},
   {v:"1.20",items:[["GO (group order)","Marca tus pedidos y artículos con su GO y filtra por pestañas con brillos."],["GOs no asociados","Si tu GO no es socio, agrégalo igual (sin brillo) o pide que el GOM envíe una solicitud."],["GOs socios","Busca tu GO en Editar perfil y agrégalo como etiqueta; toca la etiqueta para ver su información."]]},
