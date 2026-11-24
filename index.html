@@ -633,6 +633,30 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .news-article-body>:last-child{margin-bottom:0}
 .news-reader-action{margin-top:14px}
 .news-reader-action button{width:100%}
+.wish-toolbar,.wish-toolbar>div{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.wish-toolbar{justify-content:space-between;margin:10px 0}
+.wish-card-name{text-align:center;overflow-wrap:anywhere}
+.wish-tags{justify-content:center;flex-wrap:wrap;margin:5px 0}
+.wish-tags .ctag{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.poster-heading,.poster-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.poster-heading h3{margin:0}
+.poster-options{display:grid;grid-template-columns:minmax(0,1fr) minmax(92px,26%);gap:0 9px;margin:8px 0 12px}
+.poster-options>div:nth-child(-n+2){grid-column:1/-1}
+.poster-toolbar{justify-content:flex-start;margin-bottom:9px}
+.poster-toolbar>div{display:flex;gap:8px;flex-wrap:wrap}
+.poster-toolbar [aria-pressed=true]{background:var(--ac);color:#fff}
+.poster-toolbar [hidden]{display:none}
+.poster-background{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:8px;border:1px solid var(--bd);border-radius:9px}
+.poster-background label{display:flex;align-items:center;gap:6px;margin:0}
+#sheet #poster-color{width:38px;height:32px;padding:3px;cursor:pointer}
+.poster-background [hidden]{display:none}
+.poster-stage{position:relative;width:100%;margin:10px 0;background:#faf8f6;box-shadow:0 8px 25px #0002}
+.poster-stage canvas{display:block;width:100%;height:auto}
+.poster-card-controls{position:absolute;inset:0;pointer-events:none}
+.poster-card-control{position:absolute;padding:0;border:0;border-radius:4px;background:transparent;pointer-events:auto;touch-action:none;cursor:grab}
+.poster-card-control:focus-visible,.poster-card-control.drop-target{outline:2px solid #ec6bae;outline-offset:2px}
+.poster-card-control.dragging{background:#28102149;cursor:grabbing}
+.poster-editor #poster-status:not(:empty){margin-bottom:8px}
 </style></head><body><div class="bgfx"><i></i><i></i><i></i></div>
 <header><h1 id="ttl">Mis pedidos</h1><div style="display:flex;gap:10px;align-items:center"><button id="bell" class="avb bell" aria-label="Notificaciones" onclick="openNotifs()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span id="bb" class="bbadge"></span></button><button id="av" class="avb" aria-label="Perfil" onclick="go('perfil')"></button></div></header>
 <main id="v"></main>
@@ -649,7 +673,7 @@ const KEY="pedidos-v1",PAISES=["Corea","Japón","México","Pocamarket","Otro"],T
 ESTADOS=["Pendiente","Comprado","En dirección KR","En dirección JP","En camino","En México","En casa"];
 let S={items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},tab="ped",cur=null,img="",gf="",gof="",af="",anim=true;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
-function mig(){resetLegacyInterests(S.profile);if(!S.theme||!S.theme.chosen)S.theme=Object.assign({},S.theme,{mode:(S.theme&&S.theme.mode)||"auto",color:"base"});(S.items||[]).forEach(i=>{if(i.status=="En aduana")i.status="En México"})}mig();
+function mig(){resetLegacyInterests(S.profile);if(!S.theme||!S.theme.chosen)S.theme=Object.assign({},S.theme,{mode:(S.theme&&S.theme.mode)||"auto",color:"base"});(S.items||[]).forEach(i=>{if(i.status=="En aduana")i.status="En México";if(i.box!=null)i.box=String(i.box).trim()})}mig();
 function save(noTs){if(!noTs){rememberFrameLevel();S._ts=Date.now()}let ls=1;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ls=0;if(imgOn()&&!imgBusy&&imgHas())imgSync(true);else alert("No se pudo guardar: probablemente hay demasiadas imágenes."+(imgOn()?"":" Inicia sesión para guardarlas en la nube.")+" Exporta un respaldo.")}if(!noTs){schedPush();schedPub();if(ls)imgSched()}}
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money=n=>"$"+(Math.round(n*100)/100).toLocaleString("es-MX");
@@ -877,10 +901,19 @@ function render(){afFix();
   h=`<div class="mu">Artículos que aún no tienen caja asignada (preventas, sin fecha, etc.). Edítalos para asignar caja.</div><div class="card">${s.length?s.map(itemRow).join(""):`<div class="empty">Nada pendiente por asignar.</div>`}</div>`;
  }
  if(tab=="wish"){
-  const m=wtab=="misc",w=S.wish.filter(i=>((i.kind||"pc")==(m?"misc":"pc"))&&(!gf||i.grupo==gf)&&afm(i));
-  const cell=i=>`<div data-id="${i.id}" onclick="viewW('${i.id}')">${i.img?`<img src="${i.img}">`:`<img alt="">`}<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>${i.det?`<div class="mu" style="text-align:center">${esc(i.det)}</div>`:""}</div>`;
-  h=`<div class="seg"><button class="${m?"":"on"}" onclick="setW('pc')">Photocards</button><button class="${m?"on":""}" onclick="setW('misc')">Artículos varios</button></div>`;
-  h+=w.length?`<div class="mu" style="display:flex;justify-content:space-between;align-items:center">${w.length} deseado${w.length>1?"s":""}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`+ordG([...new Set(w.map(i=>i.grupo||"Sin grupo"))]).map(g=>`<h2>${esc(g)}</h2><div class="grid${m?" prod":""}" data-drag="w">${w.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`).join(""):`<div class="empty">${m?"Tu wishlist de artículos está vacía.<br>Toca + para agregar álbumes o mercancía que deseas.":"Tu wishlist de photocards está vacía.<br>Toca + para agregar una photocard que deseas."}</div>`;
+  const misc=wtab==="misc",items=S.wish.filter(i=>(i.kind||"pc")===(misc?"misc":"pc")&&(!gf||i.grupo===gf)&&afm(i));
+  const cell=i=>`<div data-id="${esc(i.id)}" onclick="viewW(this.dataset.id)">${i.img?`<img src="${esc(i.img)}" alt="">`:'<div class="mph">Sin foto</div>'}
+   ${misc?`<div class="nm wish-card-name">${esc(i.name)}</div>`:""}${wishlistTags(i.tags)}${misc&&i.det?`<div class="mu wish-card-name">${esc(i.det)}</div>`:""}</div>`;
+  h=`<div class="seg"><button class="${misc?"":"on"}" onclick="setW('pc')">Photocards</button><button class="${misc?"on":""}" onclick="setW('misc')">Artículos varios</button></div>
+   <div class="wish-toolbar"><span class="mu">${items.length} deseado${items.length===1?"":"s"}</span><div>
+   ${items.length?'<button type="button" class="sec sm" onclick="editOrd()">Ordenar grupos</button>':""}
+   <button type="button" class="pri sm" onclick="openWishlistPoster()">Compartir wishlist</button></div></div>`;
+  if(!items.length)h+=`<div class="empty">${misc?"Tu wishlist de artículos está vacía.<br>Toca + para agregar álbumes o mercancía que deseas.":"Tu wishlist de photocards está vacía.<br>Toca + para agregar una photocard que deseas."}</div>`;
+  else for(const group of ordG([...new Set(items.map(i=>i.grupo||"Sin grupo"))])){
+   const wish=items.filter(i=>(i.grupo||"Sin grupo")===group);
+   h+=misc?`<h2>${esc(group)}</h2><div class="grid prod" data-drag="w">${wish.map(cell).join("")}</div>`
+    :eraGroup(group,wish,cell,false,"w");
+  }
  }
  if(tab=="env"){
   h=S.envios.length?S.envios.map(e=>{const u=e.upd[e.upd.length-1];return `<div class="card"><div style="display:flex;align-items:center;gap:8px"><div class="grow"><div class="nm">${esc(e.carr)} · ${esc(e.guia)}</div><div class="mu">${e.ids.length} artículo${e.ids.length==1?"":"s"}</div></div><button class="sec" aria-label="Editar" onclick="editE('${e.id}')" style="padding:8px 10px">${PEN}</button></div>
@@ -903,7 +936,7 @@ function render(){afFix();
   ${myProfilePane==="posts"?`<div class="social-heading"><h2>Mis posts</h2><button type="button" class="pri sm" onclick="composeSocialPost()">+ Publicar</button></div>${p.pub&&meId()?socialPostList(meId(),"grid"):'<div class="empty">Activa tu perfil público para compartir publicaciones.</div>'}`:""}`;
   if(myProfilePane==="cards")h+=`<div class="seg"><button class="${po?"on":""}" onclick="setPP('ped')">Pedidos</button><button class="${wl||po?"":"on"}" onclick="setPP('col')">Colección</button><button class="${wl?"on":""}" onclick="setPP('wish')">Wishlist</button></div>
   <div class="seg"><button class="${prod?"":"on"}" onclick="setPK('pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPK('prod')">Artículos <small>${prs.length}</small></button></div>${pfChips(pfl)}${prod&&!wl?gochips():""}
-  ${list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||wl||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cellP).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cellP,eraList(g),i=>i.era,"i")).join(""):`<div class="empty">${prod?(wl?"Tu wishlist de artículos está vacía.":"Aún no hay artículos aquí."):wl?"Tu wishlist está vacía.":po?"No tienes photocards en pedidos.":"Tu colección está vacía."}</div>`}`;
+  ${list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cellP).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cellP,eraList(g),i=>i.era,wl?"w":"i")).join(""):`<div class="empty">${prod?(wl?"Tu wishlist de artículos está vacía.":"Aún no hay artículos aquí."):wl?"Tu wishlist está vacía.":po?"No tienes photocards en pedidos.":"Tu colección está vacía."}</div>`}`;
  }
  if(tab=="gas"){
   const prod=S.items.reduce((a,i)=>a+(+i.price||0),0),bx=Object.values(S.boxes),cg=k=>S.cargos.filter(c=>c.kind==k).reduce((a,c)=>a+c.amt,0),
@@ -934,7 +967,7 @@ function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",ty
  ${catalogActions()}
  <div class="fs"><label>Nombre</label><input id="f_n" value="${esc(i.name)}" placeholder="Ej. Sunoo THE SIN:BLISS"></div>
  <div class="fs"><label>Qué es</label>${ch("f_t",TIPOS,i.type)}</div>
- <div class="fs"><label>Tipo de pedido</label>${ch("f_c",PAISES,i.country)}<div id="boxw" style="${["México","Pocamarket"].includes(i.country)?"display:none":""}"><label>Caja</label><input id="f_b" value="${esc(i.box)}" inputmode="numeric" placeholder="Vacío = sin caja asignada"></div></div>
+ <div class="fs"><label>Tipo de pedido</label>${ch("f_c",PAISES,i.country)}<div id="boxw" style="${["México","Pocamarket"].includes(i.country)?"display:none":""}"><label for="f_b">Caja</label><input id="f_b" type="text" value="${esc(i.box)}" autocapitalize="characters" placeholder="Vacío = sin caja asignada"></div></div>
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
  <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
  <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
@@ -1072,7 +1105,15 @@ function saveU(){const e=cur;e.stage=stg;e.upd.push({t:now(),n:$("u_n").value.tr
 let ptab="Corea",btab="pcs",wtab="pc",showHome=false,bsec=null;
 function setW(k){wtab=k;anim=true;render()}
 const SC={"Pendiente":"#9fb0c8","Comprado":"#6f9de0","En camino":"#5ec2d6","En dirección KR":"#e48fb8","En dirección JP":"#e5b26f","En México":"#a08fe0","En casa":"#6fcf97"};
-const tcol=t=>{let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))%360;return `background:hsl(${h} 70% 86%);color:hsl(${h} 45% 26%)`};
+function wishlistTags(tags){
+ return tags?.length?`<div class="ctags wish-tags">${tags.map(tag=>`<span class="ctag" style="${tcol(tag)}">${esc(tag)}</span>`).join("")}</div>`:"";
+}
+function tagPalette(tag){
+ let hue=0;
+ for(const char of tag)hue=(hue*31+char.charCodeAt(0))%360;
+ return {background:`hsl(${hue}, 70%, 86%)`,foreground:`hsl(${hue}, 45%, 26%)`};
+}
+const tcol=tag=>{const {background,foreground}=tagPalette(tag);return `background:${background};color:${foreground}`};
 function ordG(a){const o=S.gorder||[];return a.sort((x,y)=>{if(x=="Sin grupo")return 1;if(y=="Sin grupo")return -1;const i=o.indexOf(x),j=o.indexOf(y);return (i<0?999:i)-(j<0?999:j)||x.localeCompare(y)})}
 function setP(p){ptab=p;anim=true;render()}
 function setB(b){btab=b;anim=true;render()}
@@ -2131,6 +2172,527 @@ function showLv(){const L=levelInfo();openM(`<div class="vw"><div class="lvhero"
  <h3 style="font-size:17px;margin-top:16px">Logros</h3><div class="agrid">${L.ach.map(a=>{const ok=a[1]>=a[2];return `<div class="atile ${ok?"ok":""}"><div class="aem">${lic(ok?a[4]:"lock")}</div><div class="an">${a[0]}</div><div class="xpb"><b style="width:${Math.min(100,a[1]/a[2]*100)}%"></b></div><small>${Math.min(a[1],a[2])}/${a[2]} · +${a[3]} XP</small></div>`}).join("")}</div>
  <div style="margin-top:16px"><button class="pri" onclick="closeM()">Cerrar</button></div></div>`)}
 function add(){tab=="wish"?editW():tab=="env"?editE():tab=="gas"?editC():tab=="book"&&bsec=="col"?editCol():edit()}
+const POSTER_SIZES={"1:1":[1200,1200],"9:16":[1080,1920],"4:3":[1440,1080],"3:4":[1080,1440],"16:9":[1920,1080]};
+const POSTER_DESIGNS=[["banner","Banner"],["notebook","Libreta"],["polaroids","Polaroids"]];
+const POSTER_COLOR="#faf8f6",POSTER_TAG_TOP=.055,POSTER_TAG_LINE=.20;
+let WP=null,posterDrag=null;
+
+function posterCards(state){
+ return S.wish.filter(item=>(item.kind||"pc")==="pc"
+  &&(!state.group||item.grupo===state.group)
+  &&(!state.artist||String(item.artist)===state.artist)
+  &&(!state.era||(state.era===":none"?!eraList(state.group).some(e=>e.id===item.era):String(item.era)===state.era)));
+}
+function openWishlistPoster(){
+ const cards=posterCards({});
+ if(!cards.length)return toast("Agrega una photocard a Wishlist para crear una imagen.");
+ if(!cards.some(item=>item.grupo))return toast("Asigna un grupo a una photocard de Wishlist para crear una imagen.");
+ WP={step:0,group:gf&&posterCards({group:gf}).length?gf:"",artist:"",era:"",size:"9:16",
+  title:"",font:"Vividly",design:"banner",banner:"",polaroid1:"",polaroid2:"",background:"",color:POSTER_COLOR,priorities:new Set(),images:new Map()};
+ renderPosterWizard();
+}
+function posterOptions(options,selected){
+ return options.map(([value,label,enabled=true])=>`<option value="${esc(value)}" ${value===selected?"selected":""} ${enabled?"":"disabled"}>${esc(label)}</option>`).join("");
+}
+function renderPosterWizard(){
+ const state=WP;
+ if(!state)return;
+ const groups=allG().map(g=>[g,g,posterCards({group:g}).length>0]);
+ const artists=arList(state.group,"artist").map(a=>[String(a.id),a.name,posterCards({group:state.group,artist:String(a.id)}).length>0]);
+ const scope={group:state.group,artist:state.artist};
+ const eras=eraList(state.group).map(e=>[String(e.id),e.name,posterCards({...scope,era:String(e.id)}).length>0]);
+ const step=state.step,fields=[
+  ["¿De qué grupo quieres la wishlist?",[["","Elige un grupo"],...groups],state.group],
+  ["¿De qué artista?",[["","Todo el grupo"],...artists],state.artist],
+  ["¿Qué era quieres incluir?",[["","Todas las eras, con encabezados"],...eras,
+   ...(posterCards({...scope,era:":none"}).length?[[":none","Sin era"]]:[])],state.era]
+ ];
+ const [label,choices,value]=fields[step];
+ openM(`<div class="vw fm" id="wishlist-poster-wizard">
+  <h3>Compartir wishlist</h3><div class="mu">Paso ${step+1} de 3</div>
+  <label for="poster-wizard-select">${label}</label>
+  <select id="poster-wizard-select" onchange="setPosterWizardChoice(this.value)">${posterOptions(choices,value)}</select>
+  <div class="fbar"><button type="button" class="sec" onclick="posterWizardBack()">${step?"Atrás":"Cancelar"}</button>
+   <button type="button" class="pri" id="poster-wizard-next" onclick="posterWizardNext()" ${step===0&&!state.group?"disabled":""}>${step===2?"Crear vista previa":"Continuar"}</button></div>
+ </div>`);
+ $("sheet").scrollTop=0;
+}
+function setPosterWizardChoice(value){
+ const state=WP;
+ if(state.step===0){state.group=value;state.artist="";state.era="";$("poster-wizard-next").disabled=!value}
+ if(state.step===1){state.artist=value;state.era=""}
+ if(state.step===2)state.era=value;
+}
+function posterWizardBack(){
+ if(!WP||WP.step===0)return closeM();
+ WP.step--;renderPosterWizard();
+}
+function posterWizardNext(){
+ const state=WP;
+ if(!state?.group)return;
+ if(state.step<2){state.step++;renderPosterWizard();return}
+ const items=posterCards(state);
+ if(!items.length)return toast("No hay photocards para esa selección.");
+ state.sections=posterSections(state.group,items,state.era);
+ state.title=state.artist?(arName(state.artist)||state.group):state.group;
+ editWishlistPoster();
+}
+function posterSections(group,items,era){
+ const eras=eraList(group);
+ if(era)return [{name:eras.find(e=>String(e.id)===era)?.name||"Sin era",items:items.slice()}];
+ const sections=eras.map(e=>({name:e.name,items:items.filter(i=>String(i.era)===String(e.id))})).filter(section=>section.items.length);
+ const remaining=items.filter(i=>!eras.some(e=>String(e.id)===String(i.era)));
+ if(remaining.length)sections.push({name:"Sin era",items:remaining});
+ return sections;
+}
+function editWishlistPoster(){
+ const state=WP;
+ if(!state)return;
+ const fonts=[...FBI,...(S.fl||[]).map(f=>f.id)];
+ openM(`<div class="poster-editor" id="wishlist-poster-editor">
+  <div class="poster-heading"><h3>Diseñar wishlist</h3><button type="button" class="sec sm" onclick="closeWishlistPoster()">Cerrar</button></div>
+  <div class="poster-options">
+   <div><label for="poster-design">Diseño</label><select id="poster-design" onchange="posterChange('design',this.value)">${posterOptions(POSTER_DESIGNS,state.design)}</select></div>
+   <div><label for="poster-title">Nombre en la imagen</label><input id="poster-title" maxlength="72" value="${esc(state.title)}" oninput="posterChange('title',this.value)"></div>
+   <div><label for="poster-font">Tipografía</label><select id="poster-font" onchange="posterChange('font',this.value)">${posterOptions(fonts.map(font=>[font,fname(font)]),state.font)}</select></div>
+   <div><label for="poster-size">Proporción</label><select id="poster-size" onchange="posterChange('size',this.value)">${posterOptions(Object.keys(POSTER_SIZES).map(size=>[size,size]),state.size)}</select></div>
+  </div>
+  <div class="poster-toolbar">
+   <div id="poster-banner-tools" ${state.design==="banner"?"":"hidden"}>${posterImageControls(state,"banner","banner")}</div>
+   <div id="poster-polaroids-tools" ${state.design==="polaroids"?"":"hidden"}>
+    ${posterImageControls(state,"polaroid1","foto 1")}
+    ${posterImageControls(state,"polaroid2","foto 2")}
+   </div>
+   <button type="button" class="sec sm" id="poster-prios" aria-pressed="false" onclick="togglePosterPriorities()">Marcar PRIOS</button>
+  </div>
+  <div class="poster-background">
+   <label for="poster-color">Color de fondo <input id="poster-color" type="color" value="${esc(state.color)}" oninput="posterChange('color',this.value)"></label>
+   <button type="button" class="sec sm" onclick="$('poster-background').click()">Añadir imagen de fondo</button>
+   <input id="poster-background" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="posterPickImage(this,'background')">
+   <button type="button" class="sec sm" id="poster-remove-background" onclick="posterChange('background','')" ${state.background?"":"hidden"}>Quitar imagen de fondo</button>
+  </div>
+  <div id="poster-instructions" class="mu">Mantén pulsada una photocard y arrástrala dentro de su era para cambiar el orden.</div>
+  <div id="poster-stage" class="poster-stage">
+   <canvas id="poster-canvas" aria-label="Vista previa de la wishlist"></canvas>
+   <div id="poster-card-controls" class="poster-card-controls"></div>
+  </div>
+  <div id="poster-status" class="mu" role="status"></div>
+  <div class="fbar"><button type="button" class="pri" id="poster-download" onclick="downloadWishlistPoster()">Descargar PNG</button></div>
+ </div>`);
+ $("sheet").scrollTop=0;
+ requestPosterPaint();
+}
+function posterImageControls(state,field,label){
+ return `<button type="button" class="sec sm" id="poster-add-${field}" onclick="$('poster-${field}').click()" data-label="${label}">${state[field]?"Cambiar":"Añadir"} ${label}</button>
+ <input id="poster-${field}" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="posterPickImage(this,'${field}')">
+ <button type="button" class="sec sm" id="poster-remove-${field}" onclick="posterChange('${field}','')" ${state[field]?"":"hidden"}>Quitar ${label}</button>`;
+}
+function closeWishlistPoster(){
+ if(posterDrag)clearTimeout(posterDrag.timer);
+ posterDrag=null;
+ WP=null;closeM();
+}
+function posterChange(field,value){
+ if(!WP)return;
+ WP[field]=value;
+ if(field==="design"){
+  $("poster-banner-tools").hidden=value!=="banner";
+  $("poster-polaroids-tools").hidden=value!=="polaroids";
+ }
+ const add=$("poster-add-"+field);
+ if(add)add.textContent=`${value?"Cambiar":"Añadir"} ${add.dataset.label}`;
+ const remove=$("poster-remove-"+field);
+ if(remove){
+  remove.hidden=!value;
+  if(!value)WP[field+"Request"]=null;
+ }
+ requestPosterPaint();
+}
+function posterPickImage(input,field){
+ const file=input.files[0],state=WP;
+ input.value="";
+ if(!file||!state)return;
+ const status=$("poster-status");
+ if(!/^image\/(jpeg|png|webp)$/i.test(file.type)||file.size>20*1024*1024){
+  status.textContent="Elige una imagen JPG, PNG o WebP de hasta 20 MB.";return;
+ }
+ const token=field+"Request",request=Symbol();
+ state[token]=request;
+ status.textContent="Preparando imagen…";
+ const reader=new FileReader();
+ reader.onload=()=>{
+  if(WP!==state||state[token]!==request||!input.isConnected)return;
+  status.textContent="";posterChange(field,reader.result);
+ };
+ reader.onerror=()=>{if(WP===state&&state[token]===request&&input.isConnected)status.textContent="No se pudo leer la imagen."};
+ reader.readAsDataURL(file);
+}
+function posterTagRows(tags){
+ const rows=[];
+ let row=[],used=0;
+ for(const label of tags||[]){
+  const width=Math.min(1,Math.max(.24,.16+Array.from(label).length*.061));
+  if(used+width>1&&row.length){rows.push(row);row=[];used=0}
+  row.push({label,x:used,width});
+  used+=width+.045;
+ }
+ if(row.length)rows.push(row);
+ return rows;
+}
+function posterLayout(sections,size,design="banner"){
+ const [width,height]=POSTER_SIZES[size]||POSTER_SIZES["9:16"];
+ const edge=Math.min(width,height),margin=edge*.055,banner=Math.min(height*.21,width*.32);
+ const paper=design==="notebook"?{x:edge*.085,y:edge*.05,w:width-edge*.15,h:height-edge*.109}:null;
+ const polaroids=design==="polaroids";
+ const left=paper?paper.x+edge*.064:margin,right=paper?paper.x+paper.w-margin:width-margin;
+ const gridTop=paper?paper.y+edge*.143:polaroids?edge*.321:banner+edge*.086;
+ const gridBottom=paper?paper.y+paper.h-edge*.026:height-edge*.069;
+ const availableWidth=right-left,availableHeight=gridBottom-gridTop;
+ const aspect=55/85,cGap=.1,vGap=.11,labelGap=.29,sectionGap=.14;
+ const maxLength=Math.max(...sections.map(section=>section.items.length),1);
+ const blocks=sections.map(section=>section.items.map(item=>({item,tags:posterTagRows(item.tags)})));
+ let best={cardWidth:0};
+ for(let columns=1;columns<=Math.min(30,maxLength);columns++){
+  let gridHeight=sections.length*(labelGap+sectionGap);
+  const rowsByBlock=blocks.map(block=>{
+   const rows=[];
+   for(let index=0;index<block.length;index+=columns){
+    const entries=block.slice(index,index+columns);
+    const lines=Math.max(...entries.map(entry=>entry.tags.length));
+    const rowHeight=1/aspect+vGap+(lines?POSTER_TAG_TOP+lines*POSTER_TAG_LINE:0);
+    rows.push({entries,index,rowHeight});gridHeight+=rowHeight;
+   }
+   return rows;
+  });
+  const candidate=Math.min(edge*.32,availableWidth/(columns+(columns-1)*cGap),
+   availableHeight/gridHeight);
+  if(candidate>best.cardWidth)best={rowsByBlock,cardWidth:candidate};
+ }
+ const cardWidth=best.cardWidth,cardHeight=cardWidth/aspect,gap=cardWidth*cGap;
+ const cards=[],headings=[];
+ let y=gridTop;
+ sections.forEach((section,block)=>{
+  headings.push({label:section.name,x:left,y:y+cardWidth*.15,size:Math.min(edge*.024,cardWidth*.21)});
+  y+=cardWidth*labelGap;
+  for(const {entries,index,rowHeight} of best.rowsByBlock[block]){
+   const count=entries.length;
+   const x=left+(availableWidth-count*cardWidth-(count-1)*gap)/2;
+   entries.forEach((entry,col)=>cards.push({block,index:index+col,...entry,
+    x:x+col*(cardWidth+gap),y,w:cardWidth,h:cardHeight}));
+   y+=cardWidth*rowHeight;
+  }
+  y+=cardWidth*sectionGap;
+ });
+ return {width,height,margin,banner,paper,design,left,right,gridTop,gridBottom,headings,cards};
+}
+function posterFont(name,size){
+ const family=String(name).replace(/["\\\n\r]/g,"");
+ return `${size}px "${family}", Georgia, serif`;
+}
+function posterImage(state,src){
+ if(!src)return null;
+ if(state.images.has(src))return state.images.get(src);
+ const entry={photo:null,pending:true};
+ entry.ready=new Promise(resolve=>{
+  const photo=new Image();
+  if(/^https?:/i.test(src))photo.crossOrigin="anonymous";
+  const finish=loaded=>{
+   if(!entry.pending)return;
+   clearTimeout(timer);entry.pending=false;entry.photo=loaded?photo:null;resolve(entry);
+   if(WP===state)requestPosterPaint();
+  };
+  const timer=setTimeout(()=>finish(false),12000);
+  photo.onload=()=>finish(true);photo.onerror=()=>finish(false);photo.src=src;
+ });
+ state.images.set(src,entry);
+ return entry;
+}
+function preparePosterAssets(state){
+ const sources=new Set(state.sections.flatMap(section=>section.items.map(item=>item.img)).filter(Boolean));
+ const headerSources=state.design==="polaroids"?[state.polaroid1,state.polaroid2]:state.design==="notebook"?[]:[state.banner];
+ for(const src of headerSources)if(src)sources.add(src);
+ if(state.background)sources.add(state.background);
+ const images=[...sources].map(src=>posterImage(state,src));
+ if(state.loadedFont!==state.font){
+  state.loadedFont=state.font;
+  state.fontReady=document.fonts?.load(posterFont(state.font,64),state.title||"Wishlist").catch(()=>{}).then(()=>{if(WP===state)requestPosterPaint()});
+ }
+ return images;
+}
+function posterCover(ctx,photo,x,y,w,h,radius){
+ const scale=Math.max(w/photo.naturalWidth,h/photo.naturalHeight);
+ const pw=photo.naturalWidth*scale,ph=photo.naturalHeight*scale;
+ ctx.save();ctx.beginPath();
+ if(ctx.roundRect)ctx.roundRect(x,y,w,h,radius);else ctx.rect(x,y,w,h);
+ ctx.clip();
+ ctx.drawImage(photo,x+(w-pw)/2,y+(h-ph)/2,pw,ph);
+ ctx.restore();
+}
+function drawPosterNotebook(ctx,paper,edge){
+ const {x,y,w,h}=paper,radius=edge*.025;
+ ctx.save();
+ ctx.beginPath();
+ if(ctx.roundRect)ctx.roundRect(x,y,w,h,radius);else ctx.rect(x,y,w,h);
+ ctx.fillStyle="#fffdf9";ctx.shadowColor="#24202c30";
+ ctx.shadowBlur=edge*.022;ctx.shadowOffsetY=edge*.011;ctx.fill();
+ ctx.shadowColor="transparent";
+ ctx.strokeStyle="#dad3cf";ctx.lineWidth=edge*.0013;ctx.stroke();
+ const rule=x+edge*.041;
+ ctx.strokeStyle="#e9dfe0";ctx.lineWidth=edge*.0014;
+ ctx.beginPath();ctx.moveTo(rule,y+radius);ctx.lineTo(rule,y+h-radius);ctx.stroke();
+ const count=Math.max(2,Math.floor((h-edge*.08)/(edge*.051)));
+ for(let i=0;i<count;i++){
+  const cy=y+edge*.04+(h-edge*.08)*i/(count-1),slot=edge*.012;
+  ctx.fillStyle="#4c4751";ctx.fillRect(x+edge*.015,cy-slot/2,slot,slot);
+  ctx.beginPath();
+  ctx.ellipse(x+edge*.001,cy,edge*.027,edge*.0075,0,0,Math.PI*2);
+  ctx.strokeStyle="#77717a";ctx.lineWidth=edge*.0045;ctx.stroke();
+  ctx.strokeStyle="#e8e6e7";ctx.lineWidth=edge*.0018;ctx.stroke();
+ }
+ ctx.restore();
+}
+function drawPosterPolaroid(ctx,photo,x,y,frame,angle){
+ const inset=frame*.055,panelWidth=frame-2*inset;
+ ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+ ctx.shadowColor="#25233038";ctx.shadowBlur=frame*.075;ctx.shadowOffsetY=frame*.035;
+ ctx.fillStyle="#fffcf7";ctx.fillRect(-frame/2,-frame*.59,frame,frame*1.18);
+ ctx.shadowColor="transparent";
+ ctx.lineWidth=frame*.005;ctx.strokeStyle="#d2cccb";ctx.strokeRect(-frame/2,-frame*.59,frame,frame*1.18);
+ const left=-frame/2+inset,top=-frame*.59+inset;
+ if(photo)posterCover(ctx,photo,left,top,panelWidth,panelWidth,0);
+ else{
+  const shade=ctx.createLinearGradient(left,top,left+panelWidth,top+panelWidth);
+  shade.addColorStop(0,"#eee3e8");shade.addColorStop(1,"#cfc4d3");
+  ctx.fillStyle=shade;ctx.fillRect(left,top,panelWidth,panelWidth);
+ }
+ ctx.restore();
+}
+function drawPosterCanvas(canvas,state,layout){
+ const {width,height,margin,banner,paper,design,left,right,gridTop}=layout,edge=Math.min(width,height);
+ canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext("2d");
+ const color=state.color||POSTER_COLOR,dark=lum(color)<.5;
+ const backdrop=state.images.get(state.background)?.photo;
+ ctx.fillStyle=color;ctx.fillRect(0,0,width,height);
+ if(backdrop){
+  posterCover(ctx,backdrop,0,0,width,height,0);
+  ctx.globalAlpha=.24;ctx.fillRect(0,0,width,height);ctx.globalAlpha=1;
+ }
+ let titleX=width/2,titleY=banner,titleWidth=right-left;
+ if(paper){
+  if(!backdrop&&color===POSTER_COLOR){
+   const step=edge*.038;
+   ctx.fillStyle="#c5b7c353";
+   ctx.beginPath();
+   for(let y=step/2;y<height;y+=step){
+    for(let x=step/2;x<width;x+=step){ctx.moveTo(x+edge*.0018,y);ctx.arc(x,y,edge*.0018,0,Math.PI*2)}
+   }
+   ctx.fill();
+  }
+  drawPosterNotebook(ctx,paper,edge);
+  titleX=(left+right)/2;titleY=paper.y+edge*.07;
+ }else if(design==="polaroids"){
+  const frame=edge*.162;
+  drawPosterPolaroid(ctx,state.images.get(state.polaroid2)?.photo,margin+edge*.24,edge*.147,frame,.14);
+  drawPosterPolaroid(ctx,state.images.get(state.polaroid1)?.photo,margin+edge*.09,edge*.151,frame,-.18);
+  const titleLeft=margin+edge*.36;
+  titleX=(titleLeft+right)/2;titleY=edge*.134;titleWidth=right-titleLeft;
+  ctx.strokeStyle=dark?"#ffffff50":"#6c526743";
+  ctx.lineWidth=edge*.0016;
+  ctx.beginPath();ctx.moveTo(margin,gridTop-edge*.033);ctx.lineTo(right,gridTop-edge*.033);ctx.stroke();
+ }else{
+  const cover=state.images.get(state.banner)?.photo;
+  if(!cover&&!backdrop&&color===POSTER_COLOR){
+   const gradient=ctx.createLinearGradient(0,0,width,banner);
+   gradient.addColorStop(0,"#302330");gradient.addColorStop(.52,"#80546c");gradient.addColorStop(1,"#d6a0aa");
+   ctx.fillStyle=gradient;ctx.fillRect(0,0,width,banner);
+  }
+  if(cover)posterCover(ctx,cover,0,0,width,banner,0);
+  if(cover||(!backdrop&&color===POSTER_COLOR)){
+   ctx.fillStyle="#dfb5c5";ctx.fillRect(0,banner-3,width,3);
+  }
+ }
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
+ const title=state.title.trim()||state.group,textWidth=right-left,lightText=dark&&!paper,outline=backdrop&&!paper;
+ ctx.fillStyle=lightText?"#fff8fb":"#322334";
+ ctx.strokeStyle=lightText?"#281b2b":"#fff8fb";
+ ctx.font=posterFont(state.font,edge*.085);
+ ctx.lineWidth=edge*.006;
+ if(!paper)ctx.strokeText(title,titleX,titleY,titleWidth);
+ ctx.fillText(title,titleX,titleY,titleWidth);
+ if(!paper){
+  ctx.font=`600 ${edge*.014}px Outfit, sans-serif`;
+  ctx.lineWidth=edge*.0025;
+  if(outline)ctx.strokeText("WISHLIST",titleX,titleY+edge*.064);
+  ctx.fillText("WISHLIST",titleX,titleY+edge*.064);
+ }
+ ctx.textAlign="left";
+ for(const heading of layout.headings){
+  ctx.font=`600 ${heading.size}px Outfit, sans-serif`;
+  ctx.lineWidth=heading.size*.16;
+  if(outline)ctx.strokeText(heading.label,heading.x,heading.y,textWidth);
+  ctx.fillText(heading.label,heading.x,heading.y,textWidth);
+ }
+ for(const card of layout.cards){
+  const {item,x,y,w,h,tags}=card,photo=state.images.get(item.img)?.photo,radius=Math.min(12,w*.08);
+  if(photo)posterCover(ctx,photo,x,y,w,h,radius);
+  else{
+   ctx.fillStyle="#eadde3";ctx.fillRect(x,y,w,h);
+   ctx.font=`${Math.max(5,w*.125)}px Outfit, sans-serif`;ctx.fillStyle="#654c60";ctx.textAlign="center";
+   ctx.fillText("Sin foto",x+w/2,y+h/2,w*.85);ctx.textAlign="left";
+  }
+  if(state.priorities.has(String(item.id))){
+   const badgeW=w*.49,badgeH=w*.24;
+   ctx.fillStyle="#732d52";ctx.fillRect(x+w-badgeW,y,badgeW,badgeH);
+   ctx.textAlign="center";ctx.fillStyle="#fff";
+   ctx.font=`700 ${w*.148}px Outfit, sans-serif`;
+   ctx.fillText("PRIO",x+w-badgeW/2,y+badgeH/2);ctx.textAlign="left";
+  }
+  ctx.textAlign="center";ctx.font=`600 ${w*.115}px Outfit, sans-serif`;
+  tags.forEach((row,line)=>{
+   const last=row[row.length-1],start=x+(1-last.x-last.width)*w/2;
+   const top=y+h+(POSTER_TAG_TOP+line*POSTER_TAG_LINE)*w,pillHeight=w*.168;
+   for(const tag of row){
+    const left=start+tag.x*w,tagWidth=tag.width*w,{background,foreground}=tagPalette(tag.label);
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(left,top,tagWidth,pillHeight,pillHeight/2);
+    else ctx.rect(left,top,tagWidth,pillHeight);
+    ctx.fillStyle=background;ctx.fill();
+    ctx.fillStyle=foreground;ctx.fillText(tag.label,left+tagWidth/2,top+pillHeight/2,tagWidth-w*.07);
+   }
+  });
+ }
+ ctx.save();ctx.globalAlpha=.56;
+ ctx.textAlign="center";ctx.font=`500 ${edge*.015}px Outfit, sans-serif`;
+ ctx.fillStyle=dark?"#fbf4f8":"#463845";
+ ctx.strokeStyle=dark?"#241e24":"#ffffff";ctx.lineWidth=edge*.0024;
+ if(backdrop)ctx.strokeText("Hecho en mypoca",width/2,height-edge*.03);
+ ctx.fillText("Hecho en mypoca",width/2,height-edge*.03);
+ ctx.restore();
+}
+function requestPosterPaint(){
+ const state=WP;
+ if(!state||state.painting||!$("poster-canvas"))return;
+ state.painting=true;
+ requestAnimationFrame(()=>{
+  state.painting=false;
+  if(WP===state&&$("poster-canvas"))paintWishlistPoster(state);
+ });
+}
+function paintWishlistPoster(state){
+ const layout=posterLayout(state.sections,state.size,state.design);
+ state.layout=layout;
+ const images=preparePosterAssets(state);
+ drawPosterCanvas($("poster-canvas"),state,layout);
+ const controls=$("poster-card-controls");
+ if(!posterDrag)controls.innerHTML=layout.cards.map((card,index)=>`<button type="button" class="poster-card-control"
+  style="left:${card.x/layout.width*100}%;top:${card.y/layout.height*100}%;width:${card.w/layout.width*100}%;height:${card.h/layout.height*100}%"
+  data-poster-card="${index}" aria-label="${esc(card.item.name||"Photocard")} " aria-pressed="${state.priorities.has(String(card.item.id))}"
+  onpointerdown="posterPointerDown(event)" onpointermove="posterPointerMove(event)" onpointerup="posterPointerEnd(event)" onpointercancel="posterPointerEnd(event)"
+  onkeydown="posterCardKey(event)" oncontextmenu="event.preventDefault()" onclick="posterCardClick(this)"></button>`).join("");
+ const pending=images.filter(entry=>entry.pending).length,failed=images.filter(entry=>!entry.pending&&!entry.photo).length;
+ const status=$("poster-status");
+ if(!state.exporting&&(pending||failed||status.dataset.images)){
+  status.textContent=pending?"Cargando imágenes…":failed?"Algunas imágenes no se pudieron cargar.":"";
+  status.dataset.images=pending||failed?"1":"";
+ }
+ if(state.focusCard!=null){
+  controls.querySelector(`[data-poster-card="${state.focusCard}"]`)?.focus({preventScroll:true});
+  state.focusCard=null;
+ }
+}
+function togglePosterPriorities(){
+ if(!WP)return;
+ WP.priorityMode=!WP.priorityMode;
+ $("poster-prios").setAttribute("aria-pressed",String(WP.priorityMode));
+ $("poster-instructions").textContent=WP.priorityMode?
+  "Toca las photocards que quieras destacar con la etiqueta PRIO.":
+  "Mantén pulsada una photocard y arrástrala dentro de su era para cambiar el orden.";
+}
+function posterCardClick(button){
+ if(!WP?.priorityMode)return;
+ const index=Number(button.dataset.posterCard),card=WP.layout?.cards[index];
+ if(!card)return;
+ const id=String(card.item.id);
+ if(WP.priorities.has(id))WP.priorities.delete(id);else WP.priorities.add(id);
+ WP.focusCard=index;
+ requestPosterPaint();
+}
+function posterPointerDown(event){
+ if(!WP||WP.priorityMode||event.button!==0||posterDrag)return;
+ const origin=event.currentTarget,index=Number(origin.dataset.posterCard);
+ const drag={origin,index,target:index,id:event.pointerId,x:event.clientX,y:event.clientY,active:false};
+ posterDrag=drag;
+ origin.setPointerCapture(event.pointerId);
+ drag.timer=setTimeout(()=>{
+  if(posterDrag!==drag||!origin.isConnected)return;
+  drag.active=true;
+  origin.classList.add("dragging");
+ },350);
+}
+function posterPointerMove(event){
+ const drag=posterDrag,layout=WP?.layout;
+ if(!drag||!layout||drag.id!==event.pointerId)return;
+ if(!drag.active){
+  if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>10){clearTimeout(drag.timer);posterDrag=null}
+  return;
+ }
+ const rect=$("poster-stage").getBoundingClientRect(),x=(event.clientX-rect.left)/rect.width*layout.width,y=(event.clientY-rect.top)/rect.height*layout.height;
+ const origin=layout.cards[drag.index];
+ const target=layout.cards.findIndex(card=>card.block===origin.block&&x>=card.x&&y>=card.y&&x<=card.x+card.w&&y<=card.y+card.h);
+ const controls=$("poster-card-controls");
+ controls.querySelector(".drop-target")?.classList.remove("drop-target");
+ drag.target=target;
+ if(target>=0)controls.querySelector(`[data-poster-card="${target}"]`)?.classList.add("drop-target");
+}
+function movePosterCard(state,from,to){
+ if(!from||!to||from.block!==to.block||from.index===to.index)return false;
+ const items=state.sections[from.block].items;
+ items.splice(to.index,0,items.splice(from.index,1)[0]);
+ return true;
+}
+function posterPointerEnd(event){
+ const drag=posterDrag;
+ if(!drag||drag.id!==event.pointerId)return;
+ clearTimeout(drag.timer);posterDrag=null;
+ drag.origin.classList.remove("dragging");
+ $("poster-card-controls")?.querySelector(".drop-target")?.classList.remove("drop-target");
+ if(event.type==="pointercancel"||!drag.active||drag.target<0||!WP)return;
+ if(movePosterCard(WP,WP.layout.cards[drag.index],WP.layout.cards[drag.target]))requestPosterPaint();
+}
+function posterCardKey(event){
+ if(!WP||WP.priorityMode||!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))return;
+ const index=Number(event.currentTarget.dataset.posterCard);
+ const target=index+(["ArrowLeft","ArrowUp"].includes(event.key)?-1:1);
+ if(movePosterCard(WP,WP.layout.cards[index],WP.layout.cards[target])){
+  event.preventDefault();WP.focusCard=target;requestPosterPaint();
+ }
+}
+async function downloadWishlistPoster(){
+ const state=WP,button=$("poster-download"),status=$("poster-status");
+ if(!state||state.exporting)return;
+ state.exporting=true;button.disabled=true;status.textContent="Preparando PNG…";
+ try{
+  const snapshot={...state,sections:state.sections.map(section=>({...section,items:section.items.slice()})),
+   priorities:new Set(state.priorities),loadedFont:null};
+  const photos=preparePosterAssets(snapshot);
+  await Promise.all(photos.map(entry=>entry.ready).concat(snapshot.fontReady||[]));
+  if(WP!==state||!button.isConnected||!$("modal").classList.contains("on"))return;
+  const canvas=document.createElement("canvas");
+  drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design));
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(data=>data?resolve(data):reject(new Error("PNG")),"image/png"));
+  if(WP!==state||!button.isConnected)return;
+  const url=URL.createObjectURL(blob),link=document.createElement("a");
+  const filename=nrm(snapshot.title.trim()||snapshot.group).replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"");
+  link.href=url;link.download=`${filename||"mypoca"}-wishlist.png`;
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+  const missing=photos.filter(entry=>!entry.photo).length;
+  status.textContent=missing?"PNG listo. Algunas imágenes no se pudieron cargar.":"PNG listo.";
+ }catch(e){status.textContent="No se pudo descargar el PNG. Intenta otra vez."}
+ finally{state.exporting=false;button.disabled=false}
+}
+
 function wishItemKind(item=cur){return item?(item.kind||"pc"):wtab}
 function editW(id){
  cur=id?S.wish.find(i=>i.id==id):null;
@@ -2251,8 +2813,8 @@ function mgEra(g,items,cell,L,gt,drag){
  const rest=items.filter(i=>!L.some(e=>e.id==gt(i)));
  if(rest.length)h+=(shown?`<div class="erasl">Sin era</div>`:"")+grid(rest);
  return h}
-function eraGroup(g,items,cell,showEmpty){
- const grid=a=>`<div class="grid" data-drag="i">${a.map(cell).join("")}</div>`;
+function eraGroup(g,items,cell,showEmpty,drag="i"){
+ const grid=a=>`<div class="grid" data-drag="${drag}">${a.map(cell).join("")}</div>`;
  if(g=="Sin grupo")return `<h2>${esc(g)}</h2>`+grid(items);
  const k=allG().indexOf(g),L=eraList(g);
  let h=`<div class="erahd"><h2>${esc(g)}</h2>${L.length?`<button class="sec sm" onclick="eraMgr(${k})">Eras</button>`:""}</div>`;
@@ -2401,7 +2963,7 @@ function showBook(src,tab){if(src)bkSrc=src;if(tab)bkTab=tab;
   prs=wl?S.wish.filter(i=>i.kind=="misc"):ev().filter(i=>i.type!="PC"&&sc(i)),
   list=prod?prs:pcs,fn=i=>wl?"viewW":i.manual?"viewC":"view",
   cell=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;bkSc=$('sheet').scrollTop;retBook=1;${fn(i)}('${i.id}')">${i.img?`<img src="${i.img}">`:`<div class="mph">${esc(i.name||"Sin foto")}</div>`}</div>`;
- openM(`<div class="vw cbk"><div class="bkh"><h3 style="margin:0">${wl?"Wishlist":po?"Collect Book · Pedidos":"Collect Book · Colección"}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div><div class="seg"><button class="${prod?"":"on"}" onclick="showBook(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="showBook(null,'prod')">Artículos <small>${prs.length}</small></button></div>${list.length?`<div class="mu" style="text-align:center;margin:2px 0 6px">Mantén presionado y arrastra para ordenar</div>${ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||wl||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,eraList(g),i=>i.era,"i")).join("")}`:`<div class="empty">${prod?"Aún no hay artículos aquí.":"Aún no hay photocards aquí."}</div>`}</div>`);retBook=0}
+ openM(`<div class="vw cbk"><div class="bkh"><h3 style="margin:0">${wl?"Wishlist":po?"Collect Book · Pedidos":"Collect Book · Colección"}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div><div class="seg"><button class="${prod?"":"on"}" onclick="showBook(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="showBook(null,'prod')">Artículos <small>${prs.length}</small></button></div>${list.length?`<div class="mu" style="text-align:center;margin:2px 0 6px">Mantén presionado y arrastra para ordenar</div>${ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,eraList(g),i=>i.era,wl?"w":"i")).join("")}`:`<div class="empty">${prod?"Aún no hay artículos aquí.":"Aún no hay photocards aquí."}</div>`}</div>`);retBook=0}
 function useImg(m){resetCatalogResults();const mk=n=>{const k=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*k);c.height=Math.round(m.height*k);c.getContext("2d").drawImage(m,0,0,c.width,c.height);return c};img=mk(360).toDataURL("image/jpeg",.7);imgBig=mk(900).toDataURL("image/jpeg",.85);const p=$("pv");if(p)p.innerHTML=`<img class="pvimg" src="${img}">`}
 const isGif=x=>/^data:image\/gif/i.test(x||""),GIF_PH=1048576,GIF_BN=2097152;let bnGif=null,bnGifCols=[];
 const mbs=n=>(n/1048576).toFixed(1).replace(".0","");
@@ -3041,7 +3603,7 @@ function paintPub(){
   h+=`<div class="seg">${sections.map(([key,label])=>`<button class="${key===pubSrc?"on":""}" onclick="setPubS('${key}')">${label}</button>`).join("")}</div>`;
   if(!locked)h+=`<div class="seg"><button class="${prod?"":"on"}" onclick="setPubS(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPubS(null,'prod')">Artículos <small>${prs.length}</small></button></div>${pubChips()}`;
   const ER_=d.er||[];
-  h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||wl||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?`<img src="${x.i}" onclick="pubItem(${k})">`:"").join("")}</div>`;
+  h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?`<img src="${x.i}" onclick="pubItem(${k})">`:"").join("")}</div>`;
   const its=list.map((x,k)=>({x,k})).filter(o=>(o.x.g||"Sin grupo")==g);
   return mgEra(g,its,o=>`<img src="${o.x.i}" onclick="pubItem(${o.k})">`,ER_.filter(e=>e.g==g).map(e=>({id:e.id,name:e.n,img:e.i})),o=>o.x.e,"")}).join(""):`<div class="empty">Aún no hay nada aquí.</div>`;
  }
@@ -3192,7 +3754,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.42",VK="mypoca-ver";
+const APP_VER="1.45",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
