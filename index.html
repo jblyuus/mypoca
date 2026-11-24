@@ -2332,7 +2332,8 @@ function socialDiscoveryReason(p,artists,groups){
  if(p.tag_hit)return "Etiqueta · "+p.tag_hit;
  if(artist)return `${artists.has(artist)?"También colecciona a":"Colecciona a"} ${artists.get(artist)||artist}`;
  if(p.groups?.length>1)return `Tienen ${p.groups.length} grupos en común`;
- return group?`Grupo en común · ${groups.get(group)||group}`:"";
+ if(group)return `Grupo en común · ${groups.get(group)||group}`;
+ return p.go_name?`Comparten el GO ${p.go_name}`:"";
 }
 function socialDiscoverHtml(){
  if(discoverInput.trim()!==discoverQuery)return '<div class="mu social-state">Toca Buscar para ver las coincidencias.</div>';
@@ -2340,8 +2341,8 @@ function socialDiscoverHtml(){
  const {artists,groups}=socialInterests();
  if(!discoverResults.length&&!discoverPosts.length){
   if(discoverQuery)return '<div class="empty">No encontramos coincidencias. Prueba otro artista, grupo, GO socio o @usuario.</div>';
-  if(!artists.size&&!groups.size)return '<div class="empty">Añade tus grupos favoritos o bias en Editar perfil para ver sugerencias.<br><button type="button" class="sec sm" style="margin-top:10px" onclick="editP()">Editar perfil</button></div>';
-  return '<div class="empty">Aún no encontramos coincidencias con tus grupos o bias. También puedes buscar por nombre o @usuario.</div>';
+  if(!artists.size&&!groups.size&&!socialPartnerGos().length)return '<div class="empty">Añade tus grupos favoritos, bias o un GO socio en Editar perfil para ver sugerencias.<br><button type="button" class="sec sm" style="margin-top:10px" onclick="editP()">Editar perfil</button></div>';
+  return '<div class="empty">Aún no encontramos coincidencias con tus grupos, bias o GOs socios. También puedes buscar por nombre o @usuario.</div>';
  }
  const posts=discoverPosts.map(p=>socialPostCard(p,false,socialDiscoveryReason(p,artists,groups))).join("");
  const people=discoverResults.map(p=>`<button type="button" class="card social-person" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">
@@ -2361,16 +2362,18 @@ async function findSocial(term){
  discoverInput=discoverQuery=String(term||"").trim().slice(0,64);
  const query=socialInterestKey(discoverQuery.replace(/^[@#]/,""));
  const version=++discoverVersion,who=meId(),{artists,groups}=socialInterests();
+ const goIds=new Set(socialPartnerGos().map(go=>String(go.id)));
  discoverStatus="Buscando perfiles y publicaciones…";
  if(tab==="social"&&socialTab==="discover")render();
  try{
   const result=await socialRpc("social_discover_content",{
    term:discoverQuery.startsWith("@")&&query?"@"+query:query,artist_keys:[...artists.keys()],
-   group_keys:[...groups.keys()],go_ids:socialPartnerGos().map(go=>String(go.id))
+   group_keys:[...groups.keys()],go_ids:[...goIds]
   },true);
   if(version!==discoverVersion||who!==meId())return;
   const kind=discoverQuery.startsWith("@")?"person":result?.search_kind;
-  const sharesInterests=row=>row.artists?.some(artist=>artists.has(artist))||row.groups?.some(group=>groups.has(group));
+  const sharesInterests=row=>row.artists?.some(artist=>artists.has(artist))
+   ||row.groups?.some(group=>groups.has(group))||goIds.has(String(row.go_id));
   const tagMatches=row=>{
    const key=socialInterestKey((row.tag_hit||"").replace(/^#/,""));
    return artists.has(key)||groups.has(key);
@@ -2385,6 +2388,12 @@ async function findSocial(term){
  }
  const results=$("social-results");
  if(results)results.innerHTML=socialDiscoverHtml();
+}
+function refreshSocialFriendship(){
+ if(tab!=="social")return;
+ if(socialTab==="discover"){
+  if(discoverInput.trim()===discoverQuery)findSocial(discoverQuery);
+ }else refreshSocial();
 }
 function socialAvatar(p){
  const image=socialImage(p.photo);
@@ -2714,6 +2723,7 @@ async function friendAct(a){const r=PUB,me=meId(),X=PUBX;if(!r||!me||X.busy)retu
  try{if(a=="add")await api("POST","amistades",[{de:me,para:r.user_id,estado:"pendiente"}],{Prefer:"return=minimal"});
   else if(a=="accept")await api("PATCH","amistades?id=eq."+X.rel.id,{estado:"aceptada"},{Prefer:"return=minimal"});
   else await api("DELETE","amistades?id=eq."+X.rel.id);
+  if(a==="accept"||a==="remove")refreshSocialFriendship();
   toast(a=="add"?"Solicitud enviada":a=="accept"?"Ahora son amigos":a=="cancel"?"Solicitud cancelada":a=="decline"?"Solicitud rechazada":"Amistad eliminada")}
  catch(e){alert("No se pudo: "+sqlHint(e.message))}
  await loadRel();loadNotifs()}
@@ -2735,7 +2745,7 @@ function nfPaint(){const nm=p=>p?(p.name||p.username):"Alguien",un=p=>p?"@"+p.us
  const rq=NF.req.map(x=>`<div class="nrow">${avHtml(x.p)}<div class="grow"><div><b onclick="${x.p?`closeM();openPub('${esc(x.p.username)}')`:""}">${esc(nm(x.p))}</b> quiere ser tu amigo</div><div class="mu">${esc(un(x.p))} · ${ago(x.created_at)}</div><div class="btns"><button class="pri" onclick="nfAct('${x.id}','ok')">Aceptar</button><button class="sec" onclick="nfAct('${x.id}','no')">Rechazar</button></div></div></div>`).join(""),
  lk=NF.likes.map(x=>`<div class="nrow" onclick="${x.p?`closeM();openPub('${esc(x.p.username)}')`:""}">${avHtml(x.p)}<div class="grow"><div><b>${esc(nm(x.p))}</b> le dio like a tu perfil</div><div class="mu">${esc(un(x.p))} · ${ago(x.created_at)}</div></div><span style="color:#e5484d;display:flex" class="lk on">${HEART}</span></div>`).join("");
  openM(`<div class="vw"><h3>Notificaciones</h3>${isAdmin()&&(NF.go||[]).length?`<div class="nsec">Solicitudes de GO socio <small>(${NF.go.length})</small></div>${NF.go.map(x=>`<div class="nrow">${avHtml(x.p)}<div class="grow"><div><b>${esc(x.name)}</b></div><div class="mu" style="white-space:pre-wrap">Descripción: ${esc(x.contact)}</div><div class="mu">Cuenta del gom: ${esc(String(x.gom_account||"").split(" | MyPoca: ")[0].replace(/^MyPoca: .*$/,"—"))}</div>${/MyPoca: /.test(x.gom_account||"")?`<div class="mu">MyPoca: ${esc(String(x.gom_account).split("MyPoca: ")[1])}</div>`:""}<div class="mu">Enviada por ${esc(nm(x.p))} · ${ago(x.created_at)}</div><div class="btns"><button class="pri" onclick="goReqAct('${x.id}','ok')">Aprobar</button><button class="sec" onclick="goReqAct('${x.id}','no')">Rechazar</button></div></div></div>`).join("")}`:""}<div class="nsec">Solicitudes de amistad ${NF.req.length?"<small>("+NF.req.length+")</small>":""}</div>${rq||'<div class="mu">No tienes solicitudes pendientes.</div>'}<div class="nsec">Likes en tu perfil</div>${lk||'<div class="mu">Aún nadie ha dado like a tu perfil.</div>'}<div style="margin-top:14px;display:flex;gap:8px"><button class="sec" onclick="friends()">Mis amigos</button><button class="pri" onclick="closeM()">Cerrar</button></div></div>`)}
-async function nfAct(id,a){try{if(a=="ok")await api("PATCH","amistades?id=eq."+id,{estado:"aceptada"},{Prefer:"return=minimal"});else await api("DELETE","amistades?id=eq."+id);toast(a=="ok"?"Ahora son amigos":"Solicitud rechazada")}catch(e){alert("No se pudo: "+sqlHint(e.message))}await loadNotifs();nfPaint()}
+async function nfAct(id,a){try{if(a=="ok"){await api("PATCH","amistades?id=eq."+id,{estado:"aceptada"},{Prefer:"return=minimal"});refreshSocialFriendship()}else await api("DELETE","amistades?id=eq."+id);toast(a=="ok"?"Ahora son amigos":"Solicitud rechazada")}catch(e){alert("No se pudo: "+sqlHint(e.message))}await loadNotifs();nfPaint()}
 function friends(t){FT=t||"list";openM(`<div class="vw"><h3>Amigos</h3><div class="seg"><button class="${FT=="list"?"on":""}" onclick="friends('list')">Mis amigos</button><button class="${FT=="find"?"on":""}" onclick="friends('find')">Buscar</button></div><div id="fbody"></div><div style="margin-top:12px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>`);
  if(FT=="find"){$("fbody").innerHTML=`<div class="addr"><input id="fq" placeholder="@usuario o nombre" autocapitalize="none" autocomplete="off" onkeydown="if(event.key=='Enter')fSearch()"><button class="pri" onclick="fSearch()">Buscar</button></div><div id="fres" class="mu" style="margin-top:10px">Escribe el @usuario de tu amiga o amigo.</div>`;return}
  loadFriends()}
@@ -2823,9 +2833,9 @@ render();
 {let n=0,pd=false,tg=false;const t=setInterval(()=>{n++;if(n>40)return clearInterval(t);if(!(auth&&auth.user))return;if(!tg){tg=true;loadMyTags()}if(!pd&&S.profile&&S.profile.pub){pd=true;pubPush().then(()=>{pubMsg="Publicado "+hora()}).catch(e=>toast(e.message))}if(tg&&(pd||!(S.profile&&S.profile.pub)))clearInterval(t)},1500)}
 
 /* ===== Novedades por versión =====
-   Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
+   Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.36",VK="mypoca-ver";
+const APP_VER="1.37",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
