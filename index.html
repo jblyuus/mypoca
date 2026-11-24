@@ -533,6 +533,32 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 button.frame-option{font:inherit;cursor:pointer}
 button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}
 .frame-option small{color:var(--mu)}
+.social-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.social-segments{margin:12px 0}
+.social-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:12px 0}
+.social-search input{margin:0;min-width:0}
+.social-interests{margin-bottom:10px}
+.social-person{width:100%;display:flex;align-items:center;gap:12px;text-align:left;color:var(--tx);font:inherit;cursor:pointer}
+.social-person .mu,.social-author .mu{display:block}
+.social-reason{display:block;font-size:13px;margin-top:5px}
+.social-avatar{display:grid;place-items:center;flex:0 0 auto;width:45px;height:45px;border-radius:50%;color:var(--tx);object-fit:cover;background:var(--bg);border:1px solid var(--bd)}
+.social-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}
+.social-heading h2{margin:0}
+.social-state{padding:14px 0;display:grid;gap:8px;justify-items:start}
+.social-post-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0}
+.social-post-grid button,.social-photo-button{display:block;padding:0;cursor:pointer;border:0;background:var(--bg);overflow:hidden;border-radius:13px;width:100%}
+.social-post-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.social-post{padding:12px;margin:12px 0}
+.social-post-detail .social-post{margin-top:0;padding:0;border:0;box-shadow:none;background:none}
+.social-author{display:flex;align-items:center;gap:9px;color:var(--tx);background:none;border:0;padding:0;margin:0 0 10px;text-align:left;font:inherit;cursor:pointer}
+.social-author .social-avatar{width:38px;height:38px}
+.social-post-photo{display:block;width:100%;max-height:65vh;object-fit:contain;border-radius:13px;background:var(--bg)}
+.social-post-photo[hidden]{display:none}
+#post-preview{margin:8px 0;max-height:45vh}
+.social-caption{margin:9px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.social-post-tags,.social-post-actions{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 0}
+.social-like.on{color:var(--ac)}
+.social-more{display:block;margin:12px auto}
 </style></head><body><div class="bgfx"><i></i><i></i><i></i></div>
 <header><h1 id="ttl">Mis pedidos</h1><div style="display:flex;gap:10px;align-items:center"><button id="bell" class="avb bell" aria-label="Notificaciones" onclick="openNotifs()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span id="bb" class="bbadge"></span></button><button id="av" class="avb" aria-label="Perfil" onclick="go('perfil')"></button></div></header>
 <main id="v"></main>
@@ -554,8 +580,19 @@ function save(noTs){if(!noTs){rememberFrameLevel();S._ts=Date.now()}let ls=1;try
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money=n=>"$"+(Math.round(n*100)/100).toLocaleString("es-MX");
 const ic=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
-const TABS=[["ped",ic('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),"Pedidos"],["book",ic('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),"Collect Book"],["sin",ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),"Sin caja"],["gas",ic('<path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h16V9H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/>'),"Gastos"]];
-function go(t){if(t=="book")bsec=null;tab=t;anim=true;render();if(t=="perfil")loadOwnFrameAccess()}
+const TABS=[["ped",ic('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),"Pedidos"],["book",ic('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),"Collect Book"],["social",ic('<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 6a3 3 0 0 1 0 6m2 2a5 5 0 0 1 3 4v2"/>'),"Social"],["gas",ic('<path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h16V9H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/>'),"Gastos"]];
+let ordersUnboxed=false;
+function go(t){
+ if(t==="sin"||t==="ped")ordersUnboxed=t==="sin";
+ if(t==="book")bsec=null;
+ tab=t==="sin"?"ped":t;anim=true;render();
+ if(tab==="social")refreshSocial();
+ if(tab==="perfil"){
+  loadOwnFrameAccess();
+  if(myProfilePane!=="cards"&&S.profile?.pub&&meId())loadSocialPosts(meId());
+ }
+}
+function setOrderMode(unboxed){ordersUnboxed=unboxed;anim=true;render()}
 function thumb(i){return i.img?`<img class="th" src="${i.img}">`:`<div class="th"></div>`}
 function itemRow(i){return `<div class="row"><div onclick="view('${i.id}')">${thumb(i)}</div><div class="grow" onclick="view('${i.id}')"><div class="nm">${esc(i.name)}</div><div class="mu tags"><span class="tag">${i.type}</span>${goTag(i,"tag")}${i.grupo?`<span class="tag">${esc(i.grupo)}</span>`:""}${i.artist&&arName(i.artist)?`<span class="tag">${esc(arName(i.artist))}</span>`:""}${i.unit&&arName(i.unit)?`<span class="tag">${esc(arName(i.unit))}</span>`:""}${(i.tags||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")}${i.price?money(i.price):""}</div></div>
 <select style="width:146px" onchange="setSt('${i.id}',this.value)">${ESTADOS.map(e=>`<option ${e==i.status?"selected":""}>${e}</option>`).join("")}</select></div>`}
@@ -738,9 +775,10 @@ function setSt(id,v){S.items.find(i=>i.id==id).status=v;save();if(v=="En casa"){
 function setCh(k,f,v){S.boxes[k]=S.boxes[k]||{};S.boxes[k][f]=parseFloat(v)||0;save()}
 function render(){afFix();
  $("nav").innerHTML=TABS.map(t=>`<button class="${t[0]==tab?"on":""}" onclick="go('${t[0]}')">${t[1]}<span>${t[2]}</span></button>`).join("");
- $("ttl").textContent=tab=="perfil"?"Perfil":tab=="book"?"Collect Book":TABS.find(t=>t[0]==tab)[2];$("fab").style.display=(tab=="perfil"||(tab=="book"&&!bsec))?"none":"";{const p=S.profile||{};$("av").innerHTML=p.photo?`<img src="${p.photo}">`:`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>`}
+ $("ttl").textContent=tab=="perfil"?"Perfil":tab=="book"?"Collect Book":TABS.find(t=>t[0]==tab)[2];$("fab").style.display=(tab=="perfil"||tab=="social"||(tab=="book"&&!bsec))?"none":"";{const p=S.profile||{};$("av").innerHTML=p.photo?`<img src="${p.photo}">`:`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>`}
  let h="",hh="";
- if(tab=="ped"){
+ if(tab=="social")h=socialTabHtml();
+ if(tab=="ped"&&!ordersUnboxed){
   const pt=PAISES.filter(p=>p!="Otro"||S.items.some(i=>i.country=="Otro"));if(!pt.includes(ptab))ptab=pt[0];
   const direct=p=>p=="México"||p=="Pocamarket",base=S.items.filter(i=>!home(i)&&(direct(i.country)||i.box)&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   h=`<div class="seg">${pt.map(p=>`<button class="${p==ptab?"on":""}" onclick="setP('${p}')">${p} <small>${base.filter(i=>i.country==p).length}</small></button>`).join("")}</div>`;
@@ -760,7 +798,7 @@ function render(){afFix();
   const emp=col?(prod?"Tu colección de artículos está vacía.<br>Toca + para agregar el primero.":"Tu colección de photocards está vacía.<br>Toca + y toma una foto de tu primera photocard."):(prod?"Agrega álbumes y otros productos con foto y aparecerán aquí.":"Agrega photocards con foto y aparecerán aquí.");
   h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod?`<h2>${esc(g)}</h2><div class="grid prod" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:eraGroup(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,col&&!(af||gof))).join(""):`<div class="empty">${emp}</div>`;
  }
- if(tab=="sin"){
+ if(tab=="ped"&&ordersUnboxed){
   const s=S.items.filter(i=>!home(i)&&!i.box&&!["México","Pocamarket"].includes(i.country)&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   h=`<div class="mu">Artículos que aún no tienen caja asignada (preventas, sin fecha, etc.). Edítalos para asignar caja.</div><div class="card">${s.length?s.map(itemRow).join(""):`<div class="empty">Nada pendiente por asignar.</div>`}</div>`;
  }
@@ -786,8 +824,10 @@ function render(){afFix();
   <div class="pstats"><div><b>${ev().filter(i=>i.type=="PC").length}</b><span>photocards</span></div><div><b>${ev().filter(i=>i.type!="PC").length}</b><span>artículos</span></div><div><b>${S.wish.length}</b><span>wishlist</span></div></div></div>
   <div class="prow"><button class="sec" onclick="shareP()">Compartir perfil</button><button class="sec" onclick="friends()">Amigos</button></div>
   ${sigWrap(lvBig(),"plvx")}
-  ${sigWrap(favSec(),"fvs")}
-  <div class="seg"><button class="${po?"on":""}" onclick="setPP('ped')">Pedidos</button><button class="${wl||po?"":"on"}" onclick="setPP('col')">Colección</button><button class="${wl?"on":""}" onclick="setPP('wish')">Wishlist</button></div>
+  ${socialSegments(SOCIAL_PANES,myProfilePane,"setMyProfilePane")}
+  ${myProfilePane==="home"?sigWrap(favSec(),"fvs")+(p.pub&&meId()?socialPostList(meId(),"preview"):""):""}
+  ${myProfilePane==="posts"?`<div class="social-heading"><h2>Mis posts</h2><button type="button" class="pri sm" onclick="composeSocialPost()">+ Publicar</button></div>${p.pub&&meId()?socialPostList(meId(),"grid"):'<div class="empty">Activa tu perfil público para compartir publicaciones.</div>'}`:""}`;
+  if(myProfilePane==="cards")h+=`<div class="seg"><button class="${po?"on":""}" onclick="setPP('ped')">Pedidos</button><button class="${wl||po?"":"on"}" onclick="setPP('col')">Colección</button><button class="${wl?"on":""}" onclick="setPP('wish')">Wishlist</button></div>
   <div class="seg"><button class="${prod?"":"on"}" onclick="setPK('pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPK('prod')">Artículos <small>${prs.length}</small></button></div>${pfChips(pfl)}${prod&&!wl?gochips():""}
   ${list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||wl||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cellP).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cellP,eraList(g),i=>i.era,"i")).join(""):`<div class="empty">${prod?(wl?"Tu wishlist de artículos está vacía.":"Aún no hay artículos aquí."):wl?"Tu wishlist está vacía.":po?"No tienes photocards en pedidos.":"Tu colección está vacía."}</div>`}`;
  }
@@ -809,7 +849,8 @@ function render(){afFix();
   <h2>Por tipo de pedido</h2><div class="card">${PAISES.map(p=>`<div class="kv"><span>${p}</span><b>${money(S.items.filter(i=>i.country==p).reduce((a,i)=>a+(+i.price||0),0))}</b></div>`).join("")}</div>
   <h2>Respaldo</h2><div class="card"><button class="sec" onclick="exp()">Exportar respaldo</button> <button class="sec" onclick="$('imp').click()">Importar</button><input type="file" id="imp" accept=".json" hidden onchange="imp(this.files[0])"><div class="mu" style="margin-top:6px">Los datos se guardan en este navegador. Exporta un respaldo de vez en cuando.</div></div>`;
  }
- if(tab!="gas"&&tab!="perfil"&&!(tab=="book"&&!bsec))h=hh+(["ped","sin","book"].includes(tab)?gochips():"")+chips()+artBar()+h;
+ if(tab==="ped")h=`<div class="seg"><button class="${ordersUnboxed?"":"on"}" onclick="setOrderMode(false)">Por caja</button><button class="${ordersUnboxed?"on":""}" onclick="setOrderMode(true)">Sin caja</button></div>`+h;
+ if(tab!="gas"&&tab!="perfil"&&tab!=="social"&&!(tab=="book"&&!bsec))h=hh+(["ped","book"].includes(tab)?gochips():"")+chips()+artBar()+h;
  {const V=$("v");let ok=false;if(tab=="perfil"&&V.dataset.pf=="1"&&!anim){const t=document.createElement("div");t.innerHTML=h;ok=keepPatch(V,t,[".plvx",".fvs"])}if(!ok)V.innerHTML=h;V.dataset.pf=tab=="perfil"?"1":"";V.className=anim?"in":""}anim=false;
 }
 function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",type:"PC",country:(tab=="ped"?ptab:"Corea"),box:"",status:"Pendiente",price:"",img:""};img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
@@ -1021,6 +1062,11 @@ function editP(){
  </section>
  <section class="pe-section">
   <details><summary>GOs y etiquetas</summary>${pgHtml()}</details>
+  <details><summary>Descubrir personas</summary>
+   <div class="sg"><label><input type="checkbox" id="p_discover" ${p.discovery?.visible?"checked":""}>Aparecer en Descubrir</label>
+   <label><input type="checkbox" id="p_discover_private" ${p.discovery?.private?"checked":""}>Usar artistas y grupos de apartados privados</label></div>
+   <p class="mu">Con el perfil público activo, se mostrarán los artistas y grupos en común. Las coincidencias no indican de dónde salió el interés ni muestran tus piezas o gastos.</p>
+  </details>
   <details><summary>Privacidad</summary>
    <div class="mu">Elige qué apartados ocultar de tu perfil público. Las photocards de la Colección que elijas como favoritas seguirán visibles.</div>
    <div class="sg">
@@ -1065,7 +1111,7 @@ async function okP(){
  if(selected&&selected!==old.frame&&!allowedFrame(selected,myFrameLevel(),ownFrameAccess())){
   return alert("Ese marco todavía no está disponible en tu cuenta.");
  }
- const next={cardColor:profileColor(profileColorDraft),frame:selected,frameLevel:old.frameLevel,photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
+ const next={discovery:{visible:!!$("p_discover").checked,private:!!$("p_discover_private").checked},cardColor:profileColor(profileColorDraft),frame:selected,frameLevel:old.frameLevel,photo:img,name:$("p_n").value.trim(),user:$("p_u").value.trim(),group:$("p_g").value.trim(),bias:$("p_b").value.trim(),desc:$("p_d").value.trim(),pub:old.pub,gos:PG.slice(),ig:old.ig||"",tt:old.tt||"",banner:bn,bcol:bn?bnCols:undefined,favs:old.favs,favc:old.favc,gosVis:PGV===null?null:PGV.slice(),priv:{ped:!!($("p_pv_ped")||{}).checked,col:!!($("p_pv_col")||{}).checked,wish:!!($("p_pv_wish")||{}).checked}};
  if(auth){
   const candidate=next.user.replace(/^@/,"").toLowerCase();
   if((candidate&&!/^[a-z0-9_.]{3,30}$/.test(candidate))||(!candidate&&old.pub)){
@@ -1631,7 +1677,7 @@ function pkRm(k,n){
 function rmMember(id){S.artists=AR().filter(a=>a.id!=id);allItems().forEach(i=>{if(i.artist==id)i.artist="";if(i.unit==id)i.unit=""});if(fA==id)fA="";if(fU==id)fU="";if(af==id)af=""}
 /* barra tipo "historias" */
 var SLI='<svg viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>';
-function artBar(){if(!(["ped","sin","wish"].includes(tab)||(tab=="book"&&bsec)))return"";
+function artBar(){if(!(["ped","wish"].includes(tab)||(tab=="book"&&bsec)))return"";
  const gs=ordG([...new Set(AR().map(a=>a.group))]),l=gs.flatMap(g=>arList(g)).filter(a=>!gf||a.group==gf);
  return `<div class="arbar"><button class="arcfg" onclick="editArt()" aria-label="Personalizar artistas">${SLI}</button><div class="arrow">${l.length?l.map(a=>`<div class="ari ${af==a.id?"on":""}"><button class="arc${a.img?"":" empty"}" onclick="arTap('${a.id}')" aria-label="${esc(a.name)}">${a.img?`<em class="arp" style="background-image:url('${esc(a.img)}')"></em>`:"+"}${a.kind=="unit"?"<u>U</u>":""}</button><span onclick="arFilt('${a.id}')">${esc(a.name)}</span></div>`).join(""):`<div class="arhint">${AR().length?"Sin artistas en este grupo":"Agrega artistas y units con el botón de la izquierda"}</div>`}</div></div>`}
 function arTap(id){const a=arById(id);if(!a)return;if(!a.img)arPick(id);else arFilt(id)}
@@ -1923,7 +1969,7 @@ async function reserveUsername(username){
 const cmpC=new Map();
 function shrink(src,n){return new Promise(res=>{if(!src)return res("");const k=n+"|"+src.length+"|"+src.slice(-48);if(cmpC.has(k))return res(cmpC.get(k));const m=new Image();m.onload=()=>{const f=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*f);c.height=Math.round(m.height*f);c.getContext("2d").drawImage(m,0,0,c.width,c.height);const o=c.toDataURL("image/jpeg",.6);cmpC.set(k,o);res(o)};m.onerror=()=>res("");m.src=src})}
 async function apiPub(path){const r=await fetch(SB+"/rest/v1/"+path,{headers:{apikey:KEYP}});const t=await r.text();if(!r.ok)throw new Error(t||"Error "+r.status);return t?JSON.parse(t):[]}
-async function pubPush(){const p=S.profile||{},u=uname(p.user);if(!auth||!p.pub)return;if(u.length<3)throw new Error("Tu @usuario debe tener al menos 3 letras o números (Editar perfil).");
+async function pubPush(){const p=S.profile||{},u=uname(p.user),user=meId();if(!user||!p.pub)return;if(u.length<3)throw new Error("Tu @usuario debe tener al menos 3 letras o números (Editar perfil).");
  await imgSync(false,"pub");
  const pv=p.priv||{},col=pv.col?[]:ev().filter(i=>home(i)&&i.img),ped=pv.ped?[]:ev().filter(i=>!i.manual&&!home(i)&&i.img),wi=pv.wish?[]:S.wish.filter(i=>i.img);
  const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,e:i.type=="PC"&&eraById(i.era)?i.era:"",i:await pubImg(i.img,220)}))),
@@ -1932,11 +1978,21 @@ async function pubPush(){const p=S.profile||{},u=uname(p.user);if(!auth||!p.pub)
   w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:(i.kind||"pc")=="pc"?1:0,i:await pubImg(i.img,220)}))),
   photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
  const fv=await favPubData(pv);
- const row={user_id:auth.user.id,username:u,name:p.name||"",photo,data:{bn,bc,th,cardColor:profileColor(p.cardColor),frame:allowedFrame(p.frame,frameLevel(lvl,p.frameLevel),{creator:true,gom:true}),frameLevel:p.frameLevel,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:goVis(goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))])).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
- try{await api("POST","perfiles?on_conflict=user_id",[row],{Prefer:"resolution=merge-duplicates,return=minimal"})}catch(e){if(/23505|duplicate/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro en Editar perfil.");throw e}}
+ if(user!==meId()||S.profile!==p||!p.pub)return;
+ const row={user_id:user,username:u,name:p.name||"",photo,data:{bn,bc,th,cardColor:profileColor(p.cardColor),frame:allowedFrame(p.frame,frameLevel(lvl,p.frameLevel),{creator:true,gom:true}),frameLevel:p.frameLevel,ig:socUrl(p.ig),tt:socUrl(p.tt),desc:p.desc||"",group:p.group||"",gos:goVis(goMerge(p.gos,[...new Set(col.concat(ped).map(i=>i.go).filter(Boolean))])).map(g=>({id:g.id,n:g.n,ext:g.ext?1:0})),bias:p.bias||"",lvl,col:c2,ped:pd2,er:er2,wish:w2,nw:pv.wish?0:S.wish.length,priv:{col:pv.col?1:0,ped:pv.ped?1:0,wish:pv.wish?1:0},fv},updated_at:new Date().toISOString()};
+ try{await api("POST","perfiles?on_conflict=user_id",[row],{Prefer:"resolution=merge-duplicates,return=minimal"})}catch(e){if(/23505|duplicate/i.test(e.message))throw new Error("Ese @usuario ya está en uso. Elige otro en Editar perfil.");throw e}
+ await publishDiscovery(p,user);
+}
 function schedPub(){if(auth&&S.profile&&S.profile.pub){clearTimeout(pbt);pbt=setTimeout(()=>pubPush().then(()=>{pubMsg="Publicado "+hora()}).catch(e=>toast(e.message)),4000)}}
 async function togglePub(){const p=S.profile=S.profile||{};
- if(p.pub){p.pub=false;clearTimeout(pbt);save();pubMsg="";try{await api("DELETE","perfiles?user_id=eq."+auth.user.id)}catch(e){}render();editTheme();return}
+ if(p.pub){
+  const user=meId();if(!user)return needLogin();
+  p.pub=false;clearTimeout(pbt);
+  try{await api("DELETE","perfiles?user_id=eq."+encodeURIComponent(user))}
+  catch(e){p.pub=true;return alert("No se pudo ocultar el perfil. Intenta de nuevo.")}
+  if(user!==meId()||S.profile!==p)return;
+  save();pubMsg="";render();editTheme();return;
+ }
  if(!auth)return alert("Primero inicia sesión (arriba, en Cuenta y nube).");
  if(uname(p.user).length<3)return alert("Primero escribe tu @usuario (mínimo 3 letras o números) en Editar perfil.");
  p.pub=true;save();clearTimeout(pbt);pubMsg="Publicando…";editTheme();
@@ -1981,12 +2037,291 @@ async function tagDel(){const id=TF.id;if(!id||!confirm("¿Borrar esta etiqueta?
 async function loadTags(){const r=PUB;if(!r||!r.user_id)return;await loadDefs();try{const t=await apiPub("etiquetas?select=tag&user_id=eq."+r.user_id);r._tg=t.map(x=>x.tag)}catch(e){r._tg=[]}if(PUB===r){const o=$("pubtags");if(o)o.innerHTML=tagsHtml(r._tg)}}
 function adminTags(){const r=PUB;if(!r||!isAdmin())return;const cur=r._tg||[];openM(`<h3>Etiquetas de @${esc(r.username)}</h3><div class="mu">Activa o quita etiquetas especiales para este usuario.</div>${TAGORD.filter(k=>TAGS[k].give).map(k=>`<div class="tgrow">${tagsHtml([k])}<button class="${cur.includes(k)?"sec":"pri"}" onclick="toggleTag('${k}')">${cur.includes(k)?"Quitar":"Dar"}</button></div>`).join("")}<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div>`)}
 async function toggleTag(k){const r=PUB;if(!r||!isAdmin())return;const cur=r._tg=r._tg||[],has=cur.includes(k);try{if(has)await api("DELETE","etiquetas?user_id=eq."+r.user_id+"&tag=eq."+k);else await api("POST","etiquetas",[{user_id:r.user_id,tag:k}],{Prefer:"resolution=ignore-duplicates,return=minimal"});r._tg=has?cur.filter(x=>x!=k):cur.concat(k);if(r.user_id==meId())MYT=r._tg.slice();const o=$("pubtags");if(o)o.innerHTML=tagsHtml(r._tg);adminTags()}catch(e){alert("No se pudo cambiar la etiqueta: "+e.message)}}
-async function openPub(u){u=uname(u);if(!u)return;try{const r=await apiPub("perfiles?select=*&username=eq."+encodeURIComponent(u));if(!r.length)return toast("No existe el perfil @"+u);PUB=r[0];pubSrc="col";pubTab="pc";pubG="";closeM();$("pubp").classList.add("on");document.body.classList.add("pubon");PUBX={rel:null,likes:0,liked:false,busy:false};paintPub();$("pubp").scrollTop=0;loadRel();loadTags();loadPublicFrame(PUB)}catch(e){toast("No se pudo abrir el perfil")}}
+async function openPub(u){u=uname(u);if(!u)return;try{const r=await apiPub("perfiles?select=*&username=eq."+encodeURIComponent(u));if(!r.length)return toast("No existe el perfil @"+u);PUB=r[0];publicProfilePane="home";pubSrc="col";pubTab="pc";pubG="";closeM();$("pubp").classList.add("on");document.body.classList.add("pubon");PUBX={rel:null,likes:0,liked:false,busy:false};paintPub();$("pubp").scrollTop=0;loadRel();loadTags();loadPublicFrame(PUB);loadSocialPosts(PUB.user_id,true)}catch(e){toast("No se pudo abrir el perfil")}}
 function closePub(){pubThemeClear();$("pubp").classList.remove("on");document.body.classList.remove("pubon");PUB=null;if(location.search.includes("u=")){try{history.replaceState(null,"",location.pathname)}catch(e){}}}
 const PUBK=["bg","card","tx","mu","ac","bd","o1","o2","o3","g1","g2","g3","gb"];
 function pubThemeClear(){["pubp","modal"].forEach(id=>{const e=$(id);if(e){PUBK.forEach(k=>e.style.removeProperty("--"+k));e.style.colorScheme=""}})}
 function pubTheme(){pubThemeClear();const r=PUB,th=r&&r.data&&r.data.th;if(!th||!th.color)return;const t=S.theme||{mode:"auto"},dk=t.mode=="dark"||(t.mode!="light"&&matchMedia("(prefers-color-scheme:dark)").matches);let pal;try{pal=th.color=="custom"&&th.custom?customPal(th.custom,dk):palette(th.color=="custom"?"base":th.color,dk)}catch(e){return}if(!pal)return;["pubp","modal"].forEach(id=>{const e=$(id);for(const k in pal)e.style.setProperty("--"+k,pal[k]);e.style.setProperty("--gb",dk?"rgba(255,255,255,.14)":"rgba(255,255,255,.65)")})}
 function setPubS(a,b){if(a)pubSrc=a;if(b)pubTab=b;paintPub()}
+const SOCIAL_PANES=[["home","Inicio"],["posts","Posts"],["cards","Photocards"]];
+let socialTab="discover",myProfilePane="home",publicProfilePane="home";
+let discoverQuery="",discoverResults=[],discoverStatus="",discoverVersion=0;
+const POST_PAGE=20,socialPages=new Map(),socialPostStore=new Map(),pendingPostLikes=new Set();
+
+function socialRpc(name,args,publicRead=false){
+ if(auth)return api("POST","rpc/"+name,args);
+ if(!publicRead)return Promise.reject(new Error("Inicia sesión para continuar."));
+ const query=new URLSearchParams();
+ for(const [key,value] of Object.entries(args)){
+  if(value!=null)query.set(key,Array.isArray(value)?"{"+value.map(x=>JSON.stringify(x)).join(",")+"}":value);
+ }
+ return apiPub("rpc/"+name+"?"+query);
+}
+function socialInterestKey(value){
+ return nrm(String(value||"")).trim().replace(/\s+/g," ").slice(0,64);
+}
+function socialInterests(){
+ const p=S.profile||{},priv=p.priv||{},allowPrivate=p.discovery?.private===true;
+ const artists=new Map(),groups=new Map();
+ const add=(map,label)=>{
+  const key=socialInterestKey(label);
+  if(key&&!map.has(key)&&map.size<100)map.set(key,String(label).trim());
+ };
+ const knownByGroup=new Map();
+ for(const a of S.artists||[]){
+  if(a.kind!=="artist"||!a.name)continue;
+  const key=socialInterestKey(a.group),list=knownByGroup.get(key)||[];
+  list.push(a.name);knownByGroup.set(key,list);
+ }
+ const artistIds=new Map((S.artists||[]).map(a=>[String(a.id),a.name]));
+ for(const [section,items] of [
+  ["col",S.items.filter(home).concat(S.col||[])],
+  ["ped",S.items.filter(i=>!home(i))],
+  ["wish",S.wish||[]]
+ ]){
+  if(!allowPrivate&&priv[section])continue;
+  for(const item of items){
+   add(groups,item.grupo);
+   const direct=artistIds.get(String(item.artist))||artistIds.get(String(item.unit));
+   if(direct){add(artists,direct);continue}
+   const known=knownByGroup.get(socialInterestKey(item.grupo))||[];
+   const title=(" "+nrm(item.name||"").replace(/[^\p{L}\p{N}]+/gu," ")+" ");
+   for(const name of known){
+    const words=nrm(name).replace(/[^\p{L}\p{N}]+/gu," ").trim();
+    if(words&&title.includes(" "+words+" "))add(artists,name);
+   }
+  }
+ }
+ return {artists,groups};
+}
+async function publishDiscovery(profile,user){
+ if(user!==meId()||S.profile!==profile||!profile.pub)return;
+ const visible=profile.discovery?.visible===true,{artists,groups}=visible?socialInterests():{artists:new Map(),groups:new Map()};
+ try{
+  await socialRpc("social_set_discovery",{visible,artist_keys:[...artists.keys()],group_keys:[...groups.keys()]});
+ }catch(e){
+  if(visible||!/PGRST202|PGRST205|schema cache/i.test(e.message))toast(socialError(e));
+ }
+}
+function socialError(error){
+ const msg=String(error?.message||error);
+ if(/PGRST202|PGRST205|schema cache/i.test(msg))return "Falta instalar la actualización de Social en Supabase.";
+ if(/social_public_profile_required/.test(msg))return "Activa tu perfil público en Perfil → Ajustes para publicar.";
+ if(/social_post_unavailable/.test(msg))return "La publicación ya no está disponible.";
+ return "No se pudo completar. Intenta de nuevo.";
+}
+function socialSegments(options,active,handler){
+ return `<div class="seg social-segments">${options.map(([key,label])=>`<button type="button" class="${key===active?"on":""}" aria-pressed="${key===active}" onclick="${handler}('${key}')">${label}</button>`).join("")}</div>`;
+}
+function setSocialTab(value){
+ socialTab=value;
+ render();
+ refreshSocial();
+}
+function refreshSocial(){
+ if(socialTab==="discover")findSocial(discoverQuery);
+ else if(auth)loadSocialPosts("feed",true);
+}
+function setMyProfilePane(value){
+ myProfilePane=value;render();
+ if(value!=="cards"&&S.profile?.pub&&meId())loadSocialPosts(meId(),true);
+}
+function setPublicProfilePane(value){
+ publicProfilePane=value;paintPub();
+ if(value!=="cards"&&PUB?.user_id)loadSocialPosts(PUB.user_id);
+}
+function socialTabHtml(){
+ return socialSegments([["discover","Descubrir"],["feed","Publicaciones"]],socialTab,"setSocialTab")+(socialTab==="discover"?
+  `<form class="social-search" onsubmit="event.preventDefault();findSocial($('social-search').value)">
+   <label class="social-sr" for="social-search">Buscar personas, artistas o grupos</label>
+   <input id="social-search" placeholder="Persona, artista o grupo" value="${esc(discoverQuery)}" maxlength="64" autocomplete="off">
+   <button class="pri" type="submit">Buscar</button></form>
+   ${socialInterestChips()}<div id="social-results" aria-live="polite">${socialDiscoverHtml()}</div>`:
+  auth?`<div class="social-heading"><h2>Publicaciones de amigos</h2><button type="button" class="pri sm" onclick="composeSocialPost()">+ Publicar</button></div>${socialPostList("feed","feed")}`:
+  '<div class="empty">Inicia sesión para ver las publicaciones de tus amistades.</div>');
+}
+function socialInterestChips(){
+ const {artists,groups}=socialInterests();
+ const labels=[...new Set([...artists.values()].slice(0,5).concat([...groups.values()].slice(0,5)))];
+ if(!labels.length)return "";
+ return `<div class="gorow social-interests"><button type="button" class="gotab ${discoverQuery?"":"on"}" onclick="findSocial('')">Para ti</button>${labels.map(label=>`<button type="button" class="gotab ${label===discoverQuery?"on":""}" data-term="${esc(label)}" onclick="findSocial(this.dataset.term)">${esc(label)}</button>`).join("")}</div>`;
+}
+function socialDiscoverHtml(){
+ if(discoverStatus)return `<div class="empty">${esc(discoverStatus)}</div>`;
+ if(!discoverResults.length)return '<div class="empty">No se encontraron perfiles. Prueba otro artista, grupo o @usuario.</div>';
+ const {artists,groups}=socialInterests();
+ return discoverResults.map(p=>{
+  const artist=p.artist_hit||p.artists?.[0],group=p.group_hit;
+  const reason=artist?`${artists.has(artist)?"También colecciona a":"Colecciona a"} ${artists.get(artist)||artist}`:group?`Le interesa ${groups.get(group)||group}`:
+   p.groups?.length>1?`Tienen ${p.groups.length} grupos en común`:p.groups?.length?`También colecciona ${groups.get(p.groups[0])||p.groups[0]}`:"Perfil público";
+  return `<button type="button" class="card social-person" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">
+    ${socialAvatar(p)}<span class="grow"><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)}</span><span class="social-reason">${esc(reason)}</span></span><span aria-hidden="true">›</span>
+   </button>`;
+ }).join("");
+}
+async function findSocial(term){
+ discoverQuery=String(term||"").trim().slice(0,64);
+ const version=++discoverVersion,who=meId(),{artists,groups}=socialInterests();
+ discoverStatus="Buscando perfiles…";
+ if(tab==="social"&&socialTab==="discover"){render();$("social-search").value=discoverQuery}
+ try{
+  const rows=await socialRpc("social_discover",{term:socialInterestKey(discoverQuery.replace(/^@/,"")),artist_keys:[...artists.keys()],group_keys:[...groups.keys()]},true);
+  if(version!==discoverVersion||who!==meId())return;
+  discoverResults=rows||[];discoverStatus="";
+ }catch(e){
+  if(version!==discoverVersion||who!==meId())return;
+  discoverStatus=socialError(e);
+ }
+ const results=$("social-results");
+ if(results)results.innerHTML=socialDiscoverHtml();
+}
+function socialAvatar(p){
+ const image=socialImage(p.photo);
+ return image?`<img class="social-avatar" src="${esc(image)}" alt="" loading="lazy">`:`<span class="social-avatar">${esc([...(p.name||p.username||"?")][0])}</span>`;
+}
+function socialImage(value){
+ try{const url=new URL(value);return url.protocol==="https:"?url.href:""}catch(e){return ""}
+}
+function socialScope(key){return (meId()||"guest")+":"+key}
+function socialPostList(key,view){
+ const scope=socialScope(key),page=socialPages.get(scope);
+ return `<div data-social-posts="${esc(key)}" data-social-view="${view}">${socialPostContent(page,key,view)}</div>`;
+}
+function socialPostContent(page,key,view){
+ if(!page||page.loading&&!page.rows.length)return '<div class="mu social-state">Cargando publicaciones…</div>';
+ if(page.error&&!page.rows.length)return `<div class="social-state"><div class="mu">${esc(page.error)}</div><button class="sec sm" data-scope="${esc(key)}" onclick="loadSocialPosts(this.dataset.scope,true)">Reintentar</button></div>`;
+ if(!page.rows.length)return view==="preview"?"":`<div class="empty">${key==="feed"?"Aún no hay publicaciones. Agrega amigos en Descubrir o publica una foto.":"Aún no hay publicaciones."}</div>`;
+ const rows=view==="preview"?page.rows.slice(0,3):page.rows;
+ const more=page.more&&view!=="preview"?`<button class="sec social-more" data-scope="${esc(key)}" onclick="loadSocialPosts(this.dataset.scope,false,true)" ${page.loading?"disabled":""}>${page.loading?"Cargando…":"Ver más"}</button>`:"";
+ if(view==="feed")return rows.map(socialPostCard).join("")+more;
+ return `${view==="preview"?"<h2>Posts recientes</h2>":""}<div class="social-post-grid">${rows.map(p=>`<button type="button" data-post="${esc(p.id)}" onclick="openSocialPost(this.dataset.post)" aria-label="${esc(p.caption||"Abrir publicación")}"><img loading="lazy" src="${esc(socialImage(p.image_url))}" alt=""></button>`).join("")}</div>${more}`;
+}
+function paintSocialPosts(key){
+ const page=socialPages.get(socialScope(key));
+ for(const node of document.querySelectorAll("[data-social-posts]")){
+  if(node.dataset.socialPosts===key)node.innerHTML=socialPostContent(page,key,node.dataset.socialView);
+ }
+}
+async function loadSocialPosts(key,refresh=false,more=false){
+ const viewer=meId()||"guest",scope=viewer+":"+key;
+ let page=socialPages.get(scope);
+ if(page?.loading||page&&!refresh&&!more)return;
+ if(refresh||!page){page={rows:[],loading:false,more:false,error:""};socialPages.set(scope,page)}
+ if(more&&!page.more)return;
+ page.loading=true;page.error="";paintSocialPosts(key);
+ try{
+  const cursor=more?page.rows.at(-1):null;
+  const rows=await socialRpc("social_list_posts",{...(key==="feed"?{feed:true}:{author:key}),
+   ...(cursor?{cursor_time:cursor.created_at,cursor_id:cursor.id}:{})},true);
+  page.more=rows.length===POST_PAGE;
+  const known=new Set(page.rows.map(row=>row.id));
+  for(const row of rows){
+   const p={...row,likes:Number(row.likes)||0};
+   socialPostStore.set(viewer+":"+p.id,p);
+   if(!known.has(p.id))page.rows.push(p);
+  }
+ }catch(e){page.error=socialError(e);if(page.rows.length)toast(page.error)}
+ finally{page.loading=false;paintSocialPosts(key)}
+}
+function socialPostCard(p,detail=false){
+ return `<article class="card social-post">
+  <button type="button" class="social-author" data-user="${esc(p.username)}" onclick="openPub(this.dataset.user)">${socialAvatar(p)}<span><b>${esc(p.name||p.username)}</b><span class="mu">@${esc(p.username)} · ${esc(ago(p.created_at))}</span></span></button>
+  ${detail?`<img class="social-post-photo" src="${esc(socialImage(p.image_url))}" alt="Imagen de la publicación">`:`<button type="button" class="social-photo-button" data-post="${esc(p.id)}" onclick="openSocialPost(this.dataset.post)" aria-label="Abrir publicación"><img class="social-post-photo" loading="lazy" src="${esc(socialImage(p.image_url))}" alt=""></button>`}
+  ${p.caption?`<p class="social-caption">${esc(p.caption)}</p>`:""}
+  ${p.tags?.length?`<div class="social-post-tags">${p.tags.map(tag=>`<span class="tag">${esc(tag)}</span>`).join("")}</div>`:""}
+  <div class="social-post-actions"><button type="button" class="sec sm social-like ${p.liked?"on":""}" data-like-post="${esc(p.id)}" aria-label="Me gusta" aria-pressed="${!!p.liked}" onclick="likeSocialPost(this.dataset.likePost)">${p.liked?"♥":"♡"} <b>${p.likes}</b></button>
+  ${detail&&meId()===p.author_id?`<button type="button" class="sec sm" data-post="${esc(p.id)}" onclick="deleteSocialPost(this)">Eliminar</button>`:""}</div></article>`;
+}
+function openSocialPost(id){
+ const p=socialPostStore.get(socialScope(id));
+ if(!p)return;
+ openM(`<div class="vw social-post-detail">${socialPostCard(p,true)}<button type="button" class="sec" onclick="closeM()">Cerrar</button></div>`);
+ $("sheet").scrollTop=0;
+}
+async function likeSocialPost(id){
+ if(!meId())return needLogin();
+ const scope=socialScope(id),p=socialPostStore.get(scope);
+ if(!p||pendingPostLikes.has(scope))return;
+ pendingPostLikes.add(scope);
+ try{
+  const rows=await socialRpc("social_like_post",{target:id,enabled:!p.liked});
+  if(!rows?.[0]||scope!==socialScope(id))return;
+  Object.assign(p,{liked:rows[0].liked,likes:Number(rows[0].likes)||0});
+  for(const [key,page] of socialPages){
+   if(!key.startsWith(meId()+":"))continue;
+   for(const row of page.rows)if(row.id===id)Object.assign(row,{liked:p.liked,likes:p.likes});
+  }
+  for(const button of document.querySelectorAll("[data-like-post]"))if(button.dataset.likePost===id){
+   button.setAttribute("aria-pressed",String(p.liked));button.classList.toggle("on",p.liked);
+   button.innerHTML=(p.liked?"♥":"♡")+" <b>"+p.likes+"</b>";
+  }
+ }catch(e){toast(socialError(e))}
+ finally{pendingPostLikes.delete(scope)}
+}
+function composeSocialPost(){
+ if(!auth)return needLogin();
+ if(!S.profile?.pub){toast("Activa tu perfil público en Perfil → Ajustes para publicar.");return}
+ openM(`<form id="social-compose" class="vw" onsubmit="event.preventDefault();publishSocialPost(this)">
+  <h3>Nueva publicación</h3><p class="mu">Tu publicación se verá en tu perfil público.</p>
+  <label for="post-image">Foto</label><input id="post-image" type="file" accept="image/jpeg,image/png,image/webp" required onchange="previewSocialPost(this)">
+  <img id="post-preview" class="social-post-photo" hidden alt="Vista previa">
+  <label for="post-caption">Texto (opcional)</label><textarea id="post-caption" maxlength="400" rows="3"></textarea>
+  <label for="post-tags">Artistas o grupos (opcional)</label><input id="post-tags" maxlength="220" placeholder="Sunoo, ENHYPEN">
+  <div id="post-message" class="mu" role="status"></div>
+  <div class="fbar"><button class="pri" type="submit">Publicar</button><button class="sec" type="button" onclick="closeM()">Cancelar</button></div></form>`);
+ $("sheet").scrollTop=0;
+}
+async function previewSocialPost(input){
+ const form=input.form,file=input.files[0],preview=$("post-preview"),message=$("post-message");
+ const pending=Symbol();form.photoToken=pending;form.postData="";
+ preview.hidden=true;preview.removeAttribute("src");message.textContent="";
+ if(!file)return;
+ if(file.size>20*1024*1024){message.textContent="Elige una imagen de hasta 20 MB.";return}
+ const url=URL.createObjectURL(file);
+ try{
+  const picture=new Image();picture.src=url;await picture.decode();
+  if(input!==$("post-image")||form.photoToken!==pending)return;
+  const scale=Math.min(1,1400/Math.max(picture.width,picture.height)),canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(picture.width*scale));canvas.height=Math.max(1,Math.round(picture.height*scale));
+  const context=canvas.getContext("2d");context.fillStyle="#fff";context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(picture,0,0,canvas.width,canvas.height);
+  form.postData=canvas.toDataURL("image/jpeg",.83);preview.src=form.postData;preview.hidden=false;
+ }catch(e){if(input===$("post-image")&&form.photoToken===pending)message.textContent="No se pudo abrir la foto."}
+ finally{URL.revokeObjectURL(url)}
+}
+async function publishSocialPost(form){
+ const user=meId(),btn=form.querySelector("[type=submit]"),message=$("post-message");
+ if(!user||btn.disabled)return;
+ if(!form.postData){message.textContent="Elige una foto y espera a que aparezca la vista previa.";return}
+ const photo=form.postData,caption=$("post-caption").value.trim(),tags=[...new Set($("post-tags").value.split(",").map(s=>s.trim().slice(0,36)).filter(Boolean))].slice(0,6);
+ form.postId=form.postId||crypto.randomUUID();
+ const controls=Array.from(form.elements);controls.forEach(el=>el.disabled=true);
+ message.textContent="Publicando…";
+ try{
+  const image=await imgPut(photo);
+  if(user!==meId())return;
+  await socialRpc("social_publish_post",{post_id:form.postId,photo_url:image,post_caption:caption,post_tags:tags});
+  if(user!==meId())return;
+  if(form===$("social-compose"))closeM();
+  if(tab==="social"){socialTab="feed";render()}
+  if(tab==="perfil")setMyProfilePane("posts");
+  await Promise.all([loadSocialPosts("feed",true),loadSocialPosts(user,true)]);
+  toast("Publicación compartida");
+ }catch(e){message.textContent=socialError(e)}
+ finally{controls.forEach(el=>el.disabled=false)}
+}
+async function deleteSocialPost(button){
+ const p=socialPostStore.get(socialScope(button.dataset.post));
+ if(!p||p.author_id!==meId()||!confirm("¿Eliminar esta publicación?"))return;
+ button.disabled=true;
+ try{
+  await socialRpc("social_delete_post",{target:p.id});
+  for(const [scope,page] of socialPages){page.rows=page.rows.filter(row=>row.id!==p.id);paintSocialPosts(scope.slice(scope.indexOf(":")+1))}
+  socialPostStore.delete(socialScope(p.id));
+  if(button.isConnected)closeM();toast("Publicación eliminada");
+ }catch(e){toast(socialError(e))}
+ finally{button.disabled=false}
+}
+
 function publicProfileSections(privacy,owner){
  return [["ped","Pedidos"],["col","Colección"],["wish","Wishlist"]].filter(([key])=>owner||!privacy[key]);
 }
@@ -2009,8 +2344,11 @@ function paintPub(){
  <div class="pcard${d.bn?" pme":""}"${profileColorStyle(d.cardColor,d.bn?d.bc:null)}>${d.bn?`<div class="pbn" style="background-image:url('${esc(d.bn)}')"></div>`:""}<div class="phead"><div id="public-frame-avatar">${framedAvatar(r.photo,r.name||r.username,publicFrame(r))}</div><div class="pid"><div class="pname">${esc(r.name||r.username)}</div><div class="puser">@${esc(r.username)}</div></div></div>
  ${d.desc?`<div class="pdesc">${esc(d.desc)}</div>`:""}${socUrl(d.ig)||socUrl(d.tt)?`<div class="psoc">${socHtml(d,false)}</div>`:""}<div class="pchips"><span class="ptags" id="pubtags">${tagsHtml(r._tg)}</span>${goChips(d.gos)}${d.group?`<span class="pchip big2">${esc(d.group)}</span>`:""}${d.bias?`<span class="pchip">Bias · ${esc(d.bias)}</span>`:""}${d.lvl?`<span class="pchip">Nivel ${d.lvl}</span>`:""}</div>
  ${stats?`<div class="pstats">${stats}</div>`:""}</div>
- <div id="pubact">${pubActHtml()}</div>${sigWrap(favPub(visiblePublicFavorites(d.fv,privacy)),"fvs")}`;
- if(sections.length){
+ <div id="pubact">${pubActHtml()}</div>
+ ${socialSegments(SOCIAL_PANES.filter(([key])=>key!=="cards"||sections.length),publicProfilePane,"setPublicProfilePane")}`;
+ if(publicProfilePane==="home")h+=sigWrap(favPub(visiblePublicFavorites(d.fv,privacy)),"fvs")+socialPostList(r.user_id,"preview");
+ if(publicProfilePane==="posts")h+=socialPostList(r.user_id,"grid");
+ if(publicProfilePane==="cards"&&sections.length){
   h+=`<div class="seg">${sections.map(([key,label])=>`<button class="${key===pubSrc?"on":""}" onclick="setPubS('${key}')">${label}</button>`).join("")}</div>`;
   if(!locked)h+=`<div class="seg"><button class="${prod?"":"on"}" onclick="setPubS(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPubS(null,'prod')">Artículos <small>${prs.length}</small></button></div>${pubChips()}`;
   const ER_=d.er||[];
@@ -2164,9 +2502,10 @@ render();
 /* ===== Novedades por versión =====
    Para una nueva actualización: sube APP_VER (ej. "1.18") y agrega una entrada al inicio de NEWS.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.29",VK="mypoca-ver";
+const APP_VER="1.30",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
+ {v:"1.30",items:[["Social","Busca perfiles por artista o grupo y comparte fotos con tus amistades."],["Perfiles por pestañas","Explora Inicio, Posts y Photocards. Sin caja ahora está dentro de Pedidos."]]},
  {v:"1.29",items:[["Favoritas en el perfil","Las photocards de tu Colección que marques como favoritas siguen visibles aunque ocultes la Colección."]]},
  {v:"1.28",items:[["Marco Gatito","El perfil de la creadora tiene un nuevo marco con orejas animadas."]]},
  {v:"1.27",items:[["Color del perfil","Personaliza la tarjeta del perfil y el color de Jardín en flor."],["Privacidad del perfil","Las secciones privadas quedan ocultas para las visitas."]]},
