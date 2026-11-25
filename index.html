@@ -638,6 +638,12 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .global-notice-row span{min-width:0;overflow-wrap:anywhere}
 .global-notice-row small{display:block;color:var(--mu);margin-top:2px}
 .global-notice-row i{width:8px;height:8px;border-radius:50%;background:var(--ac);flex:none}
+#password-recovery{width:min(420px,calc(100% - 32px));max-height:90dvh;padding:20px;border:1px solid var(--bd);border-radius:22px;background:var(--card);color:var(--tx)}
+#password-recovery::backdrop{background:#0009;backdrop-filter:blur(5px)}
+#password-recovery h2{margin:0 0 8px}
+#password-recovery .fbar{justify-content:flex-end}
+#password-recovery-status:not(:empty){margin-top:9px}
+#w-recover[hidden]{display:none}
 .news-archive-top,.news-archive-row{display:flex;gap:10px;align-items:center;justify-content:space-between}
 .news-archive-top{margin-bottom:12px}
 .news-archive-top h3{margin:0}
@@ -708,6 +714,7 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 <input type="file" id="arfile" accept="image/*" hidden onchange="arFile(this)">
 <input type="file" id="erafile" accept="image/*" hidden onchange="eraFile(this)">
 <div id="wel"></div><div id="intro"></div>
+<dialog id="password-recovery" aria-labelledby="password-recovery-title"></dialog>
 <div id="pubp"></div>
 <dialog id="go-info" aria-labelledby="go-info-title"></dialog>
 <div id="modal" onclick="if(event.target==this)closeM()"><div id="sheet"></div></div>
@@ -1439,7 +1446,99 @@ async function okP(){
 const SB="https://xdkqmbpxqfhmzlklbdhu.supabase.co",KEYP="sb_publishable_IVjazp1C_So9c8ayztBMRw_FpK2eWnE";
 let auth=null,syncMsg="",pt;try{auth=JSON.parse(localStorage.getItem("pedidos-auth"))}catch(e){}
 const hora=()=>new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-async function authCall(path,body){const r=await fetch(SB+"/auth/v1/"+path,{method:"POST",headers:{apikey:KEYP,"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.msg||j.error_description||j.message||"Error "+r.status);return j}
+async function authCall(path,body,{method="POST",accessToken}={}){
+ const headers={apikey:KEYP,"Content-Type":"application/json"};
+ if(accessToken)headers.Authorization="Bearer "+accessToken;
+ const r=await fetch(SB+"/auth/v1/"+path,{method,headers,body:JSON.stringify(body)});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw Object.assign(new Error(j.msg||j.error_description||j.message||"Error "+r.status),{status:r.status,code:j.error_code||j.code});
+ return j;
+}
+function readPasswordRecovery(){
+ const url=new URL(location.href),hash=new URLSearchParams(url.hash.slice(1));
+ const recoveryLink=hash.get("type")==="recovery",requested=url.searchParams.get("recuperar")==="1";
+ if(!recoveryLink&&!requested)return null;
+ const token=recoveryLink&&!hash.has("error")&&!url.searchParams.has("error")?hash.get("access_token"):null;
+ url.hash="";
+ for(const key of ["recuperar","error","error_code","error_description","code","access_token","refresh_token","token_hash"])url.searchParams.delete(key);
+ history.replaceState(history.state,"",url.pathname+url.search);
+ return {token};
+}
+let passwordRecovery=readPasswordRecovery();
+function recoveryRedirect(){
+ const url=new URL(location.pathname,location.origin);
+ url.searchParams.set("recuperar","1");
+ return url.href;
+}
+function showPasswordRecovery(view,email="",message=""){
+ const panel=$("password-recovery"),reset=view==="reset",done=view==="done";
+ panel.innerHTML=`<h2 id="password-recovery-title">${reset?"Elige una contraseña nueva":done?"Contraseña actualizada":"Recupera tu contraseña"}</h2>
+  ${done?`<p>Ya puedes iniciar sesión con tu contraseña nueva.</p><button type="button" class="pri" onclick="finishPasswordRecovery(true)">Volver a mypoca</button>`:
+  `<form onsubmit="event.preventDefault();submitPasswordRecovery(this,${reset})">
+   ${reset?`<label for="recovery-password">Contraseña nueva</label><input id="recovery-password" type="password" autocomplete="new-password" required minlength="6" maxlength="72">
+    <label for="recovery-confirm">Repite tu contraseña nueva</label><input id="recovery-confirm" type="password" autocomplete="new-password" required minlength="6" maxlength="72">`:
+   `<p>Te enviaremos un enlace al correo que usaste para registrarte.</p>
+    <label for="recovery-email">Correo registrado</label><input id="recovery-email" type="email" autocomplete="email" autocapitalize="none" required value="${esc(email)}">`}
+   <div id="password-recovery-status" class="mu" role="status">${esc(message)}</div>
+   <div class="fbar"><button type="button" class="sec" onclick="finishPasswordRecovery()">Cancelar</button>
+    <button type="submit" class="pri">${reset?"Guardar contraseña":"Enviar enlace"}</button></div>
+  </form>`}`;
+ panel.oncancel=event=>{event.preventDefault();if(!panel.querySelector("form")?.busy)finishPasswordRecovery()};
+ if(!panel.open)panel.showModal();
+}
+function finishPasswordRecovery(showLogin=false){
+ passwordRecovery=null;
+ const panel=$("password-recovery");
+ panel.close();panel.innerHTML="";
+ if(showLogin&&!auth){wMode="in";showWelcome()}
+}
+function openRecoveryRequest(email=""){
+ passwordRecovery=null;
+ showPasswordRecovery("request",email);
+}
+function initPasswordRecovery(){
+ if(!passwordRecovery)return;
+ if(passwordRecovery.token)showPasswordRecovery("reset");
+ else showPasswordRecovery("request","","El enlace de recuperación venció o ya se usó. Puedes pedir otro.");
+}
+async function submitPasswordRecovery(form,reset){
+ if(form.busy||!form.isConnected)return;
+ const panel=$("password-recovery"),status=$("password-recovery-status");
+ const password=reset?$("recovery-password").value:"";
+ const email=reset?"":$("recovery-email").value.trim();
+ const token=reset?passwordRecovery?.token:null;
+ if(reset&&!token)return showPasswordRecovery("request","","Solicita un enlace de recuperación nuevo.");
+ if(reset&&password.length<6){status.textContent="Escribe una contraseña de al menos 6 caracteres.";$("recovery-password").focus();return}
+ if(reset&&password!==$("recovery-confirm").value){status.textContent="Las contraseñas deben coincidir.";$("recovery-confirm").focus();return}
+ form.busy=true;
+ for(const control of form.elements)control.disabled=true;
+ status.textContent=reset?"Guardando…":"Enviando…";
+ try{
+  if(reset){
+   await authCall("user",{password},{method:"PUT",accessToken:token});
+   authCall("logout?scope=local",undefined,{accessToken:token}).catch(()=>{});
+   passwordRecovery=null;
+   if(form.isConnected&&panel.open)showPasswordRecovery("done");
+  }else{
+   await authCall("recover?redirect_to="+encodeURIComponent(recoveryRedirect()),{email});
+   status.textContent="Si el correo está registrado, recibirás un enlace. Revisa también el correo no deseado.";
+  }
+ }catch(e){
+  if(!form.isConnected)return;
+  if(reset&&([401,403].includes(e.status)||["session_not_found","otp_expired","bad_jwt"].includes(e.code))){
+   passwordRecovery=null;
+   return showPasswordRecovery("request","","El enlace venció o ya se usó. Pide otro para continuar.");
+  }
+  if(e.status===429)status.textContent="Has hecho varios intentos. Espera un momento e inténtalo de nuevo.";
+  else if(reset&&e.code==="same_password")status.textContent="Elige una contraseña distinta a la anterior.";
+  else if(reset&&e.code==="weak_password")status.textContent="Elige una contraseña más fuerte que cumpla los requisitos de seguridad.";
+  else if(!reset&&e.code==="user_not_found")status.textContent="Si el correo está registrado, recibirás un enlace. Revisa también el correo no deseado.";
+  else status.textContent=reset?"No se pudo guardar la contraseña. Inténtalo de nuevo.":"No se pudo pedir el enlace. Inténtalo de nuevo.";
+ }finally{
+  form.busy=false;
+  for(const control of form.elements)control.disabled=false;
+ }
+}
 function setAuth(j){auth={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,user:{id:j.user.id,email:j.user.email}};try{localStorage.setItem("pedidos-auth",JSON.stringify(auth))}catch(e){}}
 async function ensureTok(){if(!auth)throw new Error("Sin sesión");if(auth.expires_at-60000>Date.now())return;const j=await authCall("token?grant_type=refresh_token",{refresh_token:auth.refresh_token});setAuth(j)}
 async function api(method,path,body,extra){await ensureTok();const r=await fetch(SB+"/rest/v1/"+path,{method,headers:Object.assign({apikey:KEYP,Authorization:"Bearer "+auth.access_token,"Content-Type":"application/json"},extra||{}),body:body?JSON.stringify(body):undefined});const tx=await r.text();if(!r.ok)throw new Error(tx||"Error "+r.status);return tx?JSON.parse(tx):null}
@@ -1531,9 +1630,10 @@ function paintWelcome(){const up=wMode=="up",e=($("w_e")||{}).value||"",p=($("w_
  <div class="wcard"><div class="seg slseg ${up?"up":""}" id="wseg"><button id="w_t_in" class="${up?"":"on"}" onclick="wSet('in')">Entrar</button><button id="w_t_up" class="${up?"on":""}" onclick="wSet('up')">Crear cuenta</button></div>
  <div id="wfx"><label>Correo</label><input id="w_e" type="email" inputmode="email" autocapitalize="none" autocomplete="email" onkeydown="if(event.key=='Enter')$('w_p').focus()">
  <label id="w_pl">Contraseña${up?" (mínimo 6 caracteres)":""}</label><input id="w_p" type="password" autocomplete="${up?"new-password":"current-password"}" onkeydown="if(event.key=='Enter')wGo()">
- <div id="wmsg" class="wmsg"></div></div><button class="pri wgo" id="wgo" onclick="wGo()">${up?"Crear mi cuenta":"Entrar"}</button></div>
+ <div id="wmsg" class="wmsg"></div></div><button class="pri wgo" id="wgo" onclick="wGo()">${up?"Crear mi cuenta":"Entrar"}</button>
+ <button type="button" class="wlink" id="w-recover" onclick="openRecoveryRequest($('w_e').value)" ${up?"hidden":""}>Olvidé mi contraseña</button></div>
  <button class="wlink" onclick="wGuest()">Continuar sin cuenta</button><div class="wcred">Hecho por @blyuus en instagram</div></div>`;$("w_e").value=e;$("w_p").value=p}
-function wSet(m){if(wMode==m)return;wMode=m;const up=m=="up";$("wseg").classList.toggle("up",up);$("w_t_in").classList.toggle("on",!up);$("w_t_up").classList.toggle("on",up);$("w_pl").textContent="Contraseña"+(up?" (mínimo 6 caracteres)":"");$("w_p").autocomplete=up?"new-password":"current-password";{const g=$("wgo");g.textContent=up?"Crear mi cuenta":"Entrar";g.classList.remove("flip");void g.offsetWidth;g.classList.add("flip")}wMsg("");const f=$("wfx");f.classList.remove("wswap");void f.offsetWidth;f.classList.add("wswap")}
+function wSet(m){if(wMode==m)return;wMode=m;const up=m=="up";$("w-recover").hidden=up;$("wseg").classList.toggle("up",up);$("w_t_in").classList.toggle("on",!up);$("w_t_up").classList.toggle("on",up);$("w_pl").textContent="Contraseña"+(up?" (mínimo 6 caracteres)":"");$("w_p").autocomplete=up?"new-password":"current-password";{const g=$("wgo");g.textContent=up?"Crear mi cuenta":"Entrar";g.classList.remove("flip");void g.offsetWidth;g.classList.add("flip")}wMsg("");const f=$("wfx");f.classList.remove("wswap");void f.offsetWidth;f.classList.add("wswap")}
 function wMsg(t,ok){const m=$("wmsg");if(!m)return;m.textContent=t||"";m.className="wmsg";if(t){void m.offsetWidth;m.className="wmsg "+(ok?"ok":"err");if(!ok){const c=document.querySelector("#wel .wcard");if(c){c.classList.remove("shake");void c.offsetWidth;c.classList.add("shake")}}}}
 function wErr(m){m=String(m||"");return /invalid login|invalid_credentials/i.test(m)?"Correo o contraseña incorrectos.":/already|registered/i.test(m)?"Ese correo ya tiene una cuenta. Prueba con Entrar.":/at least|weak|6 char/i.test(m)?"La contraseña debe tener al menos 6 caracteres.":/rate limit|too many/i.test(m)?"Demasiados intentos. Espera un momento e inténtalo de nuevo.":/valid email|invalid format/i.test(m)?"Escribe un correo válido.":/not confirmed/i.test(m)?"Confirma tu correo antes de entrar (revisa tu bandeja).":/fetch|network|load failed/i.test(m)?"Sin conexión. Revisa tu internet e inténtalo de nuevo.":"No se pudo: "+m}
 async function wGo(){if(wBusy)return;const e=$("w_e").value.trim(),p=$("w_p").value,up=wMode=="up";
@@ -1560,7 +1660,7 @@ function showIntro(){clearTimeout(iT);iBusy=false;iStep=0;$("intro").classList.r
 function introNext(){if(iBusy)return;if(iStep>=2)return endIntro(true);iBusy=true;$("isl").classList.add("leave");setTimeout(()=>{iStep++;fillSlide("fwd");$("intro").scrollTop=0;iBusy=false},230)}
 function endIntro(ok){if(iBusy)return;iBusy=true;try{localStorage.setItem(IK,"1")}catch(e){}const w=$("intro");if(ok)burst($("inext"));w.classList.add("out");appReveal();iT=setTimeout(()=>{w.classList.remove("on","out");iBusy=false;if(!auth)guestWarn()},520)}
 function logout(){if(!confirm("¿Cerrar sesión? Tus datos se quedan en este dispositivo."))return;auth=null;syncMsg="";try{localStorage.removeItem("pedidos-auth");localStorage.removeItem(WK)}catch(e){}closeM();render();showWelcome()}
-function editA(){openM(`<h3>Tu cuenta</h3><label>Correo</label><input id="a_e" type="email" inputmode="email" autocapitalize="none" autocomplete="email"><label>Contraseña (mínimo 6 caracteres)</label><input id="a_p" type="password" autocomplete="current-password"><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="pri" onclick="doLogin(false)">Entrar</button><button class="sec" onclick="doLogin(true)">Crear cuenta</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
+function editA(){openM(`<h3>Tu cuenta</h3><label>Correo</label><input id="a_e" type="email" inputmode="email" autocapitalize="none" autocomplete="email"><label>Contraseña (mínimo 6 caracteres)</label><input id="a_p" type="password" autocomplete="current-password"><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="pri" onclick="doLogin(false)">Entrar</button><button class="sec" onclick="doLogin(true)">Crear cuenta</button><button class="sec" onclick="closeM()">Cancelar</button></div><button type="button" class="sec sm" style="margin-top:8px" onclick="openRecoveryRequest($('a_e').value)">Olvidé mi contraseña</button>`)}
 function acctHtml(){return `<h3 style="margin:22px 0 4px">Cuenta y nube</h3>`+(auth?`<div class="mu">${esc(auth.user.email)}</div><div class="mu">${esc(syncMsg||"Sesión iniciada")}</div><div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap"><button class="sec" onclick="syncNow(true).then(()=>{render();editTheme()})">Sincronizar ahora</button><button class="sec" onclick="logout()">Cerrar sesión</button></div>`:`<div class="mu">Inicia sesión para guardar tus datos en la nube.</div><div style="margin:10px 0"><button class="sec" onclick="editA()">Iniciar sesión o crear cuenta</button></div>`)}
 /* Evita lecturas duplicadas cuando el navegador recupera el foco varias veces. */
 let mypocaLastVisibilitySync=Date.now(),mypocaVisibilitySyncBusy=false;
@@ -4147,7 +4247,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.52",VK="mypoca-ver";
+const APP_VER="1.53",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
@@ -4206,7 +4306,7 @@ async function initNews(){let seen=null;try{seen=localStorage.getItem(VK)}catch(
  if(!list.length){markVer();return}
  NEWSQ=list;setTimeout(tryNews,1100)}
 function tryNews(){if(!NEWSQ)return;
- if(["wel","intro","modal","pubp"].some(i=>$(i).classList.contains("on"))){if(++newsTry<60)setTimeout(tryNews,1500);return}
+ if($("password-recovery").open||["wel","intro","modal","pubp"].some(i=>$(i).classList.contains("on"))){if(++newsTry<60)setTimeout(tryNews,1500);return}
  showNews()}
 const NEWS_MARKS={bold:1,italic:2,underline:4};
 const NEWS_MAX_IMAGES=16;
@@ -4664,6 +4764,7 @@ async function stripGifs(){const p=S.profile;if(!p)return;let ch=false;for(const
 {const _ad=adopt;adopt=function(cd){_ad(cd);setTimeout(stripGifs,0)}}
 setTimeout(stripGifs,600);
 document.addEventListener("change",e=>{const t=e.target;if(t&&t.type=="file"&&t.files&&[...t.files].some(f=>f.type=="image/gif"||/\.gif$/i.test(f.name))){e.stopImmediatePropagation();e.preventDefault();t.value="";alert("Los GIF no están permitidos. Usa una imagen JPG, PNG o WebP.")}},true);
+initPasswordRecovery();
 initNews();
 schedulePublishedCatalogIndex();
 </script></body></html>
