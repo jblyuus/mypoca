@@ -422,6 +422,7 @@ button.gochip{font-family:inherit;line-height:inherit;letter-spacing:inherit;tex
 .fvc{position:relative;width:100%;aspect-ratio:2/3;border-radius:10px;overflow:hidden;border:1.5px dashed color-mix(in srgb,currentColor 40%,transparent);background:color-mix(in srgb,currentColor 8%,var(--fvb2));color:inherit;padding:0;display:flex;align-items:center;justify-content:center;font:inherit}
 .fvc.has{border:0;background:var(--bd)}
 .fvc img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
+.fv-wish{position:absolute;right:4px;bottom:4px;max-width:calc(100% - 8px);padding:2px 5px;border-radius:8px;background:#302333de;color:#fff;font:600 9px/1.25 system-ui,sans-serif;pointer-events:none}
 .fvc svg{width:26px;height:26px;opacity:.75;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
 .fvn{margin-top:6px;font-size:11px;text-align:center;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* efecto brilloso */
@@ -666,9 +667,24 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .poster-background [hidden]{display:none}
 .poster-title-color{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}
 .poster-title-color label{margin:0}
+.profile-interests{position:relative;display:grid;gap:5px;margin-top:8px}
+.profile-interests:has(.profile-interest-toggle){padding-right:34px}
+.profile-interest-row{display:flex;flex-wrap:wrap;gap:5px}
+.profile-interest-row .pchip{max-width:100%;overflow-wrap:anywhere}
+.profile-interest-row [hidden]{display:none}
+.profile-interest-toggle{position:absolute;right:0;top:0;width:28px;height:28px;padding:0;border:1px solid #ffffff75;border-radius:50%;background:#ffffff25;color:inherit;cursor:pointer}
+.profile-interest-toggle svg{width:14px;height:14px;vertical-align:middle}
+.profile-interest-toggle[aria-expanded=true] svg{transform:rotate(180deg)}
 #sheet #poster-title-picker{width:38px;height:32px;padding:3px;cursor:pointer}
 #sheet #poster-title-hex{width:112px}
 #poster-title-color-error:not(:empty){margin:0 0 8px}
+.poster-text-editor{margin:8px 0}
+.poster-text-editor .fs{margin:6px 0;padding:6px 9px}
+.poster-text-properties{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:6px}
+.poster-text-properties label{margin:0}
+.poster-text-properties label:first-child{flex:1;min-width:110px}
+#sheet .poster-text-properties input[type=color]{display:block;width:38px;height:32px;padding:3px}
+.poster-text-control{z-index:1}
 .poster-stage{position:relative;width:100%;margin:10px 0;background:#faf8f6;box-shadow:0 8px 25px #0002}
 .poster-stage canvas{display:block;width:100%;height:auto}
 .poster-card-controls{position:absolute;inset:0;pointer-events:none}
@@ -947,7 +963,7 @@ function render(){afFix();
   <button class="sec pedit pgear" onclick="editTheme()" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button><button class="sec pedit" onclick="editP()" aria-label="Editar perfil">${PEN}</button>
   <div class="pdesc pdme${p.desc?"":" ph"}">${p.desc?esc(p.desc):"Agrega una descripción"}</div>
   <div class="psoc">${socHtml(p,true)}</div>
-  <div class="pchips">${tagsHtml(MYT)}${goChips(goVis(goMerge(p.gos,gos())))}${interestChips(p)}</div>
+  <div class="pchips">${tagsHtml(MYT)}${goChips(goVis(goMerge(p.gos,gos())))}</div>${interestChips(p)}
   <div class="pstats"><div><b>${ev().filter(i=>i.type=="PC").length}</b><span>photocards</span></div><div><b>${ev().filter(i=>i.type!="PC").length}</b><span>artículos</span></div><div><b>${S.wish.length}</b><span>wishlist</span></div></div></div>
   <div class="prow"><button class="sec" onclick="shareP()">Compartir perfil</button><button class="sec" onclick="friends()">Amigos</button></div>
   ${sigWrap(lvBig(),"plvx")}
@@ -1192,8 +1208,19 @@ function resetLegacyInterests(profile){
  delete profile.bias;
 }
 function interestChips(p){
- return cleanInterestList(p.favoriteGroups).map(name=>`<span class="pchip big2">${esc(name)}</span>`).join("")
-  +cleanInterestList(p.biases).map(name=>`<span class="pchip">Bias · ${esc(name)}</span>`).join("");
+ const groups=cleanInterestList(p.favoriteGroups),biases=cleanInterestList(p.biases);
+ if(!groups.length&&!biases.length)return "";
+ const row=(values,limit,bias)=>values.length?`<div class="profile-interest-row">${values.map((name,index)=>
+  `<span class="pchip${bias?"":" big2"}"${index>=limit?" data-interest-extra hidden":""}>${bias?"Bias · ":""}${esc(name)}</span>`).join("")}</div>`:"";
+ const more=groups.length>3||biases.length>2;
+ return `<div class="profile-interests">${row(groups,3,false)}${row(biases,2,true)}${more?
+  '<button type="button" class="profile-interest-toggle" aria-expanded="false" aria-label="Mostrar más grupos y bias" onclick="toggleProfileInterests(this)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg></button>':""}</div>`;
+}
+function toggleProfileInterests(button){
+ const open=button.getAttribute("aria-expanded")!=="true";
+ button.setAttribute("aria-expanded",String(open));
+ button.setAttribute("aria-label",open?"Mostrar menos grupos y bias":"Mostrar más grupos y bias");
+ for(const chip of button.parentElement.querySelectorAll("[data-interest-extra]"))chip.hidden=!open;
 }
 function requiredInterestName(raw){
  const label=plainInterestName(raw);
@@ -2210,7 +2237,7 @@ function openWishlistPoster(){
  if(!cards.length)return toast("Agrega una photocard a Wishlist para crear una imagen.");
  if(!cards.some(item=>item.grupo))return toast("Asigna un grupo a una photocard de Wishlist para crear una imagen.");
  WP={step:0,group:gf&&posterCards({group:gf}).length?gf:"",artist:"",era:"",size:"9:16",
-  title:"",font:"Vividly",design:"banner",banner:"",polaroid1:"",polaroid2:"",background:"",color:POSTER_COLOR,crops:{},priorities:new Set(),images:new Map()};
+  title:"",font:"Vividly",texts:[],design:"banner",banner:"",polaroid1:"",polaroid2:"",background:"",color:POSTER_COLOR,crops:{},priorities:new Set(),images:new Map()};
  renderPosterWizard();
 }
 function posterOptions(options,selected){
@@ -2288,6 +2315,10 @@ function editWishlistPoster(){
   </div>
   <div class="mu" id="poster-title-color-error" role="status"></div>
   <div class="mu poster-font-status" id="poster-font-status" role="status"></div>
+  <div class="poster-text-editor">
+   <button type="button" class="sec sm" onclick="addPosterText()">+ Añadir texto</button>
+   <div id="poster-text-fields"></div>
+  </div>
   <div class="poster-toolbar">
    <div id="poster-banner-tools" ${state.design==="banner"?"":"hidden"}>${posterImageControls(state,"banner","banner")}</div>
    <div id="poster-polaroids-tools" ${state.design==="polaroids"?"":"hidden"}>
@@ -2311,6 +2342,39 @@ function editWishlistPoster(){
   <div class="fbar"><button type="button" class="pri" id="poster-download" onclick="downloadWishlistPoster()">Descargar PNG</button></div>
  </div>`);
  $("sheet").scrollTop=0;
+ renderPosterTextFields(state);
+ requestPosterPaint();
+}
+function renderPosterTextFields(state){
+ const fonts=[...FBI,...(S.fl||[]).map(f=>f.id)].map(font=>[font,fname(font)]);
+ $("poster-text-fields").innerHTML=(state.texts||[]).map((text,index)=>`<div class="fs">
+  <label for="poster-text-${text.id}">Texto ${index+1}</label>
+  <input id="poster-text-${text.id}" value="${esc(text.value)}" maxlength="120" oninput="changePosterText('${text.id}','value',this.value)">
+  <div class="poster-text-properties">
+   <label>Tipografía<select onchange="changePosterText('${text.id}','font',this.value)">${posterOptions(fonts,text.font)}</select></label>
+   <label>Color<input type="color" value="${text.color}" oninput="changePosterText('${text.id}','color',this.value)"></label>
+   <button type="button" class="sec sm" onclick="removePosterText('${text.id}')">Quitar texto</button>
+  </div>
+ </div>`).join("");
+}
+function addPosterText(){
+ if(!WP)return;
+ const id=String(WP.nextTextId=(WP.nextTextId||0)+1);
+ WP.texts=[...(WP.texts||[]),{id,value:"",font:WP.font,color:posterTitleColor(WP)}];
+ renderPosterTextFields(WP);
+ $("poster-text-"+id).focus();
+ requestPosterPaint();
+}
+function changePosterText(id,key,value){
+ if(!WP)return;
+ WP.texts=WP.texts.map(text=>text.id===id?{...text,[key]:value}:text);
+ requestPosterPaint();
+}
+function removePosterText(id){
+ if(!WP)return;
+ WP.texts=WP.texts.filter(text=>text.id!==id);
+ WP.extraFonts?.delete(id);
+ renderPosterTextFields(WP);
  requestPosterPaint();
 }
 function posterImageControls(state,field,label){
@@ -2486,12 +2550,13 @@ function posterFont(name,size){
  const family=String(name).replace(/["\\\n\r]/g,"");
  return `normal 400 ${size}px "${family}"`;
 }
-function preparePosterFont(state){
- const family=state.font,text=state.title?.trim()||state.group||"Wishlist";
- const current=state.titleFont;
+function preparePosterFont(state,label){
+ const family=label?.font||state.font,text=label?.value.trim()||state.title?.trim()||state.group||"Wishlist";
+ const current=label?state.extraFonts?.get(label.id):state.titleFont;
  if(current?.family===family&&current?.text===text)return current;
  const font={family,text,status:"loading"};
- state.titleFont=font;
+ if(label)(state.extraFonts||=new Map()).set(label.id,font);
+ else state.titleFont=font;
  font.ready=(async()=>{
   try{
    if(!document.fonts)throw new Error("FontFaceSet");
@@ -2500,9 +2565,13 @@ function preparePosterFont(state){
    const matched=faces.length?faces:await document.fonts.load(posterFont(family,64),"A");
    font.status=matched.some(face=>face.status==="loaded")?"loaded":"unavailable";
   }catch(e){font.status="unavailable"}
-  if(WP===state&&state.titleFont===font)requestPosterPaint();
+  if(WP===state&&(label?state.extraFonts?.get(label.id):state.titleFont)===font)requestPosterPaint();
  })();
  return font;
+}
+function preparePosterFonts(state){
+ const labels=(state.texts||[]).filter(label=>label.value.trim());
+ return [preparePosterFont(state),...labels.map(label=>preparePosterFont(state,label))];
 }
 function posterImage(state,src){
  if(!src)return null;
@@ -2590,8 +2659,50 @@ function drawPosterPolaroid(ctx,photo,x,y,frame,angle,crop){
  }
  ctx.restore();
 }
-function drawPosterCanvas(canvas,state,layout){
+function drawPosterTexts(ctx,state,layout){
  const {width,height,margin,banner,paper,design,left,right,gridTop}=layout,edge=Math.min(width,height);
+ const titleColor=posterTitleColor({...state,design});
+ const labels=[{id:"title",value:state.title.trim()||state.group,font:state.font,color:titleColor,position:state.titlePosition},
+  ...(state.texts||[]).filter(label=>label.value.trim())];
+ const titleLeft=margin+edge*.36;
+ const titleX=paper?(left+right)/2:design==="polaroids"?(titleLeft+right)/2:width/2;
+ const titleY=paper?paper.y+edge*.07:design==="polaroids"?edge*.134:banner;
+ const titleWidth=design==="polaroids"?right-titleLeft:right-left;
+ const regions=[];
+ ctx.save();
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
+ for(const [index,label] of labels.entries()){
+  const main=index===0,subtitle=main&&!paper,size=edge*(main ? .085 : .038);
+  const font=main?state.titleFont:state.extraFonts?.get(label.id);
+  ctx.font=posterFont(font&&font.status!=="loaded"?"Georgia":label.font,size);
+  const maxWidth=main&&!label.position?titleWidth:width-2*margin;
+  const textWidth=Math.min(maxWidth,ctx.measureText(label.value).width);
+  const subtitleOffset=subtitle?edge*.064:0,subtitleSize=edge*.014;
+  const halfWidth=Math.max(textWidth/2,edge*.03);
+  const top=size*.56,bottom=Math.max(top,subtitleOffset+subtitleSize*.7);
+  const preferredX=label.position?label.position.x*width:main?titleX:width/2;
+  const preferredY=label.position?label.position.y*height:main?titleY:gridTop+edge*(.03+.054*(index-1));
+  const x=Math.min(width-halfWidth-4,Math.max(halfWidth+4,preferredX));
+  const y=Math.min(height-bottom-edge*.05,Math.max(top+4,preferredY));
+  const ink=label.color;
+  const stroke=lum(ink)<.5?"#fff8fb":"#281b2b";
+  ctx.fillStyle=ink;ctx.strokeStyle=stroke;ctx.lineWidth=edge*(main ? .006 : .003);
+  if(!main||!paper||label.position)ctx.strokeText(label.value,x,y,maxWidth);
+  ctx.fillText(label.value,x,y,maxWidth);
+  if(subtitle){
+   ctx.font=`600 ${subtitleSize}px Outfit, sans-serif`;ctx.lineWidth=edge*.0025;
+   const dark=lum(state.color||POSTER_COLOR)<.5;
+   ctx.fillStyle=dark?"#fff8fb":"#322334";ctx.strokeStyle=dark?"#281b2b":"#fff8fb";
+   if(state.background||label.position)ctx.strokeText("WISHLIST",x,y+subtitleOffset);
+   ctx.fillText("WISHLIST",x,y+subtitleOffset);
+  }
+  regions.push({id:label.id,label:label.value,x,y,left:x-halfWidth,top:y-top,width:halfWidth*2,height:top+bottom});
+ }
+ ctx.restore();
+ return regions;
+}
+function drawPosterCanvas(canvas,state,layout){
+ const {width,height,margin,banner,paper,design,right,gridTop}=layout,edge=Math.min(width,height);
  canvas.width=width;canvas.height=height;
  const ctx=canvas.getContext("2d");
  const color=state.color||POSTER_COLOR,dark=lum(color)<.5;
@@ -2601,7 +2712,6 @@ function drawPosterCanvas(canvas,state,layout){
   posterCover(ctx,backdrop,0,0,width,height,0);
   ctx.globalAlpha=.24;ctx.fillRect(0,0,width,height);ctx.globalAlpha=1;
  }
- let titleX=width/2,titleY=banner,titleWidth=right-left;
  if(paper){
   if(!backdrop&&color===POSTER_COLOR){
    const step=edge*.038;
@@ -2613,13 +2723,10 @@ function drawPosterCanvas(canvas,state,layout){
    ctx.fill();
   }
   drawPosterNotebook(ctx,paper,edge);
-  titleX=(left+right)/2;titleY=paper.y+edge*.07;
  }else if(design==="polaroids"){
   const frame=edge*.162;
   drawPosterPolaroid(ctx,state.images.get(state.polaroid2)?.photo,margin+edge*.24,edge*.147,frame,.14,state.crops?.polaroid2);
   drawPosterPolaroid(ctx,state.images.get(state.polaroid1)?.photo,margin+edge*.09,edge*.151,frame,-.18,state.crops?.polaroid1);
-  const titleLeft=margin+edge*.36;
-  titleX=(titleLeft+right)/2;titleY=edge*.134;titleWidth=right-titleLeft;
   ctx.strokeStyle=dark?"#ffffff50":"#6c526743";
   ctx.lineWidth=edge*.0016;
   ctx.beginPath();ctx.moveTo(margin,gridTop-edge*.033);ctx.lineTo(right,gridTop-edge*.033);ctx.stroke();
@@ -2635,25 +2742,10 @@ function drawPosterCanvas(canvas,state,layout){
    ctx.fillStyle="#dfb5c5";ctx.fillRect(0,banner-3,width,3);
   }
  }
- ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
- const title=state.title.trim()||state.group,lightText=dark&&!paper,outline=backdrop&&!paper;
- const titleColor=posterTitleColor({...state,design});
- ctx.fillStyle=titleColor;
- ctx.strokeStyle=lum(titleColor)<.5?"#fff8fb":"#281b2b";
- const titleFamily=state.titleFont&&state.titleFont.status!=="loaded"?"Georgia":state.font;
- ctx.font=posterFont(titleFamily,edge*.085);
- ctx.lineWidth=edge*.006;
- if(!paper)ctx.strokeText(title,titleX,titleY,titleWidth);
- ctx.fillText(title,titleX,titleY,titleWidth);
+ ctx.textAlign="left";ctx.textBaseline="middle";ctx.lineJoin="round";
+ const lightText=dark&&!paper,outline=backdrop&&!paper;
  ctx.fillStyle=lightText?"#fff8fb":"#322334";
  ctx.strokeStyle=lightText?"#281b2b":"#fff8fb";
- if(!paper){
-  ctx.font=`600 ${edge*.014}px Outfit, sans-serif`;
-  ctx.lineWidth=edge*.0025;
-  if(outline)ctx.strokeText("WISHLIST",titleX,titleY+edge*.064);
-  ctx.fillText("WISHLIST",titleX,titleY+edge*.064);
- }
- ctx.textAlign="left";
  for(const heading of layout.headings){
   ctx.font=`600 ${heading.size}px Outfit, sans-serif`;
   ctx.lineWidth=heading.size*.16;
@@ -2682,6 +2774,7 @@ function drawPosterCanvas(canvas,state,layout){
    }
   });
  }
+ const textRegions=drawPosterTexts(ctx,state,layout);
  ctx.save();ctx.globalAlpha=.56;
  ctx.textAlign="center";ctx.font=`500 ${edge*.015}px Outfit, sans-serif`;
  ctx.fillStyle=dark?"#fbf4f8":"#463845";
@@ -2689,6 +2782,7 @@ function drawPosterCanvas(canvas,state,layout){
  if(backdrop)ctx.strokeText("Hecho en mypoca",width/2,height-edge*.03);
  ctx.fillText("Hecho en mypoca",width/2,height-edge*.03);
  ctx.restore();
+ return textRegions;
 }
 function requestPosterPaint(){
  const state=WP;
@@ -2699,18 +2793,22 @@ function requestPosterPaint(){
   if(WP===state&&$("poster-canvas"))paintWishlistPoster(state);
  });
 }
+function posterControlStyle(layout,x,y,w,h){
+ return `left:${x/layout.width*100}%;top:${y/layout.height*100}%;width:${w/layout.width*100}%;height:${h/layout.height*100}%`;
+}
 function paintWishlistPoster(state){
  const layout=posterLayout(state.sections,state.size,state.design,state.priorities);
  state.layout=layout;
  const images=preparePosterAssets(state);
- const font=preparePosterFont(state),fontStatus=$("poster-font-status");
- const fontMessage=font.status==="loading"?"Cargando tipografía…":font.status==="unavailable"?`No se pudo cargar ${fname(state.font)}. Se usará Georgia.`:"";
+ const fonts=preparePosterFonts(state);
+ const fontStatus=$("poster-font-status"),missing=[...new Set(fonts.filter(font=>font.status==="unavailable").map(font=>fname(font.family)))];
+ const fontMessage=fonts.some(font=>font.status==="loading")?"Cargando tipografía…":missing.length?`Fuentes no disponibles: ${missing.join(", ")}. Se usará Georgia.`:"";
  if(fontStatus.textContent!==fontMessage)fontStatus.textContent=fontMessage;
- drawPosterCanvas($("poster-canvas"),state,layout);
+ state.textRegions=drawPosterCanvas($("poster-canvas"),state,layout);
  paintPosterCropPreviews(state,layout);
  const controls=$("poster-card-controls");
  if(!posterDrag){
-  const style=(x,y,w,h)=>`left:${x/layout.width*100}%;top:${y/layout.height*100}%;width:${w/layout.width*100}%;height:${h/layout.height*100}%`;
+  const style=(x,y,w,h)=>posterControlStyle(layout,x,y,w,h);
   const gesture='onpointerdown="posterPointerDown(event)" onpointermove="posterPointerMove(event)" onpointerup="posterPointerEnd(event)" onpointercancel="posterPointerEnd(event)" oncontextmenu="event.preventDefault()"';
   const eraControls=state.priorityMode?[]:layout.headings.filter(heading=>heading.block>=0).map(heading=>`<button type="button" class="poster-card-control"
    style="${style(heading.x,heading.y-heading.height/2,heading.maxWidth,heading.height)}" data-poster-era="${heading.block}"
@@ -2722,7 +2820,13 @@ function paintWishlistPoster(state){
    if(card.block<0)return "";
    return `<div class="poster-card-control" style="${bounds}" data-poster-era="${card.block}" aria-hidden="true" ${gesture}></div>`;
   });
-  controls.innerHTML=eraControls.concat(cardControls).join("");
+  const textControls=state.priorityMode?[]:state.textRegions.map(text=>`<button type="button" class="poster-card-control poster-text-control"
+   style="${style(text.left,text.top,text.width,text.height)}" data-poster-text="${text.id}"
+   aria-label="${text.id==="title"?"Mover título":"Mover texto"}: ${esc(text.label)}" ${gesture} onkeydown="posterTextKey(event)"></button>`);
+  controls.innerHTML=eraControls.concat(cardControls,textControls).join("");
+ }else if(posterDrag.text){
+  const text=state.textRegions.find(region=>region.id===posterDrag.text);
+  if(text)posterDrag.origin.style.cssText=posterControlStyle(layout,text.left,text.top,text.width,text.height);
  }
  const pending=images.filter(entry=>entry.pending).length,failed=images.filter(entry=>!entry.pending&&!entry.photo).length;
  const status=$("poster-status");
@@ -2740,10 +2844,14 @@ function paintWishlistPoster(state){
   controls.querySelector(`button[data-poster-era="${block}"]`)?.focus({preventScroll:true});
   state.focusEra=null;
  }
+ if(state.focusText){
+  controls.querySelector(`[data-poster-text="${state.focusText}"]`)?.focus({preventScroll:true});
+  state.focusText=null;
+ }
 }
 function posterInstructions(priorityMode){
  return priorityMode?"Toca una photocard para marcarla o quitarla de PRIO. Las PRIO van al inicio.":
-  "Mantén pulsado el encabezado o una photocard para arrastrar toda su era.";
+  "Arrastra el título o los textos para colocarlos. Mantén pulsada una photocard o el nombre de una era para mover la era completa.";
 }
 function togglePosterPriorities(){
  if(!WP)return;
@@ -2765,8 +2873,17 @@ function posterPointerDown(event){
  if(!WP||WP.priorityMode||event.button!==0||posterDrag)return;
  const origin=event.currentTarget,block=Number(origin.dataset.posterEra);
  const drag={origin,block,target:block,id:event.pointerId,x:event.clientX,y:event.clientY,active:false};
+ const text=WP.textRegions?.find(region=>region.id===origin.dataset.posterText);
+ if(text){
+  const rect=$("poster-stage").getBoundingClientRect(),layout=WP.layout;
+  drag.text=text.id;
+  drag.offsetX=(event.clientX-rect.left)/rect.width-text.x/layout.width;
+  drag.offsetY=(event.clientY-rect.top)/rect.height-text.y/layout.height;
+  drag.original=text.id==="title"?WP.titlePosition:WP.texts.find(label=>label.id===text.id)?.position;
+ }
  posterDrag=drag;
  origin.setPointerCapture(event.pointerId);
+ if(text)return;
  drag.timer=setTimeout(()=>{
   if(posterDrag!==drag||!origin.isConnected)return;
   drag.active=true;
@@ -2782,8 +2899,14 @@ function posterPointerMove(event){
  const drag=posterDrag,layout=WP?.layout;
  if(!drag||!layout||drag.id!==event.pointerId)return;
  if(!drag.active){
-  if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>10){clearTimeout(drag.timer);posterDrag=null}
-  return;
+  const distance=Math.hypot(event.clientX-drag.x,event.clientY-drag.y);
+  if(drag.text){
+   if(distance<3)return;
+   drag.active=true;drag.origin.classList.add("dragging");
+  }else{
+   if(distance>10){clearTimeout(drag.timer);posterDrag=null}
+   return;
+  }
  }
  drag.x=event.clientX;drag.y=event.clientY;
  updatePosterDropTarget(drag,layout);
@@ -2791,6 +2914,10 @@ function posterPointerMove(event){
 }
 function updatePosterDropTarget(drag,layout){
  const rect=$("poster-stage").getBoundingClientRect(),x=(drag.x-rect.left)/rect.width*layout.width,y=(drag.y-rect.top)/rect.height*layout.height;
+ if(drag.text){
+  movePosterText(drag.text,{x:clamp(x/layout.width-drag.offsetX,0,1),y:clamp(y/layout.height-drag.offsetY,0,1)});
+  return;
+ }
  const controls=$("poster-card-controls");
  controls.querySelector(".drop-target")?.classList.remove("drop-target");
  drag.target=posterEraAt(layout,x,y);
@@ -2822,8 +2949,25 @@ function posterPointerEnd(event){
  clearTimeout(drag.timer);posterDrag=null;
  drag.origin.classList.remove("dragging");
  $("poster-card-controls")?.querySelector(".drop-target")?.classList.remove("drop-target");
- if(event.type!=="pointercancel"&&drag.active&&WP&&!WP.priorityMode)movePosterEra(WP,drag.block,drag.target);
+ if(drag.text&&drag.active){
+  if(event.type==="pointercancel")movePosterText(drag.text,drag.original);
+  WP.focusText=drag.text;
+ }else if(event.type!=="pointercancel"&&drag.active&&WP&&!WP.priorityMode)movePosterEra(WP,drag.block,drag.target);
  requestPosterPaint();
+}
+function movePosterText(id,position){
+ if(!WP)return;
+ if(id==="title"){WP.titlePosition=position;requestPosterPaint()}
+ else changePosterText(id,"position",position);
+}
+function posterTextKey(event){
+ const directions={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]},direction=directions[event.key];
+ const id=event.currentTarget.dataset.posterText,text=WP?.textRegions?.find(region=>region.id===id);
+ if(!direction||!text||WP.priorityMode)return;
+ const {width,height}=WP.layout,[dx,dy]=direction;
+ event.preventDefault();
+ WP.focusText=id;
+ movePosterText(id,{x:clamp(text.x/width+dx*.012,0,1),y:clamp(text.y/height+dy*.012,0,1)});
 }
 function posterEraKey(event){
  if(!WP||WP.priorityMode||!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))return;
@@ -2841,10 +2985,10 @@ async function downloadWishlistPoster(){
  state.exporting=true;button.disabled=true;status.textContent="Preparando PNG…";
  try{
   const snapshot={...state,sections:state.sections.map(section=>({...section,items:section.items.slice()})),
-   priorities:new Set(state.priorities)};
+   priorities:new Set(state.priorities),extraFonts:new Map(state.extraFonts)};
   const photos=preparePosterAssets(snapshot);
-  const font=preparePosterFont(snapshot);
-  await Promise.all([font.ready,...photos.map(entry=>entry.ready)]);
+  const fonts=preparePosterFonts(snapshot);
+  await Promise.all([...fonts.map(font=>font.ready),...photos.map(entry=>entry.ready)]);
   if(WP!==state||!button.isConnected||!$("modal").classList.contains("on"))return;
   const canvas=document.createElement("canvas");
   drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design,snapshot.priorities));
@@ -2869,7 +3013,7 @@ function editW(id){
  fE=pc?i.era||"":"";fO=i.go||"";fT=[...(i.tags||[])];pkDel={};
  const title=cur?(pc?"Editar photocard deseada":"Editar artículo deseado"):(pc?"Nueva photocard deseada":"Nuevo artículo deseado");
  openM(`<div class="vw fm"><h3>${title}</h3>
- ${itemPhotoPicker(pc)}
+ ${itemPhotoPicker(pc,pc)}
  ${catalogActions()}
  <div class="fs"><label for="w_n">Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${pc?"PC Sunoo Weverse Luckydraw":"Álbum, mercancía…"}"></div>
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
@@ -3030,10 +3174,10 @@ function fvParts(c){const T=(c.an||[]).filter(x=>x=="s"||x=="h"||x=="d");if(!T.l
 var FV_PLUS='<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
 function favSec(c,mode,sl){c=Object.assign({},FV_DEF,c||fvCfg());mode=mode||"me";sl=sl||fvSlots();
  const me=mode=="me",cls=["fvs"];if(c.f=="g")cls.push("fx-g");if(c.f=="m")cls.push("fx-m");if(c.gl)cls.push("fx-o");
- const tg=me?"button":"div",slot=(it,k)=>`<div class="fvk"><${tg} class="fvc${it?" has":""}"${me?` type="button" onclick="pickFav(${k})" aria-label="Elegir photocard ${k+1}"`:""}>${it?`<img src="${esc(it.img)}" alt="">`:FV_PLUS}</${tg}><div class="fvn">${it&&it.name?esc(it.name):"···"}</div></div>`;
+ const tg=me?"button":"div",slot=(it,k)=>`<div class="fvk"><${tg} class="fvc${it?" has":""}"${me?` type="button" onclick="pickFav(${k})" aria-label="Elegir photocard ${k+1}${it?._w?", de Wishlist":""}"`:""}>${it?`<img src="${esc(it.img)}" alt="">${it._w?'<span class="fv-wish">Wishlist</span>':""}`:FV_PLUS}</${tg}><div class="fvn">${it&&it.name?esc(it.name):"···"}</div></div>`;
  return `<div class="${cls.join(" ")}" style="${fvStyle(c)}">${fvParts(c)}<div class="fvh"><div class="fvt">${esc(c.t)}</div>${me?`<button type="button" class="fvpen" onclick="editFav()" aria-label="Personalizar favoritas">${PEN}</button>`:""}</div><div class="fvg">${[0,1,2,3].map(k=>slot(sl[k]||null,k)).join("")}</div></div>`}
 function favPub(fv){if(!fv||!Array.isArray(fv.s)||!fv.s.some(x=>x&&x.i))return"";
- return favSec(fv.c,"pub",[0,1,2,3].map(k=>{const x=fv.s[k];return x&&x.i?{img:x.i,name:x.n||""}:null}))}
+ return favSec(fv.c,"pub",[0,1,2,3].map(k=>{const x=fv.s[k];return x&&x.i?{img:x.i,name:x.n||"",_w:x.src==="wish"}:null}))}
 function visiblePublicFavorites(fv,privacy){
  if(!Array.isArray(fv?.s))return fv;
  return {...fv,s:fv.s.map(slot=>{
@@ -3149,8 +3293,8 @@ function ev(){const a=[...S.items,...(S.col||[])],o=S.corder||[];if(!o.length)re
 function applyOrderC(ids){const L=ev().map(x=>x.id),idx=[];L.forEach((id,k)=>{if(ids.includes(id))idx.push(k)});idx.forEach((k,n)=>{L[k]=ids[n]});S.corder=L}
 function setS(v){bsec=v;gf="";anim=true;render()}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
-function itemPhotoPicker(pc){
- return `<div id="pv" class="pvbox" onclick="camOpen(${pc})">${img?`<img class="pvimg" src="${esc(img)}" alt="Foto de la pieza">`:`<span>＋ Agregar foto</span>`}</div>
+function itemPhotoPicker(pc,useGallery=false){
+ return `<button id="pv" type="button" class="pvbox" style="width:100%;font:inherit" aria-label="${useGallery?"Elegir foto de la galería":"Abrir cámara"}" onclick="${useGallery?"$('gal').click()":`camOpen(${pc})`}">${img?`<img class="pvimg" src="${esc(img)}" alt="Foto de la pieza">`:`<span>＋ Agregar foto</span>`}</button>
  <div class="row2"><button type="button" class="pri sm" onclick="camOpen(${pc})">Cámara</button><button type="button" class="sec sm" onclick="$('gal').click()">Galería</button></div>
  <input id="gal" type="file" accept="image/*" hidden onchange="pick(this.files[0])">`;
 }
@@ -3761,7 +3905,7 @@ function paintPub(){
   +(!privacy.wish?`<div><b>${d.nw||0}</b><span>wishlist</span></div>`:"");
  let h=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="closePub()">‹ Cerrar</button><b>@${esc(r.username)}</b></div>
  <div class="pcard${d.bn?" pme":""}"${profileColorStyle(d.cardColor,d.bn?d.bc:null)}>${d.bn?`<div class="pbn" style="background-image:url('${esc(d.bn)}')"></div>`:""}<div class="phead"><div id="public-frame-avatar">${framedAvatar(r.photo,r.name||r.username,publicFrame(r))}</div><div class="pid"><div class="pname">${esc(r.name||r.username)}</div><div class="puser">@${esc(r.username)}</div></div></div>
- ${d.desc?`<div class="pdesc">${esc(d.desc)}</div>`:""}${socUrl(d.ig)||socUrl(d.tt)?`<div class="psoc">${socHtml(d,false)}</div>`:""}<div class="pchips"><span class="ptags" id="pubtags">${tagsHtml(r._tg)}</span>${goChips(d.gos)}${interestChips(d)}${d.lvl?`<span class="pchip">Nivel ${d.lvl}</span>`:""}</div>
+ ${d.desc?`<div class="pdesc">${esc(d.desc)}</div>`:""}${socUrl(d.ig)||socUrl(d.tt)?`<div class="psoc">${socHtml(d,false)}</div>`:""}<div class="pchips"><span class="ptags" id="pubtags">${tagsHtml(r._tg)}</span>${goChips(d.gos)}${d.lvl?`<span class="pchip">Nivel ${d.lvl}</span>`:""}</div>${interestChips(d)}
  ${stats?`<div class="pstats">${stats}</div>`:""}</div>
  <div id="pubact">${pubActHtml()}</div>
  ${socialSegments(SOCIAL_PANES.filter(([key])=>key!=="cards"||sections.length),publicProfilePane,"setPublicProfilePane")}`;
@@ -3922,7 +4066,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.49",VK="mypoca-ver";
+const APP_VER="1.50",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
