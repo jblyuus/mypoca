@@ -655,6 +655,24 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .wish-toolbar,.wish-toolbar>div{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .wish-toolbar{justify-content:space-between;margin:10px 0}
 .wish-card-name{text-align:center;overflow-wrap:anywhere}
+.piece-tabs.seg{position:relative;overflow:visible}
+.piece-tabs:has(details[open]){z-index:4}
+.piece-tab-menu{flex:1;min-width:0;position:relative}
+.piece-tab-menu>summary{display:flex;align-items:center;justify-content:center;gap:5px;list-style:none;padding:8px 10px;border-radius:14px;color:var(--mu);font-size:14px;cursor:pointer}
+.piece-tab-menu>summary::-webkit-details-marker{display:none}
+.piece-tab-menu>summary.on{background:var(--ac);color:#fff;box-shadow:0 4px 12px #0003}
+.piece-tab-menu[open]>summary span{transform:rotate(180deg)}
+.piece-tab-choices{position:absolute;top:calc(100% + 4px);left:0;min-width:100%;padding:4px;background:var(--card);border:1px solid var(--bd);border-radius:14px;box-shadow:0 8px 18px #0003}
+.piece-tab-choices button{width:100%;text-align:left}
+.grid.postcard-grid,.mgrid.postcard-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.postcard-grid img{aspect-ratio:1;object-fit:contain}
+.cam-formats{position:absolute;z-index:1;top:calc(68px + env(safe-area-inset-top,0px));left:0;right:0;display:flex;justify-content:center;gap:5px}
+.cam-formats button{border:1px solid #fff8;border-radius:16px;padding:6px 9px;background:#111a;color:#fff;font:inherit;font-size:12px}
+.cam-formats button[aria-pressed=true]{background:#fff;color:#17141a}
+.fv-more{position:relative;z-index:1;margin-top:9px}
+.fv-more summary{width:fit-content;margin:auto;cursor:pointer;font-size:13px;font-weight:600}
+.fv-more .fvg{margin-top:8px}
+.fv-add{position:relative;z-index:1;display:block;margin:9px auto 0}
 .wish-tags{justify-content:center;flex-wrap:wrap;margin:5px 0}
 .wish-tags .ctag{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .poster-heading,.poster-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -719,7 +737,7 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 <dialog id="go-info" aria-labelledby="go-info-title"></dialog>
 <div id="modal" onclick="if(event.target==this)closeM()"><div id="sheet"></div></div>
 <script>
-const KEY="pedidos-v1",PAISES=["Corea","Japón","México","Pocamarket","Otro"],TIPOS=["PC","Álbum","Otro","Papelería"],
+const KEY="pedidos-v1",PAISES=["Corea","Japón","México","Pocamarket","Otro"],TIPOS=["PC","Postcard","Álbum","Otro","Papelería"],
 ESTADOS=["Pendiente","Comprado","En dirección KR","En dirección JP","En camino","En México","En casa"];
 let S={items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},tab="ped",cur=null,img="",gf="",gof="",af="",anim=true;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
@@ -940,29 +958,29 @@ function render(){afFix();
   h=`<div class="hub"><button onclick="setS('ped')">${ic('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>')}<b>Pedidos</b><span>${np} por llegar</span></button><button onclick="setS('col')">${ic('<rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/><path d="M13.5 8.5l1.1 2.2 2.4.35-1.75 1.7.4 2.4-2.15-1.15-2.15 1.15.4-2.4-1.75-1.7 2.4-.35z"/>')}<b>Colección</b><span>${nc} en casa</span></button></div>`;
  }
  if(tab=="book"&&bsec){
-  const col=bsec=="col",prod=btab=="prod",base=col?ev().filter(home):ev().filter(i=>!i.manual&&!home(i)),list=base.filter(i=>(prod?i.type!="PC":i.type=="PC")&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
+  const col=bsec=="col",prod=btab=="prod",base=col?ev().filter(home):ev().filter(i=>!i.manual&&!home(i)),list=base.filter(i=>orderPieceKind(i)===btab&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   const cell=i=>`<div data-id="${i.id}" onclick="${i.manual?"viewC":"view"}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<img alt="">`}<div class="ctags">${goTag(i,"ctag")}${(prod&&!i.manual?[i.type,...(i.tags||[])]:(i.tags||[])).map(g=>`<span class="ctag" style="${tcol(g)}">${esc(g)}</span>`).join("")}</div>${i.name?`<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>`:""}${col?"":`<div class="stt"><i style="background:${SC[i.status]||"#999"}"></i>${i.status}</div>`}</div>`;
-  hh=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="setS(null)">‹ Volver</button><b>${col?"Colección":"Pedidos"}</b></div>`;h=`<div class="seg"><button class="${prod?"":"on"}" onclick="setB('pcs')">Photocards</button><button class="${prod?"on":""}" onclick="setB('prod')">Artículos</button></div><div class="mu" style="display:flex;justify-content:space-between;align-items:center">${list.length} ${prod?"productos":"photocards"}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`;
-  const emp=col?(prod?"Tu colección de artículos está vacía.<br>Toca + para agregar el primero.":"Tu colección de photocards está vacía.<br>Toca + y toma una foto de tu primera photocard."):(prod?"Agrega álbumes y otros productos con foto y aparecerán aquí.":"Agrega photocards con foto y aparecerán aquí.");
-  h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod?`<h2>${esc(g)}</h2><div class="grid prod" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:eraGroup(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,col&&!(af||gof))).join(""):`<div class="empty">${emp}</div>`;
+  hh=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="setS(null)">‹ Volver</button><b>${col?"Colección":"Pedidos"}</b></div>`;h=`${pieceTabs(btab,"setB")}<div class="mu" style="display:flex;justify-content:space-between;align-items:center">${list.length} ${PIECE_LABELS[btab].toLowerCase()}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`;
+  const emp=btab==="postcard"?"Aún no hay postcards. Toca + para agregar una.":col?(prod?"Tu colección de artículos está vacía.<br>Toca + para agregar el primero.":"Tu colección de photocards está vacía.<br>Toca + y toma una foto de tu primera photocard."):(prod?"Agrega álbumes y otros productos con foto y aparecerán aquí.":"Agrega photocards con foto y aparecerán aquí.");
+  h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod?`<h2>${esc(g)}</h2><div class="grid prod" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:eraGroup(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,col&&btab==="pc"&&!(af||gof),"i",btab)).join(""):`<div class="empty">${emp}</div>`;
  }
  if(tab=="ped"&&ordersUnboxed){
   const s=S.items.filter(i=>!home(i)&&!i.box&&!["México","Pocamarket"].includes(i.country)&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
   h=`<div class="mu">Artículos que aún no tienen caja asignada (preventas, sin fecha, etc.). Edítalos para asignar caja.</div><div class="card">${s.length?s.map(itemRow).join(""):`<div class="empty">Nada pendiente por asignar.</div>`}</div>`;
  }
  if(tab=="wish"){
-  const misc=wtab==="misc",items=S.wish.filter(i=>(i.kind||"pc")===(misc?"misc":"pc")&&(!gf||i.grupo===gf)&&afm(i));
+  const misc=wtab==="prod",items=S.wish.filter(i=>wishlistPieceKind(i)===wtab&&(!gf||i.grupo===gf)&&afm(i));
   const cell=i=>`<div data-id="${esc(i.id)}" onclick="viewW(this.dataset.id)">${i.img?`<img loading="lazy" decoding="async" src="${esc(i.img)}" alt="">`:'<div class="mph">Sin foto</div>'}
    ${wishlistCardName(i.name)}${wishlistTags(i.tags)}${misc&&i.det?`<div class="mu wish-card-name">${esc(i.det)}</div>`:""}</div>`;
-  h=`<div class="seg"><button class="${misc?"":"on"}" onclick="setW('pc')">Photocards</button><button class="${misc?"on":""}" onclick="setW('misc')">Artículos varios</button></div>
+  h=`${pieceTabs(wtab,"setW",null,wishlistPieceKind,"Artículos varios")}
    <div class="wish-toolbar"><span class="mu">${items.length} deseado${items.length===1?"":"s"}</span><div>
    ${items.length?'<button type="button" class="sec sm" onclick="editOrd()">Ordenar grupos</button>':""}
    <button type="button" class="pri sm" onclick="openWishlistPoster()">Compartir wishlist</button></div></div>`;
-  if(!items.length)h+=`<div class="empty">${misc?"Tu wishlist de artículos está vacía.<br>Toca + para agregar álbumes o mercancía que deseas.":"Tu wishlist de photocards está vacía.<br>Toca + para agregar una photocard que deseas."}</div>`;
+  if(!items.length)h+=`<div class="empty">${wtab==="postcard"?"Tu wishlist de postcards está vacía. Toca + para agregar una.":misc?"Tu wishlist de artículos está vacía.<br>Toca + para agregar álbumes o mercancía que deseas.":"Tu wishlist de photocards está vacía.<br>Toca + para agregar una photocard que deseas."}</div>`;
   else for(const group of ordG([...new Set(items.map(i=>i.grupo||"Sin grupo"))])){
    const wish=items.filter(i=>(i.grupo||"Sin grupo")===group);
    h+=misc?`<h2>${esc(group)}</h2><div class="grid prod" data-drag="w">${wish.map(cell).join("")}</div>`
-    :eraGroup(group,wish,cell,false,"w");
+    :eraGroup(group,wish,cell,false,"w",wtab);
   }
  }
  if(tab=="env"){
@@ -972,7 +990,7 @@ function render(){afFix();
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="${trk(e.carr,e.guia)}" target="_blank" rel="noopener">Rastrear</a><button class="sec" onclick="updE('${e.id}')">Actualizar</button><button class="sec" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(e.guia)}')">Copiar guía</button></div></div>`}).join(""):`<div class="empty">Sin envíos todavía.<br>Toca + para agregar una guía.</div>`;
  }
  if(tab=="perfil"){
-  const p=S.profile||{},wl=ptabP=="wish",po=ptabP=="ped",prod=ptabK=="prod",sc=i=>po?(!i.manual&&!home(i)):home(i),pcs=(wl?S.wish.filter(i=>(i.kind||"pc")=="pc"):ev().filter(i=>i.type=="PC"&&sc(i))).filter(i=>wl||i.img),prs=wl?S.wish.filter(i=>i.kind=="misc"):ev().filter(i=>i.type!="PC"&&sc(i)),base=(prod?prs:pcs).filter(i=>wl||!prod||!gof||i.go==gof),pfl=(PFL=ordG([...new Set(base.map(i=>i.grupo||"Sin grupo"))])),list=(pfg&&!pfl.includes(pfg)&&(pfg=""),base.filter(i=>!pfg||(i.grupo||"Sin grupo")==pfg)),fnv=i=>wl?"viewW":i.manual?"viewC":"view",cellP=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;${fnv(i)}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${goTag(i,"gopos")}${wl?wishlistCardName(i.name):""}</div>`;
+  const p=S.profile||{},wl=ptabP=="wish",po=ptabP=="ped",prod=ptabK=="prod",sc=i=>po?(!i.manual&&!home(i)):home(i),kindOf=wl?wishlistPieceKind:orderPieceKind,profilePieces=(wl?S.wish:ev().filter(sc)).filter(i=>wl||kindOf(i)==="prod"||i.img),base=profilePieces.filter(i=>kindOf(i)===ptabK&&(wl||!prod||!gof||i.go==gof)),pfl=(PFL=ordG([...new Set(base.map(i=>i.grupo||"Sin grupo"))])),list=(pfg&&!pfl.includes(pfg)&&(pfg=""),base.filter(i=>!pfg||(i.grupo||"Sin grupo")==pfg)),fnv=i=>wl?"viewW":i.manual?"viewC":"view",cellP=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;${fnv(i)}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${goTag(i,"gopos")}${wl?wishlistCardName(i.name):""}</div>`;
   const card=`<div class="pcard pme"${bannerStyle(p)}>${p.banner?`<div class="pbn" style="background-image:url('${esc(p.banner)}')"></div>`:""}<div class="phead">${framedAvatar(p.photo,p.name,allowedFrame(p.frame,myFrameLevel(),ownFrameAccess()))}<div class="pid"><div class="pname">${esc(p.name||"Tu nombre")}</div><div class="puser">@${esc((p.user||"usuario").replace(/^@/,""))}</div></div></div>
   <button class="sec pedit pgear" onclick="editTheme()" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button><button class="sec pedit" onclick="editP()" aria-label="Editar perfil">${PEN}</button>
   <div class="pdesc pdme${p.desc?"":" ph"}">${p.desc?esc(p.desc):"Agrega una descripción"}</div>
@@ -986,8 +1004,8 @@ function render(){afFix();
   ${myProfilePane==="home"?sigWrap(favSec(),"fvs")+(p.pub&&meId()?socialPostList(meId(),"preview"):""):""}
   ${myProfilePane==="posts"?`<div class="social-heading"><h2>Mis posts</h2><button type="button" class="pri sm" onclick="composeSocialPost()">+ Publicar</button></div>${p.pub&&meId()?socialPostList(meId(),"grid"):'<div class="empty">Activa tu perfil público para compartir publicaciones.</div>'}`:""}`;
   if(myProfilePane==="cards")h+=`<div class="seg"><button class="${po?"on":""}" onclick="setPP('ped')">Pedidos</button><button class="${wl||po?"":"on"}" onclick="setPP('col')">Colección</button><button class="${wl?"on":""}" onclick="setPP('wish')">Wishlist</button></div>
-  <div class="seg"><button class="${prod?"":"on"}" onclick="setPK('pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPK('prod')">Artículos <small>${prs.length}</small></button></div>${pfChips(pfl)}${prod&&!wl?gochips():""}
-  ${list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cellP).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cellP,eraList(g),i=>i.era,wl?"w":"i")).join(""):`<div class="empty">${prod?(wl?"Tu wishlist de artículos está vacía.":"Aún no hay artículos aquí."):wl?"Tu wishlist está vacía.":po?"No tienes photocards en pedidos.":"Tu colección está vacía."}</div>`}`;
+  ${pieceTabs(ptabK,"setPK",profilePieces,kindOf)}${pfChips(pfl)}${prod&&!wl?gochips():""}
+  ${list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":ptabK==="postcard"?" postcard-grid":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cellP).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cellP,eraList(g),i=>i.era,wl?"w":"i",ptabK)).join(""):`<div class="empty">${ptabK==="postcard"?"Aún no hay postcards aquí.":prod?(wl?"Tu wishlist de artículos está vacía.":"Aún no hay artículos aquí."):wl?"Tu wishlist está vacía.":po?"No tienes photocards en pedidos.":"Tu colección está vacía."}</div>`}`;
  }
  if(tab=="gas"){
   const prod=S.items.reduce((a,i)=>a+(+i.price||0),0),bx=Object.values(S.boxes),cg=k=>S.cargos.filter(c=>c.kind==k).reduce((a,c)=>a+c.amt,0),
@@ -1016,7 +1034,7 @@ function render(){afFix();
  V.className=anim&&!sameProfile?"in":"";
  anim=false;
 }
-function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",type:"PC",country:(tab=="ped"?ptab:"Corea"),box:"",status:"Pendiente",price:"",img:""};img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
+function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",type:tab==="book"?PIECE_TYPES[btab]:"PC",country:(tab=="ped"?ptab:"Corea"),box:"",status:"Pendiente",price:"",img:""};img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
  const ch=(f,l,v)=>`<input type="hidden" id="${f}" value="${esc(v)}"><div class="pick">${l.map(x=>`<button type="button" class="ch ${x==v?"on":""}" data-v="${esc(x)}" onclick="setF('${f}',this)">${esc(x)}</button>`).join("")}</div>`;
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nuevo"} artículo</h3>
  <label class="up"><input type="file" accept="image/*" hidden onchange="pick(this.files[0])"><div id="pv" class="pvbox">${img?`<img class="pvimg" src="${img}">`:`<span>＋ Agregar foto</span>`}</div></label>
@@ -1027,13 +1045,13 @@ function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",ty
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
  <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
  <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
- <div class="fs" id="erasec" style="${i.type=='PC'?'':'display:none'}"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>
+ <div class="fs" id="erasec" style="${orderPieceKind(i)!=='prod'?'':'display:none'}"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>
   <div class="fs"><label>GO (group order)</label><div id="pw_o">${goPickHtml()}</div></div>
  <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
  <div class="fs row2"><div><label>Estado</label><select id="f_s">${ESTADOS.map(e=>`<option ${e==i.status?"selected":""}>${e}</option>`).join("")}</select></div><div><label>Precio</label><input id="f_p" type="number" inputmode="decimal" value="${i.price||""}" placeholder="0"></div></div>
  <div class="fs"><label>Notas</label><textarea id="f_d" rows="2">${esc(i.det)}</textarea></div>
  <div class="fbar"><button class="pri" onclick="ok()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" style="margin-left:auto" onclick="del()">Borrar</button>`:""}</div></div>`)}
-function setF(f,b){$(f).value=b.dataset.v;if(f=="f_t"){resetCatalogResults();const q=$("erasec");if(q)q.style.display=b.dataset.v=="PC"?"":"none"}[...b.parentElement.children].forEach(x=>x.classList.toggle("on",x==b));if(f=="f_c")$("boxw").style.display=["México","Pocamarket"].includes(b.dataset.v)?"none":""}
+function setF(f,b){$(f).value=b.dataset.v;if(["f_t","w_kind","col_kind"].includes(f)){resetCatalogResults();const q=$("erasec");if(q)q.style.display=currentPieceKind()==="prod"?"none":""}[...b.parentElement.children].forEach(x=>x.classList.toggle("on",x==b));if(f=="f_c")$("boxw").style.display=["México","Pocamarket"].includes(b.dataset.v)?"none":""}
 let fG="",fT=[],fA="",fU="",pkDel={};const PH={g:"Nuevo grupo",t:"Nuevo tag (ej. Weverse POB)",a:"Nuevo artista",u:"Nuevo unit"},LB={g:"grupos",t:"tags",a:"artistas",u:"units"};
 const allG=()=>ordG([...new Set([...(S.glist||[]),...grupos()])]);
 const allT=()=>[...new Set([...(S.tlist||[]),...fT,...S.items.concat(S.col||[],S.wish||[]).flatMap(i=>i.tags||[])])].sort();
@@ -1057,7 +1075,7 @@ function addC(k){
 const PEN='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 const hd=(n,c)=>`<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">${esc(n)}</h3><button class="sec" aria-label="Editar" onclick="${c}" style="padding:8px 10px">${PEN}</button></div>`;
 const kv=(a,b)=>b?`<div class="kv"><span>${a}</span><b>${esc(b)}</b></div>`:"";
-const pic=i=>i.img?`<img src="${i.img}" style="display:block;margin:10px auto;max-height:210px;max-width:62%;object-fit:contain;border-radius:12px">`:"";
+const pic=i=>i.img?`<img src="${i.img}" style="display:block;margin:10px auto;max-height:${i.type==="Postcard"||i.kind==="postcard"?350:210}px;max-width:${i.type==="Postcard"||i.kind==="postcard"?100:62}%;object-fit:contain;border-radius:12px">`:"";
 function view(id){if(dragBlock)return;const i=S.items.find(x=>x.id==id);if(!i)return;
  $("sheet").innerHTML='<div class="vw">'+hd(i.name,`edit('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Tipo",i.type)+kv("Tipo de pedido",i.country)+kv("Caja",(i.country=="México"||i.country=="Pocamarket")?"Sin caja (directo a casa)":i.box?"Caja "+i.box:"Sin asignar")+kv("Estado",i.status)+kv("Precio",i.price?money(i.price):"")+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
@@ -1158,7 +1176,31 @@ function delE(){if(confirm("¿Borrar este envío?")){S.envios=S.envios.filter(e=
 function updE(id){cur=S.envios.find(e=>e.id==id);stg=cur.stage;
  openM(`<h3>Actualizar envío</h3><div class="mu">${esc(cur.carr)} · ${esc(cur.guia)}</div><label>Etapa</label><div class="pick">${STAGES.map((s,k)=>`<button type="button" class="ch ${k==stg?"on":""}" onclick="stg=${k};document.querySelectorAll('#sheet .ch').forEach((b,j)=>b.classList.toggle('on',j==${k}))">${s}</button>`).join("")}</div><label>Nota de la guía (opcional)</label><input id="u_n" placeholder="Ej. Llegó al centro de distribución"><div style="display:flex;gap:8px;margin-top:14px"><button class="pri" onclick="saveU()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button></div>`)}
 function saveU(){const e=cur;e.stage=stg;e.upd.push({t:now(),n:$("u_n").value.trim()||STAGES[stg]});e.ids.forEach(id=>{const it=S.items.find(x=>x.id==id);if(it)it.status=stg>=4?"En casa":stg>=2?"En camino":it.status});save();closeM();render();if(stg>=4)toast("Artículos movidos a tu Colección")}
-let ptab="Corea",btab="pcs",wtab="pc",showHome=false,bsec=null;
+const PIECE_TYPES={pc:"PC",postcard:"Postcard",prod:"Otro"};
+const PIECE_LABELS={pc:"Photocards",postcard:"Postcards",prod:"Artículos"};
+function orderPieceKind(item){return item.type==="PC"?"pc":item.type==="Postcard"?"postcard":"prod"}
+function wishlistPieceKind(item){return item.kind==="misc"?"prod":item.kind==="postcard"?"postcard":"pc"}
+function publicPieceKind(item){return item.k==="postcard"?"postcard":[1,true,"1","true"].includes(item.p)?"pc":"prod"}
+function pieceTabs(kind,handler,items=null,kindOf=orderPieceKind,articleLabel="Artículos"){
+ const label=key=>`${key==="prod"?articleLabel:PIECE_LABELS[key]}${items?` <small>${items.filter(item=>kindOf(item)===key).length}</small>`:""}`;
+ return `<div class="seg piece-tabs">
+  <details class="piece-tab-menu"><summary class="${kind==="prod"?"":"on"}">${label(kind==="postcard"?"postcard":"pc")} <span aria-hidden="true">⌄</span></summary>
+   <div class="piece-tab-choices">${["pc","postcard"].map(key=>`<button type="button" class="${key===kind?"on":""}" onclick="${handler}('${key}')">${label(key)}</button>`).join("")}</div>
+  </details>
+  <button type="button" class="${kind==="prod"?"on":""}" onclick="${handler}('prod')">${label("prod")}</button>
+ </div>`;
+}
+function pieceFormTypes(id,value){
+ return `<div class="fs"><label>Qué es</label><input type="hidden" id="${id}" value="${value}"><div class="pick">
+  ${Object.entries(PIECE_TYPES).map(([kind,label])=>`<button type="button" class="ch ${kind===value?"on":""}" data-v="${kind}" onclick="setF('${id}',this)">${kind==="prod"?"Artículo":label}</button>`).join("")}
+ </div></div>`;
+}
+function currentPieceKind(){
+ const orderType=$("f_t");
+ if(orderType)return orderPieceKind({type:orderType.value});
+ return ($("w_kind")||$("col_kind"))?.value||"pc";
+}
+let ptab="Corea",btab="pc",wtab="pc",showHome=false,bsec=null;
 function setW(k){wtab=k;anim=true;render()}
 const SC={"Pendiente":"#9fb0c8","Comprado":"#6f9de0","En camino":"#5ec2d6","En dirección KR":"#e48fb8","En dirección JP":"#e5b26f","En México":"#a08fe0","En casa":"#6fcf97"};
 function wishlistTags(tags){
@@ -1927,9 +1969,8 @@ function catalogActions(){
  </div><div class="mu catalog-note">Al sincronizar, el nombre, grupo, artista y tags de la pieza se añaden al catálogo junto con una huella de su foto.</div><div id="bres" class="mu"></div><div id="mypoca-catalog-crop" hidden></div><div id="mypoca-catalog-results" aria-live="polite"></div>`;
 }
 function catalogItemKind(){
- if($("f_t"))return $("f_t").value==="PC"?"pc":"item";
- if($("w_n"))return wishItemKind()==="misc"?"item":"pc";
- return colKind==="pc"?"pc":"item";
+ const kind=currentPieceKind();
+ return kind==="prod"?"item":kind;
 }
 function resetCatalogResults(){
  const crop=$("mypoca-catalog-crop");
@@ -2346,16 +2387,17 @@ const POSTER_TEXT_SIZE={min:50,max:300,default:100};
 let WP=null,posterDrag=null;
 
 function posterCards(state){
- return S.wish.filter(item=>(item.kind||"pc")==="pc"
+ return S.wish.filter(item=>(item.kind||"pc")===(state.kind||"pc")
   &&(!state.group||item.grupo===state.group)
   &&(!state.artist||String(item.artist)===state.artist)
   &&(!state.era||(state.era===":none"?!eraList(state.group).some(e=>e.id===item.era):String(item.era)===state.era)));
 }
 function openWishlistPoster(){
- const cards=posterCards({});
- if(!cards.length)return toast("Agrega una photocard a Wishlist para crear una imagen.");
- if(!cards.some(item=>item.grupo))return toast("Asigna un grupo a una photocard de Wishlist para crear una imagen.");
- WP={step:0,group:gf&&posterCards({group:gf}).length?gf:"",artist:"",era:"",size:"9:16",
+ const kind=wtab==="postcard"?"postcard":"pc",label=kind==="postcard"?"postcard":"photocard";
+ const cards=posterCards({kind});
+ if(!cards.length)return toast(`Agrega una ${label} a Wishlist para crear una imagen.`);
+ if(!cards.some(item=>item.grupo))return toast(`Asigna un grupo a una ${label} de Wishlist para crear una imagen.`);
+ WP={step:0,kind,group:gf&&posterCards({kind,group:gf}).length?gf:"",artist:"",era:"",size:"9:16",
   title:"",font:"Vividly",texts:[],design:"banner",banner:"",polaroid1:"",polaroid2:"",background:"",color:POSTER_COLOR,crops:{},priorities:new Set(),images:new Map()};
  renderPosterWizard();
 }
@@ -2365,9 +2407,9 @@ function posterOptions(options,selected){
 function renderPosterWizard(){
  const state=WP;
  if(!state)return;
- const groups=allG().map(g=>[g,g,posterCards({group:g}).length>0]);
- const artists=arList(state.group,"artist").map(a=>[String(a.id),a.name,posterCards({group:state.group,artist:String(a.id)}).length>0]);
- const scope={group:state.group,artist:state.artist};
+ const groups=allG().map(g=>[g,g,posterCards({kind:state.kind,group:g}).length>0]);
+ const artists=arList(state.group,"artist").map(a=>[String(a.id),a.name,posterCards({kind:state.kind,group:state.group,artist:String(a.id)}).length>0]);
+ const scope={kind:state.kind,group:state.group,artist:state.artist};
  const eras=eraList(state.group).map(e=>[String(e.id),e.name,posterCards({...scope,era:String(e.id)}).length>0]);
  const step=state.step,fields=[
   ["¿De qué grupo quieres la wishlist?",[["","Elige un grupo"],...groups],state.group],
@@ -2400,7 +2442,7 @@ function posterWizardNext(){
  if(!state?.group)return;
  if(state.step<2){state.step++;renderPosterWizard();return}
  const items=posterCards(state);
- if(!items.length)return toast("No hay photocards para esa selección.");
+ if(!items.length)return toast("No hay piezas para esa selección.");
  state.sections=posterSections(state.group,items,state.era);
  state.title=state.artist?(arName(state.artist)||state.group):state.group;
  editWishlistPoster();
@@ -2452,7 +2494,7 @@ function editWishlistPoster(){
    <input id="poster-background" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="posterPickImage(this,'background')">
    <button type="button" class="sec sm" id="poster-remove-background" onclick="posterChange('background','')" ${state.background?"":"hidden"}>Quitar imagen de fondo</button>
   </div>
-  <div id="poster-instructions" class="mu">${posterInstructions(state.priorityMode)}</div>
+  <div id="poster-instructions" class="mu">${posterInstructions(state.priorityMode,state.kind)}</div>
   <div id="poster-stage" class="poster-stage">
    <canvas id="poster-canvas" aria-label="Vista previa de la wishlist"></canvas>
    <div id="poster-card-controls" class="poster-card-controls"></div>
@@ -2613,7 +2655,7 @@ function posterTagRows(tags){
  if(row.length)rows.push(row);
  return rows;
 }
-function posterLayout(sections,size,design="banner",priorities=new Set()){
+function posterLayout(sections,size,design="banner",priorities=new Set(),kind="pc"){
  const [width,height]=POSTER_SIZES[size]||POSTER_SIZES["9:16"];
  const edge=Math.min(width,height),margin=edge*.055,banner=Math.min(height*.21,width*.32);
  const paper=design==="notebook"?{x:edge*.085,y:edge*.05,w:width-edge*.15,h:height-edge*.109}:null;
@@ -2622,7 +2664,7 @@ function posterLayout(sections,size,design="banner",priorities=new Set()){
  const gridTop=paper?paper.y+edge*.143:polaroids?edge*.321:banner+edge*.086;
  const gridBottom=paper?paper.y+paper.h-edge*.026:height-edge*.069;
  const availableWidth=right-left,availableHeight=gridBottom-gridTop;
- const aspect=55/85,cGap=.1,vGap=.085,labelGap=.23;
+ const aspect=kind==="postcard"?4/3:55/85,cGap=.1,vGap=.085,labelGap=.23;
  const pinned=[],regular=[];
  sections.forEach((section,block)=>{
   let startsEra=true;
@@ -2668,7 +2710,7 @@ function posterLayout(sections,size,design="banner",priorities=new Set()){
   });
   y+=cardWidth*rowHeight;
  }
- return {width,height,margin,banner,paper,design,left,right,gridTop,gridBottom,headings,cards};
+ return {width,height,margin,banner,paper,design,kind,left,right,gridTop,gridBottom,headings,cards};
 }
 function posterFont(name,size){
  const family=String(name).replace(/["\\\n\r]/g,"");
@@ -2723,11 +2765,11 @@ function preparePosterAssets(state){
  const images=[...sources].map(src=>posterImage(state,src));
  return images;
 }
-function posterCover(ctx,photo,x,y,w,h,radius,crop=POSTER_DEFAULT_CROP){
- const scale=Math.max(w/photo.naturalWidth,h/photo.naturalHeight)*crop.zoom/100;
+function posterCover(ctx,photo,x,y,w,h,radius,crop=POSTER_DEFAULT_CROP,contain=false){
+ const scale=(contain?Math.min:Math.max)(w/photo.naturalWidth,h/photo.naturalHeight)*crop.zoom/100;
  const pw=photo.naturalWidth*scale,ph=photo.naturalHeight*scale;
- const dx=Math.min(0,Math.max(w-pw,w/2-pw*crop.x/100));
- const dy=Math.min(0,Math.max(h-ph,h/2-ph*crop.y/100));
+ const dx=contain?(w-pw)/2:Math.min(0,Math.max(w-pw,w/2-pw*crop.x/100));
+ const dy=contain?(h-ph)/2:Math.min(0,Math.max(h-ph,h/2-ph*crop.y/100));
  ctx.save();ctx.beginPath();
  if(ctx.roundRect)ctx.roundRect(x,y,w,h,radius);else ctx.rect(x,y,w,h);
  ctx.clip();
@@ -2880,7 +2922,7 @@ function drawPosterCanvas(canvas,state,layout){
  }
  for(const card of layout.cards){
   const {item,x,y,w,h,tags}=card,photo=state.images.get(item.img)?.photo,radius=Math.min(12,w*.08);
-  if(photo)posterCover(ctx,photo,x,y,w,h,radius);
+  if(photo)posterCover(ctx,photo,x,y,w,h,radius,undefined,layout.kind==="postcard");
   else{
    ctx.fillStyle="#eadde3";ctx.fillRect(x,y,w,h);
    ctx.font=`${Math.max(5,w*.125)}px Outfit, sans-serif`;ctx.fillStyle="#654c60";ctx.textAlign="center";
@@ -2923,7 +2965,7 @@ function posterControlStyle(layout,x,y,w,h){
  return `left:${x/layout.width*100}%;top:${y/layout.height*100}%;width:${w/layout.width*100}%;height:${h/layout.height*100}%`;
 }
 function paintWishlistPoster(state){
- const layout=posterLayout(state.sections,state.size,state.design,state.priorities);
+ const layout=posterLayout(state.sections,state.size,state.design,state.priorities,state.kind);
  state.layout=layout;
  const images=preparePosterAssets(state);
  const fonts=preparePosterFonts(state);
@@ -2975,15 +3017,16 @@ function paintWishlistPoster(state){
   state.focusText=null;
  }
 }
-function posterInstructions(priorityMode){
- return priorityMode?"Toca una photocard para marcarla o quitarla de PRIO. Las PRIO van al inicio.":
-  "Arrastra el título o los textos para colocarlos. Mantén pulsada una photocard o el nombre de una era para mover la era completa.";
+function posterInstructions(priorityMode,kind){
+ const label=kind==="postcard"?"postcard":"photocard";
+ return priorityMode?`Toca una ${label} para marcarla o quitarla de PRIO. Las PRIO van al inicio.`:
+  `Arrastra el título o los textos para colocarlos. Mantén pulsada una ${label} o el nombre de una era para mover la era completa.`;
 }
 function togglePosterPriorities(){
  if(!WP)return;
  WP.priorityMode=!WP.priorityMode;
  $("poster-prios").setAttribute("aria-pressed",String(WP.priorityMode));
- $("poster-instructions").textContent=posterInstructions(WP.priorityMode);
+ $("poster-instructions").textContent=posterInstructions(WP.priorityMode,WP.kind);
  requestPosterPaint();
 }
 function posterCardClick(button){
@@ -3117,7 +3160,7 @@ async function downloadWishlistPoster(){
   await Promise.all([...fonts.map(font=>font.ready),...photos.map(entry=>entry.ready)]);
   if(WP!==state||!button.isConnected||!$("modal").classList.contains("on"))return;
   const canvas=document.createElement("canvas");
-  drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design,snapshot.priorities));
+  drawPosterCanvas(canvas,snapshot,posterLayout(snapshot.sections,snapshot.size,snapshot.design,snapshot.priorities,snapshot.kind));
   const blob=await new Promise((resolve,reject)=>canvas.toBlob(data=>data?resolve(data):reject(new Error("PNG")),"image/png"));
   if(WP!==state||!button.isConnected)return;
   const url=URL.createObjectURL(blob),link=document.createElement("a");
@@ -3131,21 +3174,22 @@ async function downloadWishlistPoster(){
  finally{state.exporting=false;button.disabled=false}
 }
 
-function wishItemKind(item=cur){return item?(item.kind||"pc"):wtab}
+function wishItemKind(item=cur){return item?wishlistPieceKind(item):wtab}
 function editW(id){
  cur=id?S.wish.find(i=>i.id==id):null;
- const i=cur||{},pc=wishItemKind()==="pc";
+ const i=cur||{},kind=wishItemKind(),card=kind!=="prod";
  img=i.img||"";imgBig="";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";
- fE=pc?i.era||"":"";fO=i.go||"";fT=[...(i.tags||[])];pkDel={};
- const title=cur?(pc?"Editar photocard deseada":"Editar artículo deseado"):(pc?"Nueva photocard deseada":"Nuevo artículo deseado");
+ fE=card?i.era||"":"";fO=i.go||"";fT=[...(i.tags||[])];pkDel={};
+ const title=kind==="prod"?(cur?"Editar artículo deseado":"Nuevo artículo deseado"):`${cur?"Editar":"Nueva"} ${kind==="postcard"?"postcard":"photocard"} deseada`;
  openM(`<div class="vw fm"><h3>${title}</h3>
- ${itemPhotoPicker(pc,pc)}
+ ${itemPhotoPicker(true)}
  ${catalogActions()}
- <div class="fs"><label for="w_n">Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${pc?"PC Sunoo Weverse Luckydraw":"Álbum, mercancía…"}"></div>
+ <div class="fs"><label for="w_n">Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${kind==="pc"?"PC Sunoo Weverse Luckydraw":kind==="postcard"?"Postcard de BTS":"Álbum, mercancía…"}"></div>
+ ${pieceFormTypes("w_kind",kind)}
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
  <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
  <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
- ${pc?`<div class="fs" id="erasec"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>`:""}
+ <div class="fs" id="erasec" style="${card?"":"display:none"}"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>
  <div class="fs"><label>GO (group order)</label><div id="pw_o">${goPickHtml()}</div></div>
  <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
  <div class="fs"><label for="w_d">Detalles</label><textarea id="w_d" rows="3" placeholder="Álbum, regalo de preventa, etc.">${esc(i.det)}</textarea></div>
@@ -3153,16 +3197,16 @@ function editW(id){
  $("sheet").scrollTop=0;
 }
 function okW(){
- const name=$("w_n").value.trim(),kind=wishItemKind();
+ const name=$("w_n").value.trim(),kind=currentPieceKind();
  if(!name)return alert("Escribe un nombre");
- const o={name,grupo:fG,artist:okM(fA),unit:okM(fU),era:kind==="pc"?okEra(fE):"",go:fO,
-  tags:[...fT],det:$("w_d").value.trim(),img,kind};
+ const o={name,grupo:fG,artist:okM(fA),unit:okM(fU),era:kind!=="prod"?okEra(fE):"",go:fO,
+  tags:[...fT],det:$("w_d").value.trim(),img,kind:kind==="prod"?"misc":kind};
  if(cur)Object.assign(cur,o);
  else S.wish.push(Object.assign({id:String(Date.now())},o));
  save();closeM();render();
 }
 function delW(){if(confirm("¿Borrar de la wishlist?")){S.wish=S.wish.filter(i=>i!==cur);save();closeM();render()}}
-function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",era:cur.era||"",go:cur.go||"",tags:[...(cur.tags||[])],type:cur.kind=="misc"?"Otro":"PC",det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
+function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",era:cur.era||"",go:cur.go||"",tags:[...(cur.tags||[])],type:PIECE_TYPES[wishlistPieceKind(cur)],det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
 
 /* ===== Artistas y units (cada uno pertenece a UN solo grupo) ===== */
 function AR(){return S.artists=S.artists||[]}
@@ -3242,8 +3286,8 @@ function addE(){const el=$("nw_e"),v=requiredInterestName(el.value);if(!v)return
 /* Una era dentro del Collect Book: foto 1:1 a la izquierda, nombre y lápiz a la derecha */
 const eraHead=e=>`<div class="erah"><div class="erap">${e.img?`<img loading="lazy" decoding="async" src="${esc(e.img)}" alt="">`:esc([...(e.name||"")][0]||"")}</div><b class="eran">${esc(e.name)}</b><button class="sec" aria-label="Editar era" onclick="eraEdit('${e.id}')" style="padding:8px 10px">${PEN}</button></div>`;
 /* Grupo > eras (solo eras, sin artistas) para las mini-cuadrículas de Perfil / Collect Book / perfil público */
-function mgEra(g,items,cell,L,gt,drag){
- const grid=a=>`<div class="mgrid" data-drag="${drag||""}">${a.map(cell).join("")}</div>`,
+function mgEra(g,items,cell,L,gt,drag,kind="pc"){
+ const grid=a=>`<div class="mgrid${kind==="postcard"?" postcard-grid":""}" data-drag="${drag||""}">${a.map(cell).join("")}</div>`,
   hd=e=>`<div class="erah"><div class="erap">${e.img?`<img loading="lazy" decoding="async" src="${esc(e.img)}" alt="">`:esc([...(e.name||"")][0]||"")}</div><b class="eran">${esc(e.name)}</b></div>`;
  let h=`<h2>${esc(g)}</h2>`,shown=0;
  if(!L.length)return h+grid(items);
@@ -3251,8 +3295,8 @@ function mgEra(g,items,cell,L,gt,drag){
  const rest=items.filter(i=>!L.some(e=>e.id==gt(i)));
  if(rest.length)h+=(shown?`<div class="erasl">Sin era</div>`:"")+grid(rest);
  return h}
-function eraGroup(g,items,cell,showEmpty,drag="i"){
- const grid=a=>`<div class="grid" data-drag="${drag}">${a.map(cell).join("")}</div>`;
+function eraGroup(g,items,cell,showEmpty,drag="i",kind="pc"){
+ const grid=a=>`<div class="grid${kind==="postcard"?" postcard-grid":""}" data-drag="${drag}">${a.map(cell).join("")}</div>`;
  if(g=="Sin grupo")return `<h2>${esc(g)}</h2>`+grid(items);
  const k=allG().indexOf(g),L=eraList(g);
  let h=`<div class="erahd"><h2>${esc(g)}</h2>${L.length?`<button class="sec sm" onclick="eraMgr(${k})">Eras</button>`:""}</div>`;
@@ -3286,7 +3330,14 @@ function eraMove(id,d){const A=ER(),a=eraById(id);if(!a)return;const sib=A.filte
 var FVC=null,FVS=0,FV_DEF={t:"Photocards favoritas",c:0,h:330,s:70,l:55,f:"n",gl:0,an:[],mv:"fall",pc:0,ph:330,ps:90,pl:50,sp:5};
 function fvCfg(){return Object.assign({},FV_DEF,(S.profile||{}).favc||{})}
 function fvPool(){return ev().filter(i=>i.type=="PC"&&home(i)&&i.img).concat(S.wish.filter(i=>(i.kind||"pc")=="pc"&&i.img).map(i=>Object.assign({},i,{_w:1})))}
-function fvSlots(){const f=(S.profile||{}).favs||[],pool=fvPool();return[0,1,2,3].map(k=>f[k]?pool.find(i=>String(i.id)==String(f[k]))||null:null)}
+function fvSlots(){
+ const ids=(S.profile||{}).favs||[],pool=new Map();
+ for(const item of fvPool()){
+  const id=String(item.id);
+  if(!pool.has(id))pool.set(id,item);
+ }
+ return ids.map(id=>id?pool.get(String(id))||null:null);
+}
 function fvNum(v,a,b,d){v=+v;return isFinite(v)?Math.min(b,Math.max(a,v)):d}
 function fvStyle(c){if(!c)return"";const o=[];
  if(c.c){const h=fvNum(c.h,0,360,330),s=fvNum(c.s,0,100,70),l=fvNum(c.l,10,90,55),dk=l<58;
@@ -3300,10 +3351,13 @@ function fvParts(c){const T=(c.an||[]).filter(x=>x=="s"||x=="h"||x=="d");if(!T.l
 var FV_PLUS='<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
 function favSec(c,mode,sl){c=Object.assign({},FV_DEF,c||fvCfg());mode=mode||"me";sl=sl||fvSlots();
  const me=mode=="me",cls=["fvs"];if(c.f=="g")cls.push("fx-g");if(c.f=="m")cls.push("fx-m");if(c.gl)cls.push("fx-o");
- const tg=me?"button":"div",slot=(it,k)=>`<div class="fvk"><${tg} class="fvc${it?" has":""}"${me?` type="button" onclick="pickFav(${k})" aria-label="Elegir photocard ${k+1}${it?._w?", de Wishlist":""}"`:""}>${it?`<img src="${esc(it.img)}" alt="">${it._w?'<span class="fv-wish">Wishlist</span>':""}`:FV_PLUS}</${tg}><div class="fvn">${it&&it.name?esc(it.name):"···"}</div></div>`;
- return `<div class="${cls.join(" ")}" style="${fvStyle(c)}">${fvParts(c)}<div class="fvh"><div class="fvt">${esc(c.t)}</div>${me?`<button type="button" class="fvpen" onclick="editFav()" aria-label="Personalizar favoritas">${PEN}</button>`:""}</div><div class="fvg">${[0,1,2,3].map(k=>slot(sl[k]||null,k)).join("")}</div></div>`}
+ const tg=me?"button":"div",slot=(it,k)=>`<div class="fvk"><${tg} class="fvc${it?" has":""}"${me?` type="button" onclick="pickFav(${k})" aria-label="Elegir photocard ${k+1}${it?._w?", de Wishlist":""}"`:""}>${it?`<img ${k>=4?'loading="lazy" decoding="async" ':''}src="${esc(it.img)}" alt="">${it._w?'<span class="fv-wish">Wishlist</span>':""}`:FV_PLUS}</${tg}><div class="fvn">${it&&it.name?esc(it.name):"···"}</div></div>`;
+ const extras=sl.slice(4).flatMap((item,index)=>item?[slot(item,index+4)]:[]);
+ return `<div class="${cls.join(" ")}" style="${fvStyle(c)}">${fvParts(c)}<div class="fvh"><div class="fvt">${esc(c.t)}</div>${me?`<button type="button" class="fvpen" onclick="editFav()" aria-label="Personalizar favoritas">${PEN}</button>`:""}</div><div class="fvg">${[0,1,2,3].map(k=>slot(sl[k]||null,k)).join("")}</div>
+ ${extras.length?`<details class="fv-more"><summary>Más favoritas (${extras.length})</summary><div class="fvg">${extras.join("")}</div></details>`:""}
+ ${me?'<button type="button" class="sec sm fv-add" onclick="addFav()">＋ Añadir favorita</button>':""}</div>`}
 function favPub(fv){if(!fv||!Array.isArray(fv.s)||!fv.s.some(x=>x&&x.i))return"";
- return favSec(fv.c,"pub",[0,1,2,3].map(k=>{const x=fv.s[k];return x&&x.i?{img:x.i,name:x.n||"",_w:x.src==="wish"}:null}))}
+ return favSec(fv.c,"pub",fv.s.map(x=>x&&x.i?{img:x.i,name:x.n||"",_w:x.src==="wish"}:null))}
 function visiblePublicFavorites(fv,privacy){
  if(!Array.isArray(fv?.s))return fv;
  return {...fv,s:fv.s.map(slot=>{
@@ -3323,15 +3377,17 @@ async function favPubData(privacy){
 }
 /* ventana flotante: solo Colección normal */
 function pickFav(k){FVS=k;fvPicker()}
+function addFav(){pickFav(Math.max(4,(S.profile?.favs||[]).length))}
 function fvPicker(){const pool=fvPool(),f=(S.profile||{}).favs||[],mine=f[FVS],
  cell=i=>{const j=f.findIndex(x=>x&&String(x)==String(i.id));return `<div class="fvpi${String(mine)==String(i.id)?" sel":""}${j>=0&&j!=FVS?" used":""}" data-s="${esc(((i.name||"")+" "+(i.grupo||"")+" "+(i.det||"")+" "+(i.tags||[]).join(" ")).toLowerCase())}" onclick="setFav(${FVS},'${esc(i.id)}')"><img src="${esc(i.img)}">${i._w?`<span style="position:absolute;left:4px;top:3px;font-size:13px;line-height:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)">♥</span>`:""}${j>=0&&j!=FVS?`<b>${j+1}</b>`:""}</div>`};
  openM(`<div class="vw cbk fvpk"><div class="bkh"><h3 style="margin:0">Photocard favorita ${FVS+1}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div><div class="mu" style="margin:2px 0 4px">De tu Colección y de tu Wishlist (♥)</div>${pool.length?`<input id="fvq" placeholder="Buscar por nombre o grupo…" autocomplete="off" oninput="fvFilter()">`:""}${mine?`<button class="sec" style="width:100%;margin:4px 0 6px" onclick="setFav(${FVS},'')">Quitar de este espacio</button>`:""}${pool.length?ordG([...new Set(pool.map(i=>i.grupo||"Sin grupo"))]).map(g=>`<h2>${esc(g)}</h2><div class="mgrid fvpg">${pool.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`).join(""):`<div class="empty">Aún no tienes photocards en tu Colección ni en tu Wishlist.</div>`}</div>`)}
 function fvFilter(){const q=($("fvq").value||"").trim().toLowerCase();
  document.querySelectorAll("#sheet .fvpi").forEach(e=>{e.style.display=!q||e.dataset.s.includes(q)?"":"none"});
  document.querySelectorAll("#sheet .fvpg").forEach(g=>{const any=[...g.children].some(e=>e.style.display!="none");g.style.display=any?"":"none";if(g.previousElementSibling)g.previousElementSibling.style.display=any?"":"none"})}
-function setFav(k,id){const p=S.profile=S.profile||{},f=(p.favs||[]).slice(0,4);while(f.length<4)f.push("");
+function setFav(k,id){const p=S.profile=S.profile||{},f=(p.favs||[]).slice();while(f.length<4)f.push("");
+ if(!Number.isInteger(k)||k<0||k>f.length)return;
  if(id){const j=f.findIndex((x,n)=>n!=k&&x&&String(x)==String(id));if(j>=0)f[j]=f[k]||""}
- f[k]=id;p.favs=f;save();closeM();render()}
+ f[k]=id;p.favs=f.slice(0,4).concat(f.slice(4).filter(Boolean));save();closeM();render()}
 /* editor (lápiz): título, color, efectos y animaciones */
 function editFav(){FVC=fvCfg();
  const sg=(k,arr)=>`<div class="seg">${arr.map(a=>`<button type="button" data-fk="${k}" data-fv="${a[0]}" onclick="fvUp('${k}','${a[0]}')">${a[1]}</button>`).join("")}</div>`;
@@ -3397,17 +3453,17 @@ function closeV(){const r=retBook;closeM();if(r){showBook();$("sheet").scrollTop
 function showBook(src,tab){if(src)bkSrc=src;if(tab)bkTab=tab;
  const wl=bkSrc=="wish",prod=bkTab=="prod",
   po=bkSrc=="ped",sc=i=>po?(!i.manual&&!home(i)):home(i),
-  pcs=(wl?S.wish.filter(i=>(i.kind||"pc")=="pc"):ev().filter(i=>i.type=="PC"&&sc(i))).filter(i=>wl||i.img),
-  prs=wl?S.wish.filter(i=>i.kind=="misc"):ev().filter(i=>i.type!="PC"&&sc(i)),
-  list=prod?prs:pcs,fn=i=>wl?"viewW":i.manual?"viewC":"view",
+  kindOf=wl?wishlistPieceKind:orderPieceKind,items=(wl?S.wish:ev().filter(sc)).filter(i=>wl||kindOf(i)==="prod"||i.img),
+  list=items.filter(i=>kindOf(i)===bkTab),fn=i=>wl?"viewW":i.manual?"viewC":"view",
   cell=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;bkSc=$('sheet').scrollTop;retBook=1;${fn(i)}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${wl?wishlistCardName(i.name):""}</div>`;
- openM(`<div class="vw cbk"><div class="bkh"><h3 style="margin:0">${wl?"Wishlist":po?"Collect Book · Pedidos":"Collect Book · Colección"}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div><div class="seg"><button class="${prod?"":"on"}" onclick="showBook(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="showBook(null,'prod')">Artículos <small>${prs.length}</small></button></div>${list.length?`<div class="mu" style="text-align:center;margin:2px 0 6px">Mantén presionado y arrastra para ordenar</div>${ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,eraList(g),i=>i.era,wl?"w":"i")).join("")}`:`<div class="empty">${prod?"Aún no hay artículos aquí.":"Aún no hay photocards aquí."}</div>`}</div>`);retBook=0}
-function useImg(m){resetCatalogResults();const mk=n=>{const k=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*k);c.height=Math.round(m.height*k);c.getContext("2d").drawImage(m,0,0,c.width,c.height);return c};img=mk(360).toDataURL("image/jpeg",.7);imgBig=mk(900).toDataURL("image/jpeg",.85);const p=$("pv");if(p)p.innerHTML=`<img class="pvimg" src="${img}">`}
+ openM(`<div class="vw cbk"><div class="bkh"><h3 style="margin:0">${wl?"Wishlist":po?"Collect Book · Pedidos":"Collect Book · Colección"}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div>${pieceTabs(bkTab,"setBookKind",items,kindOf)}${list.length?`<div class="mu" style="text-align:center;margin:2px 0 6px">Mantén presionado y arrastra para ordenar</div>${ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":bkTab==="postcard"?" postcard-grid":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,eraList(g),i=>i.era,wl?"w":"i",bkTab)).join("")}`:`<div class="empty">${"Aún no hay "+PIECE_LABELS[bkTab].toLowerCase()+" aquí."}</div>`}</div>`);retBook=0}
+function setBookKind(kind){showBook(null,kind)}
+function useImg(m){resetCatalogResults();const mk=n=>{const k=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*k);c.height=Math.round(m.height*k);c.getContext("2d").drawImage(m,0,0,c.width,c.height);return c};img=mk(currentPieceKind()==="postcard"?720:360).toDataURL("image/jpeg",.7);imgBig=mk(900).toDataURL("image/jpeg",.85);const p=$("pv");if(p)p.innerHTML=`<img class="pvimg" src="${img}">`}
 const isGif=x=>/^data:image\/gif/i.test(x||""),GIF_PH=1048576,GIF_BN=2097152;let bnGif=null,bnGifCols=[];
 const mbs=n=>(n/1048576).toFixed(1).replace(".0","");
 function pick(f){if(!f)return;const r=new FileReader();r.onload=()=>{const m=new Image();m.onload=()=>useImg(m);m.src=r.result};r.readAsDataURL(f)}
 function ok(){const n=$("f_n").value.trim();if(!n)return alert("Escribe un nombre");const prevSt=cur&&cur.status;
- const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),era:$("f_t").value=="PC"?okEra(fE):"",go:fO,tags:[...fT],det:$("f_d").value.trim(),type:$("f_t").value,country:$("f_c").value,box:["México","Pocamarket"].includes($("f_c").value)?"":$("f_b").value.trim(),status:$("f_s").value,price:parseFloat($("f_p").value)||0,img};
+ const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),era:currentPieceKind()!=="prod"?okEra(fE):"",go:fO,tags:[...fT],det:$("f_d").value.trim(),type:$("f_t").value,country:$("f_c").value,box:["México","Pocamarket"].includes($("f_c").value)?"":$("f_b").value.trim(),status:$("f_s").value,price:parseFloat($("f_p").value)||0,img};
  if(cur)Object.assign(cur,o);else S.items.push(Object.assign({id:String(Date.now())},o));
  save();closeM();render();if(o.status=="En casa"&&prevSt!="En casa")toast("Movido a tu Colección")}
 function del(){if(confirm("¿Borrar este artículo?")){S.items=S.items.filter(i=>i!==cur);save();closeM();render()}}
@@ -3419,37 +3475,57 @@ function ev(){const a=[...S.items,...(S.col||[])],o=S.corder||[];if(!o.length)re
 function applyOrderC(ids){const L=ev().map(x=>x.id),idx=[];L.forEach((id,k)=>{if(ids.includes(id))idx.push(k)});idx.forEach((k,n)=>{L[k]=ids[n]});S.corder=L}
 function setS(v){bsec=v;gf="";anim=true;render()}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
-function itemPhotoPicker(pc,useGallery=false){
- return `<button id="pv" type="button" class="pvbox" style="width:100%;font:inherit" aria-label="${useGallery?"Elegir foto de la galería":"Abrir cámara"}" onclick="${useGallery?"$('gal').click()":`camOpen(${pc})`}">${img?`<img class="pvimg" src="${esc(img)}" alt="Foto de la pieza">`:`<span>＋ Agregar foto</span>`}</button>
- <div class="row2"><button type="button" class="pri sm" onclick="camOpen(${pc})">Cámara</button><button type="button" class="sec sm" onclick="$('gal').click()">Galería</button></div>
+function itemPhotoPicker(wishlist=false){
+ return `<button id="pv" type="button" class="pvbox" style="width:100%;font:inherit" aria-label="Agregar foto" onclick="openPiecePhoto(${wishlist})">${img?`<img class="pvimg" src="${esc(img)}" alt="Foto de la pieza">`:`<span>＋ Agregar foto</span>`}</button>
+ <div class="row2"><button type="button" class="pri sm" onclick="camOpen(currentPieceKind())">Cámara</button><button type="button" class="sec sm" onclick="$('gal').click()">Galería</button></div>
  <input id="gal" type="file" accept="image/*" hidden onchange="pick(this.files[0])">`;
 }
-let colKind="pc";
-function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",tags:[],price:"",img:""};colKind=cur?(cur.type=="PC"?"pc":"prod"):(btab=="prod"?"prod":"pc");img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
- openM(`<div class="vw fm"><h3>${cur?"Editar":"Nueva"} ${colKind=="pc"?"photocard":"artículo"} de colección</h3>
- ${itemPhotoPicker(colKind==="pc")}
+function openPiecePhoto(wishlist){
+ const kind=currentPieceKind();
+ if(wishlist&&kind!=="prod")$("gal").click();
+ else camOpen(kind);
+}
+function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",tags:[],price:"",img:""};const kind=cur?orderPieceKind(cur):btab;img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
+ openM(`<div class="vw fm"><h3>${cur?"Editar":kind==="prod"?"Nuevo":"Nueva"} ${kind==="postcard"?"postcard":kind==="pc"?"photocard":"artículo"} de colección</h3>
+ ${itemPhotoPicker()}
  ${catalogActions()}
  <div class="fs"><label>Nombre</label><input id="f_n" value="${esc(i.name||"")}" placeholder="Nombre"></div>
+ ${pieceFormTypes("col_kind",kind)}
  <div class="fs"><label>Grupo</label><div id="pw_g">${pickHtml("g")}</div></div>
  <div class="fs"><label>Artista</label><div id="pw_a">${pickHtml("a")}</div></div>
  <div class="fs"><label>Unit</label><div id="pw_u">${pickHtml("u")}</div></div>
- ${colKind=="pc"?`<div class="fs" id="erasec"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>`:""}
+ <div class="fs" id="erasec" style="${kind!=="prod"?"":"display:none"}"><label>Era</label><div id="pw_e">${pickEraHtml()}</div></div>
   <div class="fs"><label>GO (group order)</label><div id="pw_o">${goPickHtml()}</div></div>
  <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
  <div class="fs"><label>Precio (opcional)</label><input id="f_p" type="number" inputmode="decimal" value="${i.price||""}" placeholder="0"><div class="mu" style="margin-top:4px">No se suma a Gastos.</div></div>
  <div class="fbar"><button class="pri" onclick="okCol()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" style="margin-left:auto" onclick="delCol()">Borrar</button>`:""}</div></div>`)}
-function okCol(){if(!img)return alert("Agrega la foto");const o={name:$("f_n").value.trim(),grupo:fG,artist:okM(fA),unit:okM(fU),era:colKind=="pc"?okEra(fE):"",go:fO,tags:[...fT],price:parseFloat($("f_p").value)||0,img};
- if(cur)Object.assign(cur,o);else S.col.push(Object.assign({id:String(Date.now()),manual:true,type:colKind=="pc"?"PC":"Otro",status:"En casa",name:""},o));
+function okCol(){if(!img)return alert("Agrega la foto");const kind=currentPieceKind(),o={name:$("f_n").value.trim(),grupo:fG,artist:okM(fA),unit:okM(fU),era:kind!=="prod"?okEra(fE):"",go:fO,tags:[...fT],price:parseFloat($("f_p").value)||0,img,type:cur&&orderPieceKind(cur)===kind?cur.type:PIECE_TYPES[kind]};
+ if(cur)Object.assign(cur,o);else S.col.push(Object.assign({id:String(Date.now()),manual:true,status:"En casa",name:""},o));
  save();closeM();render()}
 function delCol(){if(confirm("¿Borrar de tu colección?")){S.col=S.col.filter(i=>i!==cur);S.corder=(S.corder||[]).filter(x=>x!=cur.id);save();closeM();render()}}
 function viewC(id){if(dragBlock)return;const i=S.col.find(x=>x.id==id);if(!i)return;
- $("sheet").innerHTML='<div class="vw">'+hd(i.type=="PC"?"Photocard":"Artículo",`editCol('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("Nombre",i.name)+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Precio",i.price?money(i.price):"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
+ $("sheet").innerHTML='<div class="vw">'+hd(i.type==="Postcard"?"Postcard":i.type==="PC"?"Photocard":"Artículo",`editCol('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("Nombre",i.name)+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Precio",i.price?money(i.price):"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
-let camS=null,camFace="environment",camShot=null,camIsPc=true;
+let camS=null,camFace="environment",camShot=null,camKind="pc",camRatio=55/85;
 const CI={x:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',flip:'<svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3l2 2M20 15a8 8 0 0 1-14 3l-2-2M20 4v4h-4M4 20v-4h4"/></svg>',gal:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>'};
-async function camOpen(pc){camShot=null;camIsPc=pc;let o=$("cam");if(o)o.remove();o=document.createElement("div");o.id="cam";document.body.appendChild(o);
- const sz=pc?"width:min(74vw,calc(58vh*55/85));aspect-ratio:55/85":"width:min(78vw,58vh);aspect-ratio:1/1";
- o.innerHTML=`<video id="camv" playsinline muted autoplay></video><div class="camfr" id="camfr" style="${sz}"></div><div class="camhint" id="camhint">${pc?"Alinea la photocard":"Alinea el artículo"}</div>
+function camHint(){
+ return camKind==="postcard"?"Alinea la postcard":camKind==="pc"?"Alinea la photocard":"Alinea el artículo";
+}
+function cameraFrameStyle(){
+ return `width:min(${camKind==="pc"?74:camKind==="postcard"?84:78}vw,calc(58vh * ${camRatio}));aspect-ratio:${camRatio}`;
+}
+function setCameraFrame(ratio,button){
+ if(camShot)return;
+ camRatio=ratio;
+ $("camfr").style.cssText=cameraFrameStyle();
+ for(const option of button.parentElement.querySelectorAll("button"))option.setAttribute("aria-pressed",String(option===button));
+}
+async function camOpen(kind){
+ camShot=null;camKind=kind;camRatio=kind==="postcard"?4/3:kind==="pc"?55/85:1;
+ let o=$("cam");if(o)o.remove();o=document.createElement("div");o.id="cam";document.body.appendChild(o);
+ const formats=[[4/3,"Horizontal"],[3/4,"Vertical"],[1,"Cuadrado"]];
+ o.innerHTML=`<video id="camv" playsinline muted autoplay></video><div class="camfr" id="camfr" style="${cameraFrameStyle()}"></div><div class="camhint" id="camhint">${camHint()}</div>
+ ${kind==="postcard"?`<div class="cam-formats">${formats.map(([ratio,label],index)=>`<button type="button" aria-pressed="${index===0}" onclick="setCameraFrame(${ratio},this)">${label}</button>`).join("")}</div>`:""}
  <div class="camtop"><button class="camb" aria-label="Cerrar" onclick="camClose()">${CI.x}</button><button class="camb" aria-label="Girar cámara" onclick="camFlip()">${CI.flip}</button></div>
  <div class="cambar" id="cambar"><button class="camb" aria-label="Galería" onclick="$('camgal').click()">${CI.gal}</button><button class="shut" aria-label="Tomar foto" onclick="camSnap()"></button><span style="width:48px"></span></div>
  <div class="cambar" id="camrev" style="display:none"><button class="camt" onclick="camRetake()">Repetir</button><button class="camt ok" onclick="camUse()">Usar foto</button></div>
@@ -3465,7 +3541,7 @@ function camSnap(){const v=$("camv");if(!v||!v.videoWidth)return;const o=$("cam"
  sx=(f.left-o.left+ox)/sc,sy=(f.top-o.top+oy)/sc,sw=f.width/sc,sh=f.height/sc,k=Math.min(1,1400/Math.max(sw,sh)),c=document.createElement("canvas");
  c.width=Math.round(sw*k);c.height=Math.round(sh*k);c.getContext("2d").drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);camShot=c;v.pause();
  $("camfr").style.backgroundImage=`url(${c.toDataURL("image/jpeg",.9)})`;$("cambar").style.display="none";$("camrev").style.display="flex";$("camhint").textContent="¿Se ve bien?";if(navigator.vibrate)navigator.vibrate(10)}
-function camRetake(){camShot=null;const v=$("camv");v.play().catch(()=>{});$("camfr").style.backgroundImage="";$("camrev").style.display="none";$("cambar").style.display="flex";$("camhint").textContent=camIsPc?"Alinea la photocard":"Alinea el artículo"}
+function camRetake(){camShot=null;const v=$("camv");v.play().catch(()=>{});$("camfr").style.backgroundImage="";$("camrev").style.display="none";$("cambar").style.display="flex";$("camhint").textContent=camHint()}
 function camUse(){if(camShot)useImg(camShot);camClose()}
 function camGal(f){if(f)pick(f);camClose()}
 function camClose(){if(camS)camS.getTracks().forEach(t=>t.stop());camS=null;const o=$("cam");if(o)o.remove()}
@@ -3490,10 +3566,10 @@ async function apiPub(path){const r=await fetch(SB+"/rest/v1/"+path,{headers:{ap
 async function pubPush(){const p=S.profile||{},u=uname(p.user),user=meId();if(!user||!p.pub)return;if(u.length<3)throw new Error("Tu @usuario debe tener al menos 3 letras o números (Editar perfil).");
  await imgSync(false,"pub");
  const pv=p.priv||{},col=pv.col?[]:ev().filter(i=>home(i)&&i.img),ped=pv.ped?[]:ev().filter(i=>!i.manual&&!home(i)&&i.img),wi=pv.wish?[]:S.wish.filter(i=>i.img);
- const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,e:i.type=="PC"&&eraById(i.era)?i.era:"",i:await pubImg(i.img,220)}))),
-  pd2=await Promise.all(ped.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type=="PC"?1:0,e:i.type=="PC"&&eraById(i.era)?i.era:"",s:i.status||"",i:await pubImg(i.img,220)}))),
-  used=new Set(col.concat(ped).filter(i=>i.type=="PC"&&i.era).map(i=>i.era)),er2=await Promise.all(ER().filter(e=>e.group&&(used.has(e.id)||col.concat(ped).some(i=>i.type=="PC"&&i.grupo==e.group))).map(async e=>({id:e.id,g:e.group,n:e.name,i:await pubImg(e.img,120)}))),
-  w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:(i.kind||"pc")=="pc"?1:0,i:await pubImg(i.img,220)}))),
+ const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type==="PC"?1:0,k:orderPieceKind(i),e:orderPieceKind(i)!=="prod"&&eraById(i.era)?i.era:"",i:await pubImg(i.img,220)}))),
+  pd2=await Promise.all(ped.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type==="PC"?1:0,k:orderPieceKind(i),e:orderPieceKind(i)!=="prod"&&eraById(i.era)?i.era:"",s:i.status||"",i:await pubImg(i.img,220)}))),
+  used=new Set(col.concat(ped,wi).filter(i=>i.era&&(i.type?orderPieceKind(i):wishlistPieceKind(i))!=="prod").map(i=>i.era)),er2=await Promise.all(ER().filter(e=>e.group&&(used.has(e.id)||col.concat(ped).some(i=>orderPieceKind(i)!=="prod"&&i.grupo==e.group))).map(async e=>({id:e.id,g:e.group,n:e.name,i:await pubImg(e.img,120)}))),
+  w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:wishlistPieceKind(i)==="pc"?1:0,k:wishlistPieceKind(i),e:eraById(i.era)?i.era:"",t:i.tags||[],i:await pubImg(i.img,220)}))),
   photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
  const fv=await favPubData(pv);
  if(user!==meId()||S.profile!==p||!p.pub)return;
@@ -3618,6 +3694,7 @@ const PUBK=["bg","card","tx","mu","ac","bd","o1","o2","o3","g1","g2","g3","gb"];
 function pubThemeClear(){["pubp","modal"].forEach(id=>{const e=$(id);if(e){PUBK.forEach(k=>e.style.removeProperty("--"+k));e.style.colorScheme=""}})}
 function pubTheme(){pubThemeClear();const r=PUB,th=r&&r.data&&r.data.th;if(!th||!th.color)return;const t=S.theme||{mode:"auto"},dk=t.mode=="dark"||(t.mode!="light"&&matchMedia("(prefers-color-scheme:dark)").matches);let pal;try{pal=th.color=="custom"&&th.custom?customPal(th.custom,dk):palette(th.color=="custom"?"base":th.color,dk)}catch(e){return}if(!pal)return;["pubp","modal"].forEach(id=>{const e=$(id);for(const k in pal)e.style.setProperty("--"+k,pal[k]);e.style.setProperty("--gb",dk?"rgba(255,255,255,.14)":"rgba(255,255,255,.65)")})}
 function setPubS(a,b){if(a)pubSrc=a;if(b)pubTab=b;paintPub()}
+function setPublicBookKind(kind){setPubS(null,kind)}
 const SOCIAL_PANES=[["home","Inicio"],["posts","Posts"],["cards","Photocards"]];
 let socialTab="discover",myProfilePane="home",publicProfilePane="home";
 let discoverQuery="",discoverInput="",discoverResults=[],discoverPosts=[],discoverStatus="",discoverVersion=0;
@@ -4081,7 +4158,7 @@ function paintPub(){
  const album=r.legacyAlbums?{state:"ready",items:d[pubSrc]||[],eras:d.er||[]}:r.albums[pubSrc];
  const ready=album?.state==="ready";
  const all=pubSrc&&!locked&&ready?album.items:[];
- const pcs=all.filter(x=>x.p),prs=all.filter(x=>!x.p),full=prod?prs:pcs;
+ const full=all.filter(item=>publicPieceKind(item)===pubTab);
  PUBGL=ordG([...new Set(full.map(x=>x.g||"Sin grupo"))]);
  if(pubG&&!PUBGL.includes(pubG))pubG="";
  const list=full.filter(x=>!pubG||(x.g||"Sin grupo")==pubG);PUBL=list;
@@ -4098,20 +4175,20 @@ function paintPub(){
  if(publicProfilePane==="posts")h+=socialPostList(r.user_id,"grid");
  if(publicProfilePane==="cards"&&sections.length){
   h+=`<div class="seg">${sections.map(([key,label])=>`<button class="${key===pubSrc?"on":""}" onclick="setPubS('${key}')">${label}</button>`).join("")}</div>`;
-  if(!locked&&ready)h+=`<div class="seg"><button class="${prod?"":"on"}" onclick="setPubS(null,'pc')">Photocards <small>${pcs.length}</small></button><button class="${prod?"on":""}" onclick="setPubS(null,'prod')">Artículos <small>${prs.length}</small></button></div>${pubChips()}`;
+  if(!locked&&ready)h+=pieceTabs(pubTab,"setPublicBookKind",all,publicPieceKind)+pubChips();
   const ER_=album?.eras||[],cell=(x,k)=>wl?`<div onclick="pubItem(${k})"><img loading="lazy" decoding="async" src="${esc(x.i)}" alt="">${wishlistCardName(x.n)}</div>`:`<img loading="lazy" decoding="async" src="${x.i}" onclick="pubItem(${k})">`;
   h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:
    album?.state==="error"?'<div class="empty">No se pudo cargar este álbum. <button type="button" class="sec sm" onclick="retryPublicAlbum()">Reintentar</button></div>':
-   !ready?'<div class="empty" role="status">Cargando álbum…</div>':list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?cell(x,k):"").join("")}</div>`;
+   !ready?'<div class="empty" role="status">Cargando álbum…</div>':list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":pubTab==="postcard"?" postcard-grid":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?cell(x,k):"").join("")}</div>`;
   const its=list.map((x,k)=>({x,k})).filter(o=>(o.x.g||"Sin grupo")==g);
-  return mgEra(g,its,o=>cell(o.x,o.k),ER_.filter(e=>e.g==g).map(e=>({id:e.id,name:e.n,img:e.i})),o=>o.x.e,"")}).join(""):`<div class="empty">Aún no hay nada aquí.</div>`;
+  return mgEra(g,its,o=>cell(o.x,o.k),ER_.filter(e=>e.g==g).map(e=>({id:e.id,name:e.n,img:e.i})),o=>o.x.e,"",pubTab)}).join(""):`<div class="empty">Aún no hay nada aquí.</div>`;
  }
  pubTheme();
  const container=$("pubp"),box=container.firstElementChild;
  if(box)renderProfileSections(box,h,[".pcard",".fvs"]);
  else container.innerHTML="<div>"+h+"</div>";
 }
-function pubItem(k){const x=PUBL[k];if(!x)return;$("sheet").innerHTML='<div class="vw"><h3>'+esc(x.n||(x.p?"Photocard":"Artículo"))+'</h3>'+pic({img:x.i})+((x.t||[]).length?`<div class="ctags" style="margin:2px 0 10px">${x.t.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",x.go)+kv("Grupo",x.g)+kv("Era",(PUB?.albums[pubSrc]?.eras||PUB?.data?.er||[]).find(e=>e.id==x.e)?.n)+kv("Estado",x.s)+(x.d?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(x.d)}</div>`:"")+'<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>';$("modal").classList.add("on")}
+function pubItem(k){const x=PUBL[k];if(!x)return;$("sheet").innerHTML='<div class="vw"><h3>'+esc(x.n||(x.p?"Photocard":"Artículo"))+'</h3>'+pic({img:x.i,type:PIECE_TYPES[publicPieceKind(x)]})+((x.t||[]).length?`<div class="ctags" style="margin:2px 0 10px">${x.t.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",x.go)+kv("Grupo",x.g)+kv("Era",(PUB?.albums[pubSrc]?.eras||PUB?.data?.er||[]).find(e=>e.id==x.e)?.n)+kv("Estado",x.s)+(x.d?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(x.d)}</div>`:"")+'<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>';$("modal").classList.add("on")}
 {const u=new URLSearchParams(location.search).get("u");if(u)openPub(u)}
 
 /* ===== Amigos, likes y notificaciones ===== */
@@ -4315,7 +4392,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.54",VK="mypoca-ver";
+const APP_VER="1.55",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
