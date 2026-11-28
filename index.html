@@ -666,6 +666,32 @@ button.frame-option[aria-pressed="true"]{border-color:var(--ac);box-shadow:inset
 .piece-tab-choices button{width:100%;text-align:left}
 .grid.postcard-grid,.mgrid.postcard-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid.postcard-grid img,.mgrid.postcard-grid img{display:block;width:100%;height:auto;aspect-ratio:auto}
+.flip-card{position:relative;display:block;width:100%;aspect-ratio:2/3;border-radius:9px;perspective:720px;touch-action:pan-y}
+.flip-card-sides{position:absolute;inset:0;border-radius:inherit;transform-style:preserve-3d;transition:transform .48s cubic-bezier(.2,.75,.25,1)}
+.flip-card[data-flipped="true"] .flip-card-sides{transform:rotateY(180deg)}
+.flip-card .flip-front,.flip-card .flip-back{position:absolute;inset:0;display:block;width:100%;max-width:none;height:100%;object-fit:contain;border-radius:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--bd)}
+.flip-card .flip-back{transform:rotateY(180deg)}
+.flip-control{position:absolute;z-index:2;bottom:5px;right:5px;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #fffa;border-radius:50%;background:#261e30dd;color:#fff;font:600 17px/1 system-ui;cursor:pointer}
+.flip-control:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.fvk{position:relative}
+.fvk .flip-control{top:5px;bottom:auto}
+.fvc .flip-card{height:100%}
+.fvc .flip-card img{height:100%}
+.card-detail-photo{width:min(62%,140px);margin:10px auto}
+.card-reverse-picker{margin:8px 0 12px}
+.card-reverse-picker [hidden]{display:none}
+.card-reverse-picker img{display:block;max-width:84px;max-height:108px;border-radius:8px;margin-bottom:5px}
+.card-reverse-picker button{margin:0 4px 4px 0}
+.photocard-flight{position:fixed;z-index:85;pointer-events:none;transform-origin:top left;perspective:900px;filter:drop-shadow(0 9px 15px #0004)}
+.photocard-flight .flip-card{height:100%;aspect-ratio:auto}
+.photocard-flight>img{width:100%;height:100%;object-fit:contain;border-radius:9px}
+@media(prefers-reduced-motion:reduce){.flip-card-sides{transition:none}}
+.pcard{color:var(--profile-card-ink,#fff)}
+.pcard::before{background:var(--profile-card-glare,rgba(255,255,255,.25))}
+.pcard .pedit{color:var(--profile-card-ink,#fff)!important;border-color:var(--profile-card-border,#ffffff73)!important}
+.pcard .big2{background:var(--profile-card-chip,rgba(15,40,90,.35))}
+.pcard .psc{color:var(--profile-card-ink,#fff)}
+.pcard .psc,.pcard .pchip,.pcard .profile-interest-toggle{border-color:var(--profile-card-border,#ffffff80)}
 .cam-formats{position:absolute;z-index:1;top:calc(68px + env(safe-area-inset-top,0px));left:0;right:0;display:flex;justify-content:center;gap:5px}
 .cam-formats button{border:1px solid #fff8;border-radius:16px;padding:6px 9px;background:#111a;color:#fff;font:inherit;font-size:12px}
 .cam-formats button[aria-pressed=true]{background:#fff;color:#17141a}
@@ -959,7 +985,7 @@ function render(){afFix();
  }
  if(tab=="book"&&bsec){
   const col=bsec=="col",prod=btab=="prod",base=col?ev().filter(home):ev().filter(i=>!i.manual&&!home(i)),list=base.filter(i=>orderPieceKind(i)===btab&&(!gf||i.grupo==gf)&&afm(i)&&(!gof||i.go==gof));
-  const cell=i=>`<div data-id="${i.id}" onclick="${i.manual?"viewC":"view"}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<img alt="">`}<div class="ctags">${goTag(i,"ctag")}${(prod&&!i.manual?[i.type,...(i.tags||[])]:(i.tags||[])).map(g=>`<span class="ctag" style="${tcol(g)}">${esc(g)}</span>`).join("")}</div>${i.name?`<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>`:""}${col?"":`<div class="stt"><i style="background:${SC[i.status]||"#999"}"></i>${i.status}</div>`}</div>`;
+  const cell=i=>`<div data-id="${i.id}" onclick="${i.manual?"viewC":"view"}('${i.id}')">${gridPiecePhoto(i)}<div class="ctags">${goTag(i,"ctag")}${(prod&&!i.manual?[i.type,...(i.tags||[])]:(i.tags||[])).map(g=>`<span class="ctag" style="${tcol(g)}">${esc(g)}</span>`).join("")}</div>${i.name?`<div class="nm" style="font-size:16px;text-align:center">${esc(i.name)}</div>`:""}${col?"":`<div class="stt"><i style="background:${SC[i.status]||"#999"}"></i>${i.status}</div>`}</div>`;
   hh=`<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><button class="sec sm" onclick="setS(null)">‹ Volver</button><b>${col?"Colección":"Pedidos"}</b></div>`;h=`${pieceTabs(btab,"setB")}<div class="mu" style="display:flex;justify-content:space-between;align-items:center">${list.length} ${PIECE_LABELS[btab].toLowerCase()}<button class="sec" onclick="editOrd()" style="padding:6px 12px;font-size:13px">Ordenar grupos</button></div>`;
   const emp=btab==="postcard"?"Aún no hay postcards. Toca + para agregar una.":col?(prod?"Tu colección de artículos está vacía.<br>Toca + para agregar el primero.":"Tu colección de photocards está vacía.<br>Toca + y toma una foto de tu primera photocard."):(prod?"Agrega álbumes y otros productos con foto y aparecerán aquí.":"Agrega photocards con foto y aparecerán aquí.");
   h+=list.length?ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod?`<h2>${esc(g)}</h2><div class="grid prod" data-drag="i">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:eraGroup(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,col&&btab==="pc"&&!(af||gof),"i",btab)).join(""):`<div class="empty">${emp}</div>`;
@@ -970,7 +996,7 @@ function render(){afFix();
  }
  if(tab=="wish"){
   const misc=wtab==="prod",items=S.wish.filter(i=>wishlistPieceKind(i)===wtab&&(!gf||i.grupo===gf)&&afm(i));
-  const cell=i=>`<div data-id="${esc(i.id)}" onclick="viewW(this.dataset.id)">${i.img?`<img loading="lazy" decoding="async" src="${esc(i.img)}" alt="">`:'<div class="mph">Sin foto</div>'}
+  const cell=i=>`<div data-id="${esc(i.id)}" onclick="viewW(this.dataset.id)">${gridPiecePhoto(i)}
    ${wishlistCardName(i.name)}${wishlistTags(i.tags)}${misc&&i.det?`<div class="mu wish-card-name">${esc(i.det)}</div>`:""}</div>`;
   h=`${pieceTabs(wtab,"setW",null,wishlistPieceKind,"Artículos varios")}
    <div class="wish-toolbar"><span class="mu">${items.length} deseado${items.length===1?"":"s"}</span><div>
@@ -990,7 +1016,7 @@ function render(){afFix();
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn" href="${trk(e.carr,e.guia)}" target="_blank" rel="noopener">Rastrear</a><button class="sec" onclick="updE('${e.id}')">Actualizar</button><button class="sec" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(e.guia)}')">Copiar guía</button></div></div>`}).join(""):`<div class="empty">Sin envíos todavía.<br>Toca + para agregar una guía.</div>`;
  }
  if(tab=="perfil"){
-  const p=S.profile||{},wl=ptabP=="wish",po=ptabP=="ped",prod=ptabK=="prod",sc=i=>po?(!i.manual&&!home(i)):home(i),kindOf=wl?wishlistPieceKind:orderPieceKind,profilePieces=(wl?S.wish:ev().filter(sc)).filter(i=>wl||kindOf(i)==="prod"||i.img),base=profilePieces.filter(i=>kindOf(i)===ptabK&&(wl||!prod||!gof||i.go==gof)),pfl=(PFL=ordG([...new Set(base.map(i=>i.grupo||"Sin grupo"))])),list=(pfg&&!pfl.includes(pfg)&&(pfg=""),base.filter(i=>!pfg||(i.grupo||"Sin grupo")==pfg)),fnv=i=>wl?"viewW":i.manual?"viewC":"view",cellP=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;${fnv(i)}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${goTag(i,"gopos")}${wl?wishlistCardName(i.name):""}</div>`;
+  const p=S.profile||{},wl=ptabP=="wish",po=ptabP=="ped",prod=ptabK=="prod",sc=i=>po?(!i.manual&&!home(i)):home(i),kindOf=wl?wishlistPieceKind:orderPieceKind,profilePieces=(wl?S.wish:ev().filter(sc)).filter(i=>wl||kindOf(i)==="prod"||i.img),base=profilePieces.filter(i=>kindOf(i)===ptabK&&(wl||!prod||!gof||i.go==gof)),pfl=(PFL=ordG([...new Set(base.map(i=>i.grupo||"Sin grupo"))])),list=(pfg&&!pfl.includes(pfg)&&(pfg=""),base.filter(i=>!pfg||(i.grupo||"Sin grupo")==pfg)),fnv=i=>wl?"viewW":i.manual?"viewC":"view",cellP=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;${fnv(i)}('${i.id}')">${i.img?gridPiecePhoto(i):`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${goTag(i,"gopos")}${wl?wishlistCardName(i.name):""}</div>`;
   const card=`<div class="pcard pme"${bannerStyle(p)}>${p.banner?`<div class="pbn" style="background-image:url('${esc(p.banner)}')"></div>`:""}<div class="phead">${framedAvatar(p.photo,p.name,allowedFrame(p.frame,myFrameLevel(),ownFrameAccess()))}<div class="pid"><div class="pname">${esc(p.name||"Tu nombre")}</div><div class="puser">@${esc((p.user||"usuario").replace(/^@/,""))}</div></div></div>
   <button class="sec pedit pgear" onclick="editTheme()" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></button><button class="sec pedit" onclick="editP()" aria-label="Editar perfil">${PEN}</button>
   <div class="pdesc pdme${p.desc?"":" ph"}">${p.desc?esc(p.desc):"Agrega una descripción"}</div>
@@ -1038,6 +1064,7 @@ function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",ty
  const ch=(f,l,v)=>`<input type="hidden" id="${f}" value="${esc(v)}"><div class="pick">${l.map(x=>`<button type="button" class="ch ${x==v?"on":""}" data-v="${esc(x)}" onclick="setF('${f}',this)">${esc(x)}</button>`).join("")}</div>`;
  openM(`<div class="vw fm"><h3>${cur?"Editar":"Nuevo"} artículo</h3>
  <label class="up"><input type="file" accept="image/*" hidden onchange="pick(this.files[0])"><div id="pv" class="pvbox">${img?`<img class="pvimg" src="${img}">`:`<span>＋ Agregar foto</span>`}</div></label>
+ ${reversePhotoPicker(i,orderPieceKind(i))}
  ${catalogActions()}
  <div class="fs"><label>Nombre</label><input id="f_n" value="${esc(i.name)}" placeholder="Ej. Sunoo THE SIN:BLISS"></div>
  <div class="fs"><label>Qué es</label>${ch("f_t",TIPOS,i.type)}</div>
@@ -1051,7 +1078,7 @@ function edit(id){cur=id?S.items.find(i=>i.id==id):null;const i=cur||{name:"",ty
  <div class="fs row2"><div><label>Estado</label><select id="f_s">${ESTADOS.map(e=>`<option ${e==i.status?"selected":""}>${e}</option>`).join("")}</select></div><div><label>Precio</label><input id="f_p" type="number" inputmode="decimal" value="${i.price||""}" placeholder="0"></div></div>
  <div class="fs"><label>Notas</label><textarea id="f_d" rows="2">${esc(i.det)}</textarea></div>
  <div class="fbar"><button class="pri" onclick="ok()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" style="margin-left:auto" onclick="del()">Borrar</button>`:""}</div></div>`)}
-function setF(f,b){$(f).value=b.dataset.v;if(["f_t","w_type","col_type"].includes(f)){resetCatalogResults();const q=$("erasec");if(q)q.style.display=currentPieceKind()==="prod"?"none":""}[...b.parentElement.children].forEach(x=>x.classList.toggle("on",x==b));if(f=="f_c")$("boxw").style.display=["México","Pocamarket"].includes(b.dataset.v)?"none":""}
+function setF(f,b){$(f).value=b.dataset.v;if(["f_t","w_type","col_type"].includes(f)){resetCatalogResults();const q=$("erasec");if(q)q.style.display=currentPieceKind()==="prod"?"none":"";const reverse=$("card-reverse-picker");if(reverse)reverse.hidden=currentPieceKind()!=="pc"}[...b.parentElement.children].forEach(x=>x.classList.toggle("on",x==b));if(f=="f_c")$("boxw").style.display=["México","Pocamarket"].includes(b.dataset.v)?"none":""}
 let fG="",fT=[],fA="",fU="",pkDel={};const PH={g:"Nuevo grupo",t:"Nuevo tag (ej. Weverse POB)",a:"Nuevo artista",u:"Nuevo unit"},LB={g:"grupos",t:"tags",a:"artistas",u:"units"};
 const allG=()=>ordG([...new Set([...(S.glist||[]),...grupos()])]);
 const allT=()=>[...new Set([...(S.tlist||[]),...fT,...S.items.concat(S.col||[],S.wish||[]).flatMap(i=>i.tags||[])])].sort();
@@ -1075,7 +1102,7 @@ function addC(k){
 const PEN='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 const hd=(n,c)=>`<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1">${esc(n)}</h3><button class="sec" aria-label="Editar" onclick="${c}" style="padding:8px 10px">${PEN}</button></div>`;
 const kv=(a,b)=>b?`<div class="kv"><span>${a}</span><b>${esc(b)}</b></div>`:"";
-const pic=i=>i.img?`<img src="${i.img}" style="display:block;margin:10px auto;max-height:${i.type==="Postcard"||i.kind==="postcard"?350:210}px;max-width:${i.type==="Postcard"||i.kind==="postcard"?100:62}%;object-fit:contain;border-radius:12px">`:"";
+const pic=i=>i.imgBack&&i.img?`<div class="card-detail-photo">${twoSidedCard(i.img,i.imgBack)}</div>`:i.img?`<img src="${i.img}" style="display:block;margin:10px auto;max-height:${i.type==="Postcard"||i.kind==="postcard"?350:210}px;max-width:${i.type==="Postcard"||i.kind==="postcard"?100:62}%;object-fit:contain;border-radius:12px">`:"";
 function view(id){if(dragBlock)return;const i=S.items.find(x=>x.id==id);if(!i)return;
  $("sheet").innerHTML='<div class="vw">'+hd(i.name,`edit('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Tipo",i.type)+kv("Tipo de pedido",i.country)+kv("Caja",(i.country=="México"||i.country=="Pocamarket")?"Sin caja (directo a casa)":i.box?"Caja "+i.box:"Sin asignar")+kv("Estado",i.status)+kv("Precio",i.price?money(i.price):"")+(i.det?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(i.det)}</div>`:"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
  $("modal").classList.add("on")}
@@ -1208,6 +1235,119 @@ function setW(k){wtab=k;anim=true;render()}
 const SC={"Pendiente":"#9fb0c8","Comprado":"#6f9de0","En camino":"#5ec2d6","En dirección KR":"#e48fb8","En dirección JP":"#e5b26f","En México":"#a08fe0","En casa":"#6fcf97"};
 function wishlistTags(tags){
  return tags?.length?`<div class="ctags wish-tags">${tags.map(tag=>`<span class="ctag" style="${tcol(tag)}">${esc(tag)}</span>`).join("")}</div>`:"";
+}
+function flipCardControl(){
+ return '<button type="button" class="flip-control" aria-label="Mostrar reverso" aria-pressed="false" onclick="event.stopPropagation();flipCardFromButton(this)">↻</button>';
+}
+function twoSidedCard(front,back,{control=true,lazy=true}={}){
+ return `<span class="flip-card" data-card-swipe data-flipped="false"><span class="flip-card-sides">
+  <img class="flip-front" ${lazy?'loading="lazy" decoding="async" ':''}src="${esc(front)}" alt="" draggable="false">
+  <img class="flip-back" ${lazy?"data-src":"src"}="${esc(back)}" decoding="async" alt="" draggable="false">
+ </span>${control?flipCardControl():""}</span>`;
+}
+function gridPiecePhoto(item){
+ return item.img?(item.imgBack?twoSidedCard(item.img,item.imgBack):`<img loading="lazy" decoding="async" src="${esc(item.img)}" alt="">`):'<div class="mph">Sin foto</div>';
+}
+async function flipPhotocard(card,button){
+ if(!card||card.flipping)return;
+ const back=card.querySelector(".flip-back");
+ if(!back)return;
+ card.flipping=true;
+ try{
+  if(back.dataset.src){
+   back.src=back.dataset.src;
+   if(back.decode)await back.decode();
+   delete back.dataset.src;
+  }
+  if(!card.isConnected)return;
+  const turned=card.dataset.flipped!=="true";
+  card.dataset.flipped=String(turned);
+  const control=button||card.querySelector(".flip-control")||card.closest(".fvk")?.querySelector(".flip-control");
+  if(control){
+   control.setAttribute("aria-pressed",String(turned));
+   control.setAttribute("aria-label",turned?"Mostrar frente":"Mostrar reverso");
+  }
+ }catch(e){toast("No se pudo cargar el reverso. Intenta de nuevo.")}
+ finally{card.flipping=false}
+}
+function flipCardFromButton(button){
+ flipPhotocard(button.closest(".flip-card")||button.parentElement.querySelector(".flip-card"),button);
+}
+let cardSwipe=null,swipedCardClick=null;
+document.addEventListener("pointerdown",event=>{
+ swipedCardClick=null;
+ const card=event.target.closest?.("[data-card-swipe]");
+ if(card&&event.button===0&&!event.target.closest(".flip-control"))cardSwipe={card,id:event.pointerId,x:event.clientX,y:event.clientY};
+});
+document.addEventListener("pointerup",event=>{
+ if(cardSwipe?.id!==event.pointerId)return;
+ const {card,x,y}=cardSwipe;
+ cardSwipe=null;
+ const dx=Math.abs(event.clientX-x),dy=Math.abs(event.clientY-y);
+ if(drag||dragBlock||dx<25||dx<dy*1.25)return;
+ swipedCardClick=card.closest("[data-id],.fvk")||card;
+ flipPhotocard(card);
+},true);
+document.addEventListener("pointercancel",event=>{if(cardSwipe?.id===event.pointerId)cardSwipe=null},true);
+document.addEventListener("click",event=>{
+ if(!swipedCardClick?.contains(event.target))return;
+ swipedCardClick=null;
+ event.preventDefault();event.stopImmediatePropagation();
+},true);
+function reversePhotoPicker(item,kind){
+ return `<div id="card-reverse-picker" class="card-reverse-picker" ${kind==="pc"?"":"hidden"}>
+  <img id="card-reverse-preview" ${item.imgBack?`src="${esc(item.imgBack)}"`:"hidden"} alt="Reverso de la photocard">
+  <button type="button" class="sec sm" id="card-reverse-add" onclick="$('card-reverse-file').click()">${item.imgBack?"Cambiar reverso":"＋ Agregar reverso"}</button>
+  <button type="button" class="sec sm" id="card-reverse-remove" onclick="setReversePhoto('')" ${item.imgBack?"":"hidden"}>Quitar reverso</button>
+  <button type="button" class="sec sm" id="card-reverse-search" onclick="searchMypocaCatalog('back')" ${item.imgBack?"":"hidden"}>Buscar por reverso</button>
+  <input id="card-reverse-file" type="file" accept="image/*" hidden onchange="pickReversePhoto(this)">
+  <div class="mu" id="card-reverse-status" role="status"></div>
+ </div>`;
+}
+function reversePhoto(){
+ return $("card-reverse-preview")?.getAttribute("src")||"";
+}
+function setReversePhoto(source){
+ const preview=$("card-reverse-preview"),file=$("card-reverse-file");
+ if(!preview||!file)return;
+ file.request=null;
+ if(source)preview.src=source;
+ else preview.removeAttribute("src");
+ preview.hidden=!source;
+ $("card-reverse-add").textContent=source?"Cambiar reverso":"＋ Agregar reverso";
+ $("card-reverse-remove").hidden=!source;
+ $("card-reverse-search").hidden=!source;
+ $("card-reverse-status").textContent="";
+ resetCatalogResults();
+}
+async function pickReversePhoto(input){
+ const file=input.files[0];
+ input.value="";
+ if(!file||currentPieceKind()!=="pc")return;
+ const status=$("card-reverse-status"),request=Symbol(),url=URL.createObjectURL(file);
+ input.request=request;status.textContent="Preparando reverso…";
+ try{
+  const photo=new Image();
+  photo.src=url;await photo.decode();
+  if(input!==$("card-reverse-file")||input.request!==request)return;
+  const scale=Math.min(1,480/Math.max(photo.naturalWidth,photo.naturalHeight));
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(photo.naturalWidth*scale));
+  canvas.height=Math.max(1,Math.round(photo.naturalHeight*scale));
+  canvas.getContext("2d").drawImage(photo,0,0,canvas.width,canvas.height);
+  setReversePhoto(canvas.toDataURL("image/jpeg",.82));
+ }catch(e){
+  if(input===$("card-reverse-file")&&input.request===request)status.textContent="No se pudo abrir la foto del reverso.";
+ }finally{
+  if(input.request===request)input.request=null;
+  URL.revokeObjectURL(url);
+ }
+}
+function canSavePiece(){
+ if(currentPieceKind()!=="pc")return true;
+ if($("card-reverse-file")?.request){toast("Espera a que se prepare el reverso.");return false}
+ if(reversePhoto()&&!img){toast("Agrega la foto del frente para guardar las dos caras.");return false}
+ return true;
 }
 function wishlistCardName(name){return name?`<div class="nm wish-card-name">${esc(name)}</div>`:""}
 function tagPalette(tag){
@@ -1772,9 +1912,15 @@ function profileColor(value){return typeof value==="string"&&/^#[0-9a-f]{6}$/i.t
 function profilePalette(color,bannerColors){
  const custom=profileColor(color);
  if(custom){
-  return {"--g1":`color-mix(in srgb,${custom} 35%,#15111e)`,
-   "--g2":`color-mix(in srgb,${custom} 51%,#201a2b)`,
-   "--g3":`color-mix(in srgb,${custom} 65%,#221c2c)`,"--profile-flower":custom};
+  const [r,g,b]=custom.slice(1).match(/../g).map(component=>{
+   const value=parseInt(component,16)/255;
+   return value<=.04045?value/12.92:((value+.055)/1.055)**2.4;
+  });
+  const ink=.2126*r+.7152*g+.0722*b>.18?"#17141a":"#fff";
+  return {"--g1":custom,"--g2":custom,"--g3":custom,"--profile-flower":custom,
+   "--profile-card-ink":ink,"--profile-card-glare":"transparent",
+   "--profile-card-border":`color-mix(in srgb,${ink} 44%,transparent)`,
+   "--profile-card-chip":`color-mix(in srgb,${ink} 12%,transparent)`};
  }
  if(Array.isArray(bannerColors)&&bannerColors.length===3&&bannerColors.every(c=>typeof c==="string"&&/^hsl\(\d{1,3} \d{1,3}% \d{1,3}%\)$/.test(c))){
   return {"--g1":bannerColors[0],"--g2":bannerColors[1],"--g3":bannerColors[2]};
@@ -1791,7 +1937,7 @@ function paintProfileColor(){
  const automatic=bnDel?[]:!bnCropping&&BC?.W?bnCols:(S.profile||{}).bcol;
  const palette=profilePalette(profileColorDraft,automatic);
  for(const element of [cover,preview]){
-  for(const name of ["--g1","--g2","--g3","--profile-flower"]){
+  for(const name of ["--g1","--g2","--g3","--profile-flower","--profile-card-ink","--profile-card-glare","--profile-card-border","--profile-card-chip"]){
    if(palette[name])element.style.setProperty(name,palette[name]);
    else element.style.removeProperty(name);
   }
@@ -2034,18 +2180,19 @@ function catalogCropPointer(event){
   else paintCatalogCrop();
  }else paintCatalogCrop(rect);
 }
-async function searchMypocaCatalog(){
- const node=$("mypoca-catalog-results"),source=img;
+async function searchMypocaCatalog(face="front"){
+ const getSource=()=>face==="back"?reversePhoto():img;
+ const node=$("mypoca-catalog-results"),source=getSource();
  if(!node)return;
  if(!source){node.textContent="Primero añade tu foto.";return}
- const request=Symbol(),kind=catalogItemKind(),crop=node.catalogCrop;
+ const request=Symbol(),kind=catalogItemKind(),crop=face==="back"?null:node.catalogCrop;
  const cropKey=JSON.stringify(crop||null);
  node.catalogRequest=request;node.catalogMatches=[];node.textContent="Buscando coincidencias…";
  if(catalogFingerprintWork?.source!==source||catalogFingerprintWork?.cropKey!==cropKey){
   catalogFingerprintWork={source,cropKey,result:catalogFingerprint(source,crop,true)};
  }
  const work=catalogFingerprintWork;
- const isCurrent=()=>node===$("mypoca-catalog-results")&&node.catalogRequest===request&&source===img&&kind===catalogItemKind();
+ const isCurrent=()=>node===$("mypoca-catalog-results")&&node.catalogRequest===request&&source===getSource()&&kind===catalogItemKind();
  try{
   const photo=await work.result;
   if(!isCurrent())return;
@@ -2183,7 +2330,7 @@ function endDrag(){clearTimeout(lpTimer);pdown=null;if(!drag)return;const d=drag
  d.cl.style.transition="left .22s ease,top .22s ease,transform .22s ease,box-shadow .22s";d.cl.style.left=r.left+"px";d.cl.style.top=r.top+"px";d.cl.style.transform="scale(1)";d.cl.style.boxShadow="0 2px 6px rgba(0,0,0,.1)";
  setTimeout(()=>{d.cl.remove();d.c.style.opacity=""},240);
  applyOrder(d.g.dataset.drag,[...d.g.children].map(k=>k.dataset.id));if(d.g.closest("#sheet"))bkDirty=true;save();setTimeout(()=>{dragBlock=false},380)}
-const pdHandler=e=>{const c=e.target.closest("[data-id]");if(!c||!c.parentElement||!c.parentElement.dataset.drag)return;pdown={x:e.clientX,y:e.clientY,c:c,g:c.parentElement};clearTimeout(lpTimer);lpTimer=setTimeout(startDrag,380)};$("v").addEventListener("pointerdown",pdHandler);$("sheet").addEventListener("pointerdown",pdHandler);
+const pdHandler=e=>{if(e.target.closest(".flip-control"))return;const c=e.target.closest("[data-id]");if(!c||!c.parentElement||!c.parentElement.dataset.drag)return;pdown={x:e.clientX,y:e.clientY,c:c,g:c.parentElement};clearTimeout(lpTimer);lpTimer=setTimeout(startDrag,380)};$("v").addEventListener("pointerdown",pdHandler);$("sheet").addEventListener("pointerdown",pdHandler);
 document.addEventListener("pointermove",e=>{if(drag){moveDrag(e);return}if(pdown&&(Math.abs(e.clientX-pdown.x)>8||Math.abs(e.clientY-pdown.y)>8)){clearTimeout(lpTimer);pdown=null}});
 document.addEventListener("pointerup",endDrag);document.addEventListener("pointercancel",endDrag);
 document.addEventListener("touchmove",e=>{if(drag)e.preventDefault()},{passive:false});
@@ -3186,6 +3333,7 @@ function editW(id){
  const title=kind==="prod"?(cur?"Editar artículo deseado":"Nuevo artículo deseado"):`${cur?"Editar":"Nueva"} ${kind==="postcard"?"postcard":"photocard"} deseada`;
  openM(`<div class="vw fm"><h3>${title}</h3>
  ${itemPhotoPicker(true)}
+ ${reversePhotoPicker(i,kind)}
  ${catalogActions()}
  <div class="fs"><label for="w_n">Nombre</label><input id="w_n" value="${esc(i.name)}" placeholder="${kind==="pc"?"PC Sunoo Weverse Luckydraw":kind==="postcard"?"Postcard de BTS":"Álbum, mercancía…"}"></div>
  ${pieceFormTypes("w_type",cur?wishlistPieceType(cur):PIECE_TYPES[kind])}
@@ -3202,14 +3350,15 @@ function editW(id){
 function okW(){
  const name=$("w_n").value.trim(),type=currentPieceType(),kind=orderPieceKind({type});
  if(!name)return alert("Escribe un nombre");
+ if(!canSavePiece())return;
  const o={name,grupo:fG,artist:okM(fA),unit:okM(fU),era:kind!=="prod"?okEra(fE):"",go:fO,
-  tags:[...fT],det:$("w_d").value.trim(),img,type,kind:kind==="prod"?"misc":kind};
- if(cur)Object.assign(cur,o);
- else S.wish.push(Object.assign({id:String(Date.now())},o));
- save();closeM();render();
+  tags:[...fT],det:$("w_d").value.trim(),img,imgBack:kind==="pc"?reversePhoto():"",type,kind:kind==="prod"?"misc":kind};
+ const created=!cur,item=cur?Object.assign(cur,o):{id:String(Date.now()),...o};
+ if(created)S.wish.push(item);
+ finishPieceSave(item,"wish",created);
 }
 function delW(){if(confirm("¿Borrar de la wishlist?")){S.wish=S.wish.filter(i=>i!==cur);save();closeM();render()}}
-function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",era:cur.era||"",go:cur.go||"",tags:[...(cur.tags||[])],type:wishlistPieceType(cur),det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
+function toItem(){S.items.push({id:String(Date.now()),name:cur.name,grupo:cur.grupo,artist:cur.artist||"",unit:cur.unit||"",era:cur.era||"",go:cur.go||"",tags:[...(cur.tags||[])],type:wishlistPieceType(cur),det:cur.det,country:"Corea",box:"",status:"Pendiente",price:0,img:cur.img,imgBack:cur.imgBack||""});S.wish=S.wish.filter(i=>i!==cur);save();closeM();go("sin")}
 
 /* ===== Artistas y units (cada uno pertenece a UN solo grupo) ===== */
 function AR(){return S.artists=S.artists||[]}
@@ -3354,13 +3503,13 @@ function fvParts(c){const T=(c.an||[]).filter(x=>x=="s"||x=="h"||x=="d");if(!T.l
 var FV_PLUS='<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
 function favSec(c,mode,sl){c=Object.assign({},FV_DEF,c||fvCfg());mode=mode||"me";sl=sl||fvSlots();
  const me=mode=="me",cls=["fvs"];if(c.f=="g")cls.push("fx-g");if(c.f=="m")cls.push("fx-m");if(c.gl)cls.push("fx-o");
- const tg=me?"button":"div",slot=(it,k)=>`<div class="fvk"><${tg} class="fvc${it?" has":""}"${me?` type="button" onclick="pickFav(${k})" aria-label="Elegir photocard ${k+1}${it?._w?", de Wishlist":""}"`:""}>${it?`<img ${k>=4?'loading="lazy" decoding="async" ':''}src="${esc(it.img)}" alt="">${it._w?'<span class="fv-wish">Wishlist</span>':""}`:FV_PLUS}</${tg}><div class="fvn">${it&&it.name?esc(it.name):"···"}</div></div>`;
+ const tg=me?"button":"div",slot=(it,k)=>`<div class="fvk"><${tg} class="fvc${it?" has":""}"${me?` type="button" onclick="pickFav(${k})" aria-label="Elegir photocard ${k+1}${it?._w?", de Wishlist":""}"`:""}>${it?`${it.imgBack?twoSidedCard(it.img,it.imgBack,{control:false}):`<img ${k>=4?'loading="lazy" decoding="async" ':''}src="${esc(it.img)}" alt="">`}${it._w?'<span class="fv-wish">Wishlist</span>':""}`:FV_PLUS}</${tg}>${it?.imgBack?flipCardControl():""}<div class="fvn">${it&&it.name?esc(it.name):"···"}</div></div>`;
  const extras=sl.slice(4).flatMap((item,index)=>item?[slot(item,index+4)]:[]);
  return `<div class="${cls.join(" ")}" style="${fvStyle(c)}">${fvParts(c)}<div class="fvh"><div class="fvt">${esc(c.t)}</div>${me?`<button type="button" class="fvpen" onclick="editFav()" aria-label="Personalizar favoritas">${PEN}</button>`:""}</div><div class="fvg">${[0,1,2,3].map(k=>slot(sl[k]||null,k)).join("")}</div>
  ${extras.length?`<details class="fv-more"><summary>Más favoritas (${extras.length})</summary><div class="fvg">${extras.join("")}</div></details>`:""}
  ${me?'<button type="button" class="sec sm fv-add" onclick="addFav()">＋ Añadir favorita</button>':""}</div>`}
 function favPub(fv){if(!fv||!Array.isArray(fv.s)||!fv.s.some(x=>x&&x.i))return"";
- return favSec(fv.c,"pub",fv.s.map(x=>x&&x.i?{img:x.i,name:x.n||"",_w:x.src==="wish"}:null))}
+ return favSec(fv.c,"pub",fv.s.map(x=>x&&x.i?{img:x.i,imgBack:x.b,name:x.n||"",_w:x.src==="wish"}:null))}
 function visiblePublicFavorites(fv,privacy){
  if(!Array.isArray(fv?.s))return fv;
  return {...fv,s:fv.s.map(slot=>{
@@ -3374,7 +3523,7 @@ async function favPubData(privacy){
  const s=await Promise.all(sl.map(async i=>{
   if(!i)return null;
   const src=i._w?"wish":"col";
-  return src==="wish"&&privacy.wish?null:{i:await pubImg(i.img,220),n:i.name||"",src};
+  return src==="wish"&&privacy.wish?null:{i:await pubImg(i.img,220),...(i.imgBack?{b:await pubImg(i.imgBack,220)}:{}),n:i.name||"",src};
  }));
  return {c:fvCfg(),s};
 }
@@ -3458,17 +3607,76 @@ function showBook(src,tab){if(src)bkSrc=src;if(tab)bkTab=tab;
   po=bkSrc=="ped",sc=i=>po?(!i.manual&&!home(i)):home(i),
   kindOf=wl?wishlistPieceKind:orderPieceKind,items=(wl?S.wish:ev().filter(sc)).filter(i=>wl||kindOf(i)==="prod"||i.img),
   list=items.filter(i=>kindOf(i)===bkTab),fn=i=>wl?"viewW":i.manual?"viewC":"view",
-  cell=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;bkSc=$('sheet').scrollTop;retBook=1;${fn(i)}('${i.id}')">${i.img?`<img loading="lazy" decoding="async" src="${i.img}">`:`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${wl?wishlistCardName(i.name):""}</div>`;
+  cell=i=>`<div data-id="${i.id}" onclick="if(dragBlock)return;bkSc=$('sheet').scrollTop;retBook=1;${fn(i)}('${i.id}')">${i.img?gridPiecePhoto(i):`<div class="mph">${esc(wl?"Sin foto":i.name||"Sin foto")}</div>`}${wl?wishlistCardName(i.name):""}</div>`;
  openM(`<div class="vw cbk"><div class="bkh"><h3 style="margin:0">${wl?"Wishlist":po?"Collect Book · Pedidos":"Collect Book · Colección"}</h3><button class="sec sm" onclick="closeM()">Cerrar</button></div>${pieceTabs(bkTab,"setBookKind",items,kindOf)}${list.length?`<div class="mu" style="text-align:center;margin:2px 0 6px">Mantén presionado y arrastra para ordenar</div>${ordG([...new Set(list.map(i=>i.grupo||"Sin grupo"))]).map(g=>prod||g=="Sin grupo"?`<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":bkTab==="postcard"?" postcard-grid":""}" data-drag="${wl?"w":"i"}">${list.filter(i=>(i.grupo||"Sin grupo")==g).map(cell).join("")}</div>`:mgEra(g,list.filter(i=>(i.grupo||"Sin grupo")==g),cell,eraList(g),i=>i.era,wl?"w":"i",bkTab)).join("")}`:`<div class="empty">${"Aún no hay "+PIECE_LABELS[bkTab].toLowerCase()+" aquí."}</div>`}</div>`);retBook=0}
 function setBookKind(kind){showBook(null,kind)}
 function useImg(m){resetCatalogResults();const mk=n=>{const k=Math.min(1,n/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*k);c.height=Math.round(m.height*k);c.getContext("2d").drawImage(m,0,0,c.width,c.height);return c};img=mk(currentPieceKind()==="postcard"?720:360).toDataURL("image/jpeg",.7);imgBig=mk(900).toDataURL("image/jpeg",.85);const p=$("pv");if(p)p.innerHTML=`<img class="pvimg" src="${img}">`}
 const isGif=x=>/^data:image\/gif/i.test(x||""),GIF_PH=1048576,GIF_BN=2097152;let bnGif=null,bnGifCols=[];
 const mbs=n=>(n/1048576).toFixed(1).replace(".0","");
 function pick(f){if(!f)return;const r=new FileReader();r.onload=()=>{const m=new Image();m.onload=()=>useImg(m);m.src=r.result};r.readAsDataURL(f)}
-function ok(){const n=$("f_n").value.trim();if(!n)return alert("Escribe un nombre");const prevSt=cur&&cur.status;
- const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),era:currentPieceKind()!=="prod"?okEra(fE):"",go:fO,tags:[...fT],det:$("f_d").value.trim(),type:$("f_t").value,country:$("f_c").value,box:["México","Pocamarket"].includes($("f_c").value)?"":$("f_b").value.trim(),status:$("f_s").value,price:parseFloat($("f_p").value)||0,img};
- if(cur)Object.assign(cur,o);else S.items.push(Object.assign({id:String(Date.now())},o));
- save();closeM();render();if(o.status=="En casa"&&prevSt!="En casa")toast("Movido a tu Colección")}
+function finishPieceSave(item,section,isNew){
+ const animateCard=isNew&&item.img&&(section==="wish"?wishlistPieceKind(item):orderPieceKind(item))==="pc";
+ const preview=animateCard?$("pv")?.querySelector("img")?.getBoundingClientRect():null;
+ const sheet=animateCard?$("sheet").getBoundingClientRect():null;
+ save();closeM();
+ if(!animateCard){render();return}
+ tab=section==="wish"?"wish":"book";
+ if(section==="wish")wtab="pc";
+ else{btab="pc";bsec=home(item)?"col":"ped"}
+ gf=item.grupo||"";af="";gof="";anim=false;
+ render();
+ const card=[...$("v").querySelectorAll("[data-id]")].find(element=>element.dataset.id===String(item.id));
+ const target=card?.querySelector(".flip-card, img");
+ if(!target)return;
+ const bounds=target.getBoundingClientRect();
+ if(bounds.top<88||bounds.bottom>innerHeight-90)card.scrollIntoView({block:"center",behavior:"instant"});
+ if(RM()||!Element.prototype.animate)return;
+ const width=Math.min(118,preview?.width||118),height=width*1.5;
+ const previewVisible=preview&&preview.top>=sheet.top&&preview.bottom<=sheet.bottom;
+ const x=(previewVisible?preview.left+preview.width/2:sheet.left+sheet.width/2)-width/2;
+ const y=(previewVisible?preview.top+preview.height/2:sheet.top+sheet.height/2)-height/2;
+ flyPhotocard(item,target,{x,y,width,height});
+}
+function flyPhotocard(item,target,from){
+ const flight=document.createElement("div");
+ flight.className="photocard-flight";
+ flight.style.cssText=`left:${from.x}px;top:${from.y}px;width:${from.width}px;height:${from.height}px`;
+ flight.innerHTML=item.imgBack?twoSidedCard(item.img,item.imgBack,{control:false,lazy:false}):`<img src="${esc(item.img)}" alt="">`;
+ document.body.append(flight);
+ target.style.visibility="hidden";
+ let timer;
+ const cleanup=()=>{clearTimeout(timer);flight.remove();target.style.visibility=""};
+ timer=setTimeout(cleanup,2400);
+ (async()=>{
+  try{
+   const faces=[...flight.querySelectorAll("img")];
+   await Promise.race([Promise.allSettled(faces.map(face=>face.decode?.())),new Promise(resolve=>setTimeout(resolve,220))]);
+   if(!flight.isConnected||!target.isConnected)return;
+   if(item.imgBack){
+    await flight.querySelector(".flip-card-sides").animate(
+     [{transform:"rotateY(0deg)"},{transform:"rotateY(360deg)"}],
+     {duration:560,easing:"ease-in-out"}
+    ).finished;
+   }else{
+    await flight.animate([{opacity:.45,transform:"scale(.94)"},{opacity:1,transform:"none"}],
+     {duration:180,easing:"ease-out"}).finished;
+   }
+   if(!flight.isConnected||!target.isConnected)return;
+   const to=target.getBoundingClientRect(),dx=to.left-from.x,dy=to.top-from.y;
+   if(!to.width||!to.height)return;
+   await flight.animate([
+    {transform:"translate(0,0) scale(1)"},
+    {transform:`translate(${dx*.55}px,${dy*.55-22}px) scale(${(1+to.width/from.width)/2})`,offset:.57},
+    {transform:`translate(${dx}px,${dy}px) scale(${to.width/from.width},${to.height/from.height})`}
+   ],{duration:620,easing:"cubic-bezier(.2,.7,.25,1)",fill:"forwards"}).finished;
+  }catch(e){}finally{cleanup()}
+ })();
+}
+function ok(){const n=$("f_n").value.trim();if(!n)return alert("Escribe un nombre");if(!canSavePiece())return;const prevSt=cur&&cur.status;
+ const o={name:n,grupo:fG,artist:okM(fA),unit:okM(fU),era:currentPieceKind()!=="prod"?okEra(fE):"",go:fO,tags:[...fT],det:$("f_d").value.trim(),type:$("f_t").value,country:$("f_c").value,box:["México","Pocamarket"].includes($("f_c").value)?"":$("f_b").value.trim(),status:$("f_s").value,price:parseFloat($("f_p").value)||0,img,imgBack:currentPieceKind()==="pc"?reversePhoto():""};
+ const created=!cur,item=cur?Object.assign(cur,o):{id:String(Date.now()),...o};
+ if(created)S.items.push(item);
+ finishPieceSave(item,"ped",created);if(o.status=="En casa"&&prevSt!="En casa")toast("Movido a tu Colección")}
 function del(){if(confirm("¿Borrar este artículo?")){S.items=S.items.filter(i=>i!==cur);save();closeM();render()}}
 async function exp(){let o=S;if(JSON.stringify(S).indexOf(IMGB)>-1){toast("Preparando respaldo con tus imágenes…");try{o=await imgInline(S)}catch(e){}}const a=document.createElement("a"),u=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.href=u;a.download="pedidos-respaldo.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 function imp(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{S=Object.assign({items:[],boxes:{},prev:0,wish:[],col:[],corder:[],cargos:[],envios:[],gorder:[],profile:{},theme:{mode:"auto",color:"base"}},JSON.parse(r.result));mig();save();applyFonts();render()}catch(e){alert("Archivo inválido")}};r.readAsText(f)}
@@ -3491,6 +3699,7 @@ function openPiecePhoto(wishlist){
 function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",grupo:"",tags:[],price:"",img:""};const kind=cur?orderPieceKind(cur):btab;img=i.img||"";fG=i.grupo||"";fA=i.artist||"";fU=i.unit||"";fE=i.era||"";pkDel={};fO=i.go||"";fT=[...(i.tags||[])];imgBig="";
  openM(`<div class="vw fm"><h3>${cur?"Editar":kind==="prod"?"Nuevo":"Nueva"} ${kind==="postcard"?"postcard":kind==="pc"?"photocard":"artículo"} de colección</h3>
  ${itemPhotoPicker()}
+ ${reversePhotoPicker(i,kind)}
  ${catalogActions()}
  <div class="fs"><label>Nombre</label><input id="f_n" value="${esc(i.name||"")}" placeholder="Nombre"></div>
  ${pieceFormTypes("col_type",TIPOS.includes(i.type)?i.type:PIECE_TYPES[kind])}
@@ -3502,9 +3711,10 @@ function editCol(id){cur=id?S.col.find(i=>i.id==id):null;const i=cur||{name:"",g
  <div class="fs"><label>Tags</label><div id="pw_t">${pickHtml("t")}</div></div>
  <div class="fs"><label>Precio (opcional)</label><input id="f_p" type="number" inputmode="decimal" value="${i.price||""}" placeholder="0"><div class="mu" style="margin-top:4px">No se suma a Gastos.</div></div>
  <div class="fbar"><button class="pri" onclick="okCol()">Guardar</button><button class="sec" onclick="closeM()">Cancelar</button>${cur?`<button class="sec" style="margin-left:auto" onclick="delCol()">Borrar</button>`:""}</div></div>`)}
-function okCol(){if(!img)return alert("Agrega la foto");const type=currentPieceType(),kind=orderPieceKind({type}),o={name:$("f_n").value.trim(),grupo:fG,artist:okM(fA),unit:okM(fU),era:kind!=="prod"?okEra(fE):"",go:fO,tags:[...fT],price:parseFloat($("f_p").value)||0,img,type};
- if(cur)Object.assign(cur,o);else S.col.push(Object.assign({id:String(Date.now()),manual:true,status:"En casa",name:""},o));
- save();closeM();render()}
+function okCol(){if(!img)return alert("Agrega la foto");if(!canSavePiece())return;const type=currentPieceType(),kind=orderPieceKind({type}),o={name:$("f_n").value.trim(),grupo:fG,artist:okM(fA),unit:okM(fU),era:kind!=="prod"?okEra(fE):"",go:fO,tags:[...fT],price:parseFloat($("f_p").value)||0,img,imgBack:kind==="pc"?reversePhoto():"",type};
+ const created=!cur,item=cur?Object.assign(cur,o):{id:String(Date.now()),manual:true,status:"En casa",...o};
+ if(created)S.col.push(item);
+ finishPieceSave(item,"col",created)}
 function delCol(){if(confirm("¿Borrar de tu colección?")){S.col=S.col.filter(i=>i!==cur);S.corder=(S.corder||[]).filter(x=>x!=cur.id);save();closeM();render()}}
 function viewC(id){if(dragBlock)return;const i=S.col.find(x=>x.id==id);if(!i)return;
  $("sheet").innerHTML='<div class="vw">'+hd(i.type==="Postcard"?"Postcard":i.type==="PC"?"Photocard":"Artículo",`editCol('${i.id}')`)+pic(i)+((i.tags||[]).length?`<div class="ctags" style="margin:2px 0 10px">${i.tags.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("Nombre",i.name)+kv("GO",i.go)+kv("Grupo",i.grupo)+kv("Artista",arName(i.artist))+kv("Unit",arName(i.unit))+kv("Era",eraNm(i.era))+kv("Precio",i.price?money(i.price):"")+`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" onclick="closeV()">Cerrar</button>${i.img?`<button class="sec" onclick="buscarId('${i.id}',false)">Buscar origen</button>`:""}</div><div id="bres" class="mu" style="margin-top:8px"></div></div>`;
@@ -3569,10 +3779,10 @@ async function apiPub(path){const r=await fetch(SB+"/rest/v1/"+path,{headers:{ap
 async function pubPush(){const p=S.profile||{},u=uname(p.user),user=meId();if(!user||!p.pub)return;if(u.length<3)throw new Error("Tu @usuario debe tener al menos 3 letras o números (Editar perfil).");
  await imgSync(false,"pub");
  const pv=p.priv||{},col=pv.col?[]:ev().filter(i=>home(i)&&i.img),ped=pv.ped?[]:ev().filter(i=>!i.manual&&!home(i)&&i.img),wi=pv.wish?[]:S.wish.filter(i=>i.img);
- const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type==="PC"?1:0,k:orderPieceKind(i),e:orderPieceKind(i)!=="prod"&&eraById(i.era)?i.era:"",i:await pubImg(i.img,220)}))),
-  pd2=await Promise.all(ped.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type==="PC"?1:0,k:orderPieceKind(i),e:orderPieceKind(i)!=="prod"&&eraById(i.era)?i.era:"",s:i.status||"",i:await pubImg(i.img,220)}))),
+ const c2=await Promise.all(col.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type==="PC"?1:0,k:orderPieceKind(i),e:orderPieceKind(i)!=="prod"&&eraById(i.era)?i.era:"",i:await pubImg(i.img,220),...(i.imgBack?{b:await pubImg(i.imgBack,220)}:{})}))),
+  pd2=await Promise.all(ped.map(async i=>({n:i.name||"",g:i.grupo||"",go:i.go||"",t:i.tags||[],p:i.type==="PC"?1:0,k:orderPieceKind(i),e:orderPieceKind(i)!=="prod"&&eraById(i.era)?i.era:"",s:i.status||"",i:await pubImg(i.img,220),...(i.imgBack?{b:await pubImg(i.imgBack,220)}:{})}))),
   used=new Set(col.concat(ped,wi).filter(i=>i.era&&(i.type?orderPieceKind(i):wishlistPieceKind(i))!=="prod").map(i=>i.era)),er2=await Promise.all(ER().filter(e=>e.group&&(used.has(e.id)||col.concat(ped).some(i=>orderPieceKind(i)!=="prod"&&i.grupo==e.group))).map(async e=>({id:e.id,g:e.group,n:e.name,i:await pubImg(e.img,120)}))),
-  w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:wishlistPieceKind(i)==="pc"?1:0,k:wishlistPieceKind(i),e:eraById(i.era)?i.era:"",t:i.tags||[],i:await pubImg(i.img,220)}))),
+  w2=await Promise.all(wi.map(async i=>({n:i.name||"",g:i.grupo||"",d:i.det||"",p:wishlistPieceKind(i)==="pc"?1:0,k:wishlistPieceKind(i),e:eraById(i.era)?i.era:"",t:i.tags||[],i:await pubImg(i.img,220),...(i.imgBack?{b:await pubImg(i.imgBack,220)}:{})}))),
   photo=await pubImg(p.photo,140),bn=p.banner?await pubImg(p.banner,700):"",bc=p.banner?(p.bcol&&p.bcol.length==3?p.bcol:await colsFromSrc(p.banner)):[],th0=S.theme||{},th={color:th0.color||"base",custom:th0.color=="custom"?th0.custom||"":""};let lvl=0;try{lvl=levelInfo().lvl}catch(e){}
  const fv=await favPubData(pv);
  if(user!==meId()||S.profile!==p||!p.pub)return;
@@ -4179,7 +4389,7 @@ function paintPub(){
  if(publicProfilePane==="cards"&&sections.length){
   h+=`<div class="seg">${sections.map(([key,label])=>`<button class="${key===pubSrc?"on":""}" onclick="setPubS('${key}')">${label}</button>`).join("")}</div>`;
   if(!locked&&ready)h+=pieceTabs(pubTab,"setPublicBookKind",all,publicPieceKind)+pubChips();
-  const ER_=album?.eras||[],cell=(x,k)=>wl?`<div onclick="pubItem(${k})"><img loading="lazy" decoding="async" src="${esc(x.i)}" alt="">${wishlistCardName(x.n)}</div>`:`<img loading="lazy" decoding="async" src="${x.i}" onclick="pubItem(${k})">`;
+  const ER_=album?.eras||[],cell=(x,k)=>`<div onclick="pubItem(${k})">${gridPiecePhoto({img:x.i,imgBack:x.b})}${wl?wishlistCardName(x.n):""}</div>`;
   h+=locked?`<div class="empty">Este apartado está oculto en tu perfil público.</div>`:
    album?.state==="error"?'<div class="empty">No se pudo cargar este álbum. <button type="button" class="sec sm" onclick="retryPublicAlbum()">Reintentar</button></div>':
    !ready?'<div class="empty" role="status">Cargando álbum…</div>':list.length?ordG([...new Set(list.map(x=>x.g||"Sin grupo"))]).map(g=>{if(prod||g=="Sin grupo")return `<h2>${esc(g)}</h2><div class="mgrid${prod?" prod":pubTab==="postcard"?" postcard-grid":""}">${list.map((x,k)=>(x.g||"Sin grupo")==g?cell(x,k):"").join("")}</div>`;
@@ -4191,7 +4401,7 @@ function paintPub(){
  if(box)renderProfileSections(box,h,[".pcard",".fvs"]);
  else container.innerHTML="<div>"+h+"</div>";
 }
-function pubItem(k){const x=PUBL[k];if(!x)return;$("sheet").innerHTML='<div class="vw"><h3>'+esc(x.n||(x.p?"Photocard":"Artículo"))+'</h3>'+pic({img:x.i,type:PIECE_TYPES[publicPieceKind(x)]})+((x.t||[]).length?`<div class="ctags" style="margin:2px 0 10px">${x.t.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",x.go)+kv("Grupo",x.g)+kv("Era",(PUB?.albums[pubSrc]?.eras||PUB?.data?.er||[]).find(e=>e.id==x.e)?.n)+kv("Estado",x.s)+(x.d?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(x.d)}</div>`:"")+'<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>';$("modal").classList.add("on")}
+function pubItem(k){const x=PUBL[k];if(!x)return;$("sheet").innerHTML='<div class="vw"><h3>'+esc(x.n||(x.p?"Photocard":"Artículo"))+'</h3>'+pic({img:x.i,imgBack:x.b,type:PIECE_TYPES[publicPieceKind(x)]})+((x.t||[]).length?`<div class="ctags" style="margin:2px 0 10px">${x.t.map(g=>`<span class="ctag" style="${tcol(g)};font-size:12px;padding:3px 10px">${esc(g)}</span>`).join("")}</div>`:"")+kv("GO",x.go)+kv("Grupo",x.g)+kv("Era",(PUB?.albums[pubSrc]?.eras||PUB?.data?.er||[]).find(e=>e.id==x.e)?.n)+kv("Estado",x.s)+(x.d?`<div class="mu" style="margin-top:8px;white-space:pre-wrap">${esc(x.d)}</div>`:"")+'<div style="margin-top:14px"><button class="sec" onclick="closeM()">Cerrar</button></div></div>';$("modal").classList.add("on")}
 {const u=new URLSearchParams(location.search).get("u");if(u)openPub(u)}
 
 /* ===== Amigos, likes y notificaciones ===== */
@@ -4395,7 +4605,7 @@ render();
 /* ===== Novedades por versión =====
    Actualiza APP_VER al cambiar el HTML. La creadora publica los avisos desde Ajustes > Publicar novedad.
    Cada usuario verá solo las versiones posteriores a la última que ya vio. */
-const APP_VER="1.56",VK="mypoca-ver";
+const APP_VER="1.57",VK="mypoca-ver";
 /* Novedades locales (respaldo). Las que publiques desde la app (Ajustes > Publicar novedad) se leen de Supabase y no necesitan subir el archivo. */
 const NEWS=[
  {v:"1.36",items:[["Para ti personalizado","Descubrir recomienda perfiles con grupos o bias en común contigo."]]},
